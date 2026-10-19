@@ -34,10 +34,20 @@ export type CodeScansData = {
   recent: ScanRow[]
 }
 
+export type Product = {
+  name: string | null
+  brands: string | null
+  quantity: string | null
+  categories: string[]
+  /** OpenFoodFacts's front image (docs/adr/0001); may be slow or gone, so treat it as optional. */
+  image_url: string | null
+  off_url: string
+}
+
 export type ProductData = {
   code: string
   /** Null for an unknown product. */
-  product: { name: string | null; brands: string | null } | null
+  product: Product | null
 }
 
 export type LocationsData = {

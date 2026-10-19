@@ -4,7 +4,7 @@ from pathlib import Path
 
 import polars as pl
 
-from food_parquet import food_product, write_food_parquet
+from food_parquet import food_product, image, write_food_parquet
 from snacker.products import extract_products, update_products
 
 
@@ -115,3 +115,92 @@ def test_forcing_extracts_again_even_when_nothing_is_new(tmp_path: Path) -> None
 
     assert update_products(food, ["8850999220000"], products, force=True) is True
     assert pl.read_parquet(products)["name"].to_list() == ["Soda water"]
+
+
+def product_card(food: Path, code: str) -> dict[str, object]:
+    return next(row for row in extract_products(food, [code]).to_dicts() if row["code"] == code)
+
+
+def test_a_product_card_has_quantity_categories_image_and_link(tmp_path: Path) -> None:
+    food = write_food_parquet(
+        tmp_path / "food.parquet",
+        food_product(
+            "8850999220000",
+            names={"main": "Soda water"},
+            quantity="325 ml",
+            categories="เครื่องดื่ม, en:Carbonated drinks,en:Carbonated waters",
+            lang="th",
+            images=[image("1"), image("front_en", rev=6), image("front_th", rev=20), image("nutrition_th", rev=24)],
+        ),
+    )
+
+    card = product_card(food, "8850999220000")
+
+    assert card["quantity"] == "325 ml"
+    assert card["categories"] == ["เครื่องดื่ม", "Carbonated drinks", "Carbonated waters"]
+    assert card["image_url"] == "https://images.openfoodfacts.org/images/products/885/099/922/0000/front_th.20.400.jpg"
+    assert card["off_url"] == "https://world.openfoodfacts.org/product/8850999220000"
+
+
+def test_without_a_front_image_in_its_own_language_english_then_any_front_image_is_used(tmp_path: Path) -> None:
+    food = write_food_parquet(
+        tmp_path / "food.parquet",
+        food_product("8850999220000", names={"main": "A"}, lang="fr",
+                     images=[image("front_th", rev=3), image("front_en", rev=6)]),
+        food_product("8851959132012", names={"main": "B"}, lang="fr", images=[image("front_th", rev=3)]),
+    )
+
+    assert str(product_card(food, "8850999220000")["image_url"]).endswith("/front_en.6.400.jpg")
+    assert str(product_card(food, "8851959132012")["image_url"]).endswith("/front_th.3.400.jpg")
+
+
+def test_short_codes_are_padded_to_13_digits_for_the_image_folder(tmp_path: Path) -> None:
+    food = write_food_parquet(
+        tmp_path / "food.parquet",
+        food_product("50390168", names={"main": "Mints"}, lang="th", images=[image("front_th", rev=17)]),
+    )
+
+    assert product_card(food, "50390168")["image_url"] == (
+        "https://images.openfoodfacts.org/images/products/000/005/039/0168/front_th.17.400.jpg"
+    )
+
+
+def test_a_product_without_images_categories_or_quantity_has_none(tmp_path: Path) -> None:
+    food = write_food_parquet(
+        tmp_path / "food.parquet",
+        food_product("8858702410304", names={"main": "Big folly"}, quantity=" ", lang="fr", images=[image("1")]),
+    )
+
+    card = product_card(food, "8858702410304")
+
+    assert (card["quantity"], card["categories"], card["image_url"]) == (None, [], None)
+    assert card["off_url"] == "https://world.openfoodfacts.org/product/8858702410304"
+
+
+def test_an_unknown_code_has_no_card_details(tmp_path: Path) -> None:
+    food = write_food_parquet(tmp_path / "food.parquet", food_product("8850999220000", names={"main": "Soda"}))
+
+    card = product_card(food, "005")
+
+    assert card["known"] is False
+    assert (card["quantity"], card["categories"], card["image_url"], card["off_url"]) == (None, None, None, None)
+
+
+def test_a_products_table_from_before_the_card_details_is_extracted_again(tmp_path: Path) -> None:
+    food = write_food_parquet(tmp_path / "food.parquet", food_product("8850999220000", names={"main": "Soda"}))
+    products = tmp_path / "products.parquet"
+    pl.DataFrame({"code": ["8850999220000"], "name": ["Soda"], "brands": [None]},
+                 schema={"code": pl.String(), "name": pl.String(), "brands": pl.String()}).write_parquet(products)
+
+    assert update_products(food, ["8850999220000"], products) is True
+    assert "image_url" in pl.read_parquet(products).columns
+
+
+def test_a_front_image_without_a_revision_is_skipped(tmp_path: Path) -> None:
+    food = write_food_parquet(
+        tmp_path / "food.parquet",
+        food_product("8850999220000", names={"main": "Soda"}, lang="th",
+                     images=[image("front_th", rev=None), image("front_en", rev=6)]),
+    )
+
+    assert str(product_card(food, "8850999220000")["image_url"]).endswith("/front_en.6.400.jpg")

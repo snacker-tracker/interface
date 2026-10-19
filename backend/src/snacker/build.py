@@ -11,7 +11,7 @@ import polars as pl
 
 from snacker.config import OFFICE_TIME_ZONES, RECENT_SCANS_LIMIT
 from snacker.locations import Locations
-from snacker.products import product_of, with_products
+from snacker.products import Product, known_products, with_products
 from snacker.scan_summary import summarise
 from snacker.scans import normalise_scans
 from snacker.timestamps import UTC_TIMESTAMP_FORMAT
@@ -45,15 +45,24 @@ def build(
             {"location": location, "daily": summary.daily, "recent": summary.recent},
         )
 
+    products = known_products(products_parquet)
     for (code,), code_scans in described_scans.group_by("code"):
-        write_code_files(data_dir / "codes" / path_segment(code), code, code_scans, locations, recent_limit)
+        write_code_files(
+            data_dir / "codes" / path_segment(code), code, products.get(code), code_scans, locations, recent_limit
+        )
 
 
 def write_code_files(
-    code_dir: Path, code: str, code_scans: pl.DataFrame, locations: Locations, recent_limit: int
+    code_dir: Path,
+    code: str,
+    product: Product | None,
+    code_scans: pl.DataFrame,
+    locations: Locations,
+    recent_limit: int,
 ) -> None:
-    """A code's product file, plus a scans file for each location the code was scanned in."""
-    write_json(code_dir / "product.json", {"code": code, "product": product_of(code_scans)})
+    """A code's product file (product null when unknown), plus a scans file for each
+    location the code was scanned in."""
+    write_json(code_dir / "product.json", {"code": code, "product": product})
 
     for location in locations.selectable():
         scans_within = locations.within(code_scans, location)

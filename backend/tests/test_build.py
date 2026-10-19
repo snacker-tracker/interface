@@ -10,7 +10,7 @@ import pytest
 
 from raw_events import backfill_scan, live_scan, write_events
 from snacker.build import build
-from snacker.products import PRODUCTS_SCHEMA
+from snacker.products import OPENFOODFACTS_PRODUCT_PAGE, PRODUCTS_SCHEMA
 
 GENERATED_AT = datetime(2026, 10, 19, 12, 0, tzinfo=UTC)
 
@@ -31,10 +31,23 @@ def products_parquet(raw_dir: Path) -> Path:
     return raw_dir.parent / "products.parquet"
 
 
-def write_products(raw_dir: Path, products: dict[str, tuple[str | None, str | None]]) -> None:
-    """The extracted products table: code -> (name, brands)."""
+def write_products(
+    raw_dir: Path,
+    products: dict[str, tuple[str | None, str | None]],
+    details: dict[str, dict[str, Any]] | None = None,
+) -> None:
+    """The extracted products table: code -> (name, brands), plus optional details by code.
+
+    A code whose name and brands are both None is an unknown product.
+    """
+    def row(code: str, name: str | None, brands: str | None) -> dict[str, Any]:
+        if name is None and brands is None:
+            return {"code": code, "known": False}
+        known = {"known": True, "off_url": OPENFOODFACTS_PRODUCT_PAGE.format(code=code), "categories": []}
+        return {"code": code, "name": name, "brands": brands, **known, **(details or {}).get(code, {})}
+
     pl.DataFrame(
-        [{"code": code, "name": name, "brands": brands} for code, (name, brands) in products.items()],
+        [row(code, name, brands) for code, (name, brands) in products.items()],
         schema=PRODUCTS_SCHEMA,
     ).write_parquet(products_parquet(raw_dir))
 
@@ -234,13 +247,28 @@ def test_every_scanned_code_gets_a_product_file(raw_dir: Path, out_dir: Path) ->
         live_scan("http://oishidrink.com/m/", time="2026-09-23T06:02:00Z"),
         live_scan("005", time="2026-09-23T06:01:00Z"),
     ])
-    write_products(raw_dir, {"8851959132012": ("Coca Cola", "Coke, coca cola")})
+    write_products(
+        raw_dir,
+        {"8851959132012": ("Coca Cola", "Coke, coca cola"), "http://oishidrink.com/m/": (None, None)},
+        details={"8851959132012": {
+            "quantity": "325 ml",
+            "categories": ["Carbonated drinks", "Sodas"],
+            "image_url": "https://images.openfoodfacts.org/images/products/885/195/913/2012/front_en.4.400.jpg",
+        }},
+    )
 
     run_build(raw_dir, out_dir)
 
     assert read_json(out_dir, "data/codes/8851959132012/product.json") == {
         "code": "8851959132012",
-        "product": {"name": "Coca Cola", "brands": "Coke, coca cola"},
+        "product": {
+            "name": "Coca Cola",
+            "brands": "Coke, coca cola",
+            "quantity": "325 ml",
+            "categories": ["Carbonated drinks", "Sodas"],
+            "image_url": "https://images.openfoodfacts.org/images/products/885/195/913/2012/front_en.4.400.jpg",
+            "off_url": "https://world.openfoodfacts.org/product/8851959132012",
+        },
     }
     assert read_json(out_dir, "data/codes/http:%2F%2Foishidrink.com%2Fm%2F/product.json") == {
         "code": "http://oishidrink.com/m/",

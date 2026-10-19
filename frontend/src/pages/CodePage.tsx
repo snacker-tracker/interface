@@ -2,6 +2,7 @@ import { useParams } from 'react-router'
 
 import { DailyScansChart } from '../components/DailyScansChart'
 import { HourlyScansChart } from '../components/HourlyScansChart'
+import { ProductCard } from '../components/ProductCard'
 import { RecentScans } from '../components/RecentScans'
 import { type CodeScansData, codeScansDataPath, type ProductData, productDataPath, useJson } from '../data'
 import { ALL_LOCATIONS, useSelectedLocation } from '../selectedLocation'
@@ -33,8 +34,7 @@ export function CodePage() {
   return (
     <>
       <section className="panel product-panel" aria-labelledby="product-heading">
-        <ProductHeading id="product-heading" product={product.data.product} />
-        <p className="code">{code}</p>
+        <ProductCard code={code} product={product.data.product} headingId="product-heading" />
         <p className="panel-hint">
           {total} {total === 1 ? 'scan' : 'scans'} {where}
         </p>
@@ -53,17 +53,6 @@ export function CodePage() {
         <h2 id="recent-heading">Latest {recent.length} scans</h2>
         <RecentScans scans={recent} forOneCode />
       </section>
-    </>
-  )
-}
-
-function ProductHeading({ id, product }: { id: string; product: ProductData['product'] }) {
-  return (
-    <>
-      <h2 id={id} className={product?.name ? 'product-name' : 'product-name unknown'}>
-        {product?.name ?? 'Unknown product'}
-      </h2>
-      {product?.brands && <p className="brands">{product.brands}</p>}
     </>
   )
 }

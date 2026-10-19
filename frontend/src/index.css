@@ -178,19 +178,71 @@ td.product .brands {
   font-size: 0.8125rem;
 }
 
-.product-panel .product-name {
+.product-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.product-image {
+  width: 120px;
+  height: 160px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  flex: none;
+}
+
+.product-image-missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+}
+
+.product-details {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.product-card .product-name {
   font-size: 1.375rem;
   margin: 0;
 }
 
-.product-panel .brands {
+.product-card .brands,
+.product-card .quantity {
   margin: 2px 0 0;
   color: var(--text-secondary);
 }
 
-.product-panel .code {
-  margin: 8px 0 4px;
+.product-card .categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+}
+
+.product-card .categories li {
+  font-size: 0.8125rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+}
+
+.product-card .code {
+  margin: 10px 0 4px;
   font-size: 0.875rem;
+}
+
+.product-panel .panel-hint {
+  margin: 12px 0 0;
 }
 
 .unknown {
