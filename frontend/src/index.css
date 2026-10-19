@@ -178,7 +178,22 @@ td.product .brands {
   font-size: 0.8125rem;
 }
 
-td.product .unknown {
+.product-panel .product-name {
+  font-size: 1.375rem;
+  margin: 0;
+}
+
+.product-panel .brands {
+  margin: 2px 0 0;
+  color: var(--text-secondary);
+}
+
+.product-panel .code {
+  margin: 8px 0 4px;
+  font-size: 0.875rem;
+}
+
+.unknown {
   color: var(--text-secondary);
   font-style: italic;
 }

@@ -98,3 +98,23 @@ def test_scan_rows_name_the_product_or_leave_it_empty_when_unknown() -> None:
         ("8851959132012", "Coca Cola", "Coke"),
         ("http://oishidrink.com/m/", None, None),
     ]
+
+
+def test_counts_scans_by_hour_of_the_day_in_the_office_time_zone() -> None:
+    scans = scans_table(
+        # 02:15 and 02:45 UTC are 09:15 and 09:45 in Bangkok; 16:59 UTC is 23:59.
+        scan("8850999220000", "2026-09-22T02:15:00Z", office_time_zone="Asia/Bangkok"),
+        scan("8850999220000", "2026-09-23T02:45:00Z", office_time_zone="Asia/Bangkok"),
+        scan("8850999220000", "2026-09-22T16:59:00Z", office_time_zone="Asia/Bangkok"),
+    )
+
+    hourly = summarise(scans, recent_limit=25).hourly
+
+    assert [entry["hour"] for entry in hourly] == list(range(24))
+    assert {entry["hour"]: entry["count"] for entry in hourly if entry["count"]} == {9: 2, 23: 1}
+
+
+def test_every_hour_is_listed_even_without_scans() -> None:
+    hourly = summarise(scans_table(), recent_limit=25).hourly
+
+    assert hourly == [{"hour": hour, "count": 0} for hour in range(24)]

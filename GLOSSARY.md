@@ -22,7 +22,7 @@ _Avoid_: item, snack (for the catalogue entry)
 A code with no matching product; its scans still count.
 
 **Scan summary**:
-What a set of scans amounts to: how many fell on each day in their office time zone, and which were the most recent.
+What a set of scans amounts to: how many fell on each day and in each hour of the day in their office time zone, and which were the most recent.
 _Avoid_: stats, aggregates, report
 
 ### Places and time

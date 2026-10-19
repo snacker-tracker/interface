@@ -20,6 +20,12 @@ class DailyCount(TypedDict):
     count: int
 
 
+class HourlyCount(TypedDict):
+    hour: int
+    """0-23, in the office time zone."""
+    count: int
+
+
 class ScanRow(TypedDict):
     code: str
     name: str | None
@@ -37,6 +43,8 @@ class ScanRow(TypedDict):
 class ScanSummary:
     daily: list[DailyCount]
     """Scans per date in their office time zone, oldest first; days without scans are left out."""
+    hourly: list[HourlyCount]
+    """Scans per hour of the day in their office time zone: always 24 entries, 0 to 23."""
     recent: list[ScanRow]
     """The most recent scans, newest first."""
 
@@ -44,13 +52,14 @@ class ScanSummary:
 def summarise(scans: pl.DataFrame, *, recent_limit: int) -> ScanSummary:
     return ScanSummary(
         daily=_daily_counts(scans),
+        hourly=_hourly_counts(scans),
         recent=_recent_scans(scans, recent_limit),
     )
 
 
 def _daily_counts(scans: pl.DataFrame) -> list[DailyCount]:
     counts = (
-        _with_office_dates(scans)
+        _with_office_moments(scans)
         .group_by("office_date")
         .len(name="count")
         .sort("office_date")
@@ -59,17 +68,30 @@ def _daily_counts(scans: pl.DataFrame) -> list[DailyCount]:
     return [DailyCount(date=row["date"], count=row["count"]) for row in counts.to_dicts()]
 
 
-def _with_office_dates(scans: pl.DataFrame) -> pl.DataFrame:
-    """Add each scan's calendar date in its own office time zone.
+def _hourly_counts(scans: pl.DataFrame) -> list[HourlyCount]:
+    counts = dict(
+        _with_office_moments(scans).group_by("office_hour").len(name="count").iter_rows()
+    )
+    return [HourlyCount(hour=hour, count=counts.get(hour, 0)) for hour in range(24)]
+
+
+def _with_office_moments(scans: pl.DataFrame) -> pl.DataFrame:
+    """Add each scan's calendar date and hour of the day in its own office time zone.
 
     Polars holds one time zone per column, so each zone's scans are converted separately.
     """
     if scans.is_empty():
-        return scans.with_columns(pl.lit(None, dtype=pl.Date()).alias("office_date"))
+        return scans.with_columns(
+            pl.lit(None, dtype=pl.Date()).alias("office_date"),
+            pl.lit(None, dtype=pl.Int8()).alias("office_hour"),
+        )
     return pl.concat([
         group.with_columns(
-            pl.col("scanned_at").dt.convert_time_zone(time_zone).dt.date().alias("office_date")
-        )
+            pl.col("scanned_at").dt.convert_time_zone(time_zone).alias("office_moment")
+        ).with_columns(
+            pl.col("office_moment").dt.date().alias("office_date"),
+            pl.col("office_moment").dt.hour().alias("office_hour"),
+        ).drop("office_moment")
         for (time_zone,), group in scans.group_by("office_time_zone")
     ])
 

@@ -1,7 +1,7 @@
 import type { VisualizationSpec } from 'vega-embed'
 
 import type { DailyCount } from '../data'
-import type { ChartTokens } from '../theme'
+import { type ChartTokens, chartConfig } from '../theme'
 
 /**
  * Vega-Lite spec for scans per day: a detail chart on top, and below it an overview of
@@ -66,22 +66,6 @@ export function dailyScansSpec(daily: DailyCount[], tokens: ChartTokens): Visual
         },
       },
     ],
-    config: {
-      font: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
-      view: { stroke: null },
-      axis: {
-        domainColor: tokens.grid,
-        gridColor: tokens.grid,
-        gridWidth: 1,
-        tickColor: tokens.grid,
-        labelColor: tokens.textSecondary,
-        titleColor: tokens.textSecondary,
-        labelFontSize: 11,
-        titleFontWeight: 'normal',
-      },
-      axisX: { grid: false },
-      mark: { tooltip: true },
-      selection: { interval: { mark: { fill: tokens.textSecondary, fillOpacity: 0.15, stroke: tokens.textSecondary } } },
-    },
+    config: chartConfig(tokens),
   }
 }

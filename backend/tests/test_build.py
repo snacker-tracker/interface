@@ -226,3 +226,52 @@ def test_scan_rows_carry_product_names_from_the_extracted_products(raw_dir: Path
         ("http://oishidrink.com/m/", None, None),
         ("8850999220000", None, None),
     ]
+
+
+def test_every_scanned_code_gets_a_product_file(raw_dir: Path, out_dir: Path) -> None:
+    write_events(raw_dir, "scans/2026/09/23/delivery", [
+        live_scan("8851959132012", time="2026-09-23T06:03:00Z"),
+        live_scan("http://oishidrink.com/m/", time="2026-09-23T06:02:00Z"),
+        live_scan("005", time="2026-09-23T06:01:00Z"),
+    ])
+    write_products(raw_dir, {"8851959132012": ("Coca Cola", "Coke, coca cola")})
+
+    run_build(raw_dir, out_dir)
+
+    assert read_json(out_dir, "data/codes/8851959132012/product.json") == {
+        "code": "8851959132012",
+        "product": {"name": "Coca Cola", "brands": "Coke, coca cola"},
+    }
+    assert read_json(out_dir, "data/codes/http:%2F%2Foishidrink.com%2Fm%2F/product.json") == {
+        "code": "http://oishidrink.com/m/",
+        "product": None,
+    }
+    url_code_scans = read_json(out_dir, "data/codes/http:%2F%2Foishidrink.com%2Fm%2F/by-location/all.json")
+    assert url_code_scans["code"] == "http://oishidrink.com/m/"
+    assert read_json(out_dir, "data/codes/005/product.json") == {"code": "005", "product": None}
+
+
+def test_a_code_gets_a_scans_file_for_each_location_it_was_scanned_in(
+    raw_dir: Path, out_dir: Path
+) -> None:
+    write_events(raw_dir, "scans/2026/09/23/delivery", [
+        live_scan("8851959132012", time="2026-09-23T02:15:00Z", location="thailand:bangkok:main-kitchen"),
+        live_scan("8850999220000", time="2026-09-23T02:20:00Z", location="thailand:test"),
+    ])
+
+    run_build(raw_dir, out_dir)
+
+    by_location = out_dir / "data/codes/8851959132012/by-location"
+    assert sorted(p.name for p in by_location.iterdir()) == [
+        "all.json",
+        "thailand.json",
+        "thailand:bangkok.json",
+        "thailand:bangkok:main-kitchen.json",
+    ]
+    kitchen = read_json(out_dir, "data/codes/8851959132012/by-location/thailand:bangkok:main-kitchen.json")
+    assert kitchen["code"] == "8851959132012"
+    assert kitchen["location"] == "thailand:bangkok:main-kitchen"
+    assert kitchen["daily"] == [{"date": "2026-09-23", "count": 1}]
+    assert len(kitchen["hourly"]) == 24
+    assert kitchen["hourly"][9] == {"hour": 9, "count": 1}  # 02:15 UTC is 09:15 in Bangkok
+    assert [row["code"] for row in kitchen["recent"]] == ["8851959132012"]

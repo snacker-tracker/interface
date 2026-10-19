@@ -8,12 +8,11 @@ export function IndexPage() {
   const index = useJson<IndexData>(indexDataPath(location))
 
   if (index.status === 'loading') return <p className="status">Loading scans…</p>
+  if (index.status === 'missing') {
+    return <p className="status status-error">There's no data for {location}. Is it a known location, and has the data been built?</p>
+  }
   if (index.status === 'error') {
-    return (
-      <p className="status status-error">
-        Couldn't load scans for {location} ({index.message}). Is it a known location, and has the data been built?
-      </p>
-    )
+    return <p className="status status-error">Couldn't load scans for {location} ({index.message}).</p>
   }
 
   const { daily, recent } = index.data

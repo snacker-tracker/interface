@@ -2,6 +2,7 @@ import { createBrowserRouter, Link, Outlet, useLocation } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 
 import { LocationSelector } from './components/LocationSelector'
+import { CodePage } from './pages/CodePage'
 import { IndexPage } from './pages/IndexPage'
 
 function Layout() {
@@ -25,7 +26,10 @@ function Layout() {
 const router = createBrowserRouter([
   {
     element: <Layout />,
-    children: [{ path: '/', element: <IndexPage /> }],
+    children: [
+      { path: '/', element: <IndexPage /> },
+      { path: '/codes/:code', element: <CodePage /> },
+    ],
   },
 ])
 

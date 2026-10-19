@@ -1,5 +1,6 @@
 // Reads the colour tokens defined in index.css so charts follow the light/dark theme.
 import { useEffect, useState } from 'react'
+import type { Config } from 'vega-lite'
 
 export type ChartTokens = {
   textSecondary: string
@@ -30,4 +31,27 @@ export function useChartTokens(): ChartTokens {
     return () => media.removeEventListener('change', update)
   }, [])
   return tokens
+}
+
+/** The Vega-Lite config every chart shares: fonts, recessive axes and grid, tooltips. */
+export function chartConfig(tokens: ChartTokens): Config {
+  return {
+    font: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+    view: { stroke: null },
+    axis: {
+      domainColor: tokens.grid,
+      gridColor: tokens.grid,
+      gridWidth: 1,
+      tickColor: tokens.grid,
+      labelColor: tokens.textSecondary,
+      titleColor: tokens.textSecondary,
+      labelFontSize: 11,
+      titleFontWeight: 'normal',
+    },
+    axisX: { grid: false },
+    mark: { tooltip: true },
+    selection: {
+      interval: { mark: { fill: tokens.textSecondary, fillOpacity: 0.15, stroke: tokens.textSecondary } },
+    },
+  }
 }

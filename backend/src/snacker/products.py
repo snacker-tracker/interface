@@ -7,6 +7,7 @@ were looked up (and shows them as unknown products).
 """
 
 from collections.abc import Iterable
+from typing import TypedDict
 from pathlib import Path
 
 import polars as pl
@@ -79,3 +80,17 @@ def with_products(scans: pl.DataFrame, products_parquet: Path) -> pl.DataFrame:
         pl.col("brands").alias("product_brands"),
     )
     return scans.join(products, on="code", how="left", maintain_order="left")
+
+
+class Product(TypedDict):
+    name: str | None
+    brands: str | None
+
+
+def product_of(code_scans: pl.DataFrame) -> Product | None:
+    """The product scanned in `code_scans` (all one code, with products attached); None if unknown."""
+    first = code_scans.row(0, named=True)
+    if first["product_name"] is None and first["product_brands"] is None:
+        return None
+    return Product(name=first["product_name"], brands=first["product_brands"])
+

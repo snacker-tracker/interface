@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react'
 
 export type DailyCount = { date: string; count: number }
 
+/** `hour` is 0-23 in the office time zone; a file always lists all 24. */
+export type HourlyCount = { hour: number; count: number }
+
 export type ScanRow = {
   code: string
   /** The product's name; null for an unknown product. */
@@ -21,6 +24,20 @@ export type IndexData = {
   location: string
   daily: DailyCount[]
   recent: ScanRow[]
+}
+
+export type CodeScansData = {
+  code: string
+  location: string
+  daily: DailyCount[]
+  hourly: HourlyCount[]
+  recent: ScanRow[]
+}
+
+export type ProductData = {
+  code: string
+  /** Null for an unknown product. */
+  product: { name: string | null; brands: string | null } | null
 }
 
 export type LocationsData = {
@@ -47,11 +64,18 @@ export function dataPath(...segments: string[]): string {
 
 export const locationsDataPath = () => dataPath('locations')
 export const indexDataPath = (location: string) => dataPath('index', 'by-location', location)
+export const productDataPath = (code: string) => dataPath('codes', code, 'product')
+export const codeScansDataPath = (code: string, location: string) =>
+  dataPath('codes', code, 'by-location', location)
 
 export type Fetched<T> =
   | { status: 'loading' }
+  /** No such file. Pages decide what that means, e.g. a code never scanned at a location. */
+  | { status: 'missing' }
   | { status: 'error'; message: string }
   | { status: 'ready'; data: T }
+
+class Missing extends Error {}
 
 export function useJson<T>(path: string): Fetched<T> {
   const [result, setResult] = useState<{ path: string; fetched: Fetched<T> }>({
@@ -63,15 +87,18 @@ export function useJson<T>(path: string): Fetched<T> {
     const controller = new AbortController()
     fetch(path, { signal: controller.signal })
       .then((response) => {
+        if (response.status === 404) throw new Missing()
         if (!response.ok) throw new Error(`${response.status} ${response.statusText}`)
         // Dev servers and SPA hosts answer a missing file with index.html and a 200.
-        if (!response.headers.get('content-type')?.includes('json')) throw new Error('not found')
+        if (!response.headers.get('content-type')?.includes('json')) throw new Missing()
         return response.json() as Promise<T>
       })
       .then((data) => setResult({ path, fetched: { status: 'ready', data } }))
       .catch((error: unknown) => {
         if (controller.signal.aborted) return
-        setResult({ path, fetched: { status: 'error', message: String(error) } })
+        const fetched: Fetched<T> =
+          error instanceof Missing ? { status: 'missing' } : { status: 'error', message: String(error) }
+        setResult({ path, fetched })
       })
     return () => controller.abort()
   }, [path])
