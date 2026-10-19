@@ -19,15 +19,15 @@ export function IndexPage() {
   const { top_scans, daily, recent } = index.data
   return (
     <>
-      <section className="panel" aria-labelledby="top-scans-heading">
-        <h2 id="top-scans-heading">Top scans</h2>
-        <p className="panel-hint">The codes scanned most, up to when the data was built.</p>
-        <TopScans topScans={top_scans} />
-      </section>
       <section className="panel" aria-labelledby="daily-heading">
         <h2 id="daily-heading">Scans per day</h2>
         <p className="panel-hint">Drag across the lower chart to zoom in; double-click it to reset.</p>
         <DailyScansChart daily={daily} />
+      </section>
+      <section className="panel" aria-labelledby="top-scans-heading">
+        <h2 id="top-scans-heading">Top scans</h2>
+        <p className="panel-hint">The codes scanned most, up to when the data was built.</p>
+        <TopScans topScans={top_scans} />
       </section>
       <section className="panel" aria-labelledby="recent-heading">
         <h2 id="recent-heading">Latest {recent.length} scans</h2>
