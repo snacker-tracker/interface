@@ -1,0 +1,18 @@
+# Raw source data (copied locally from S3) and generated build output
+/data/
+/datasets/
+/public-data/
+
+# Python
+__pycache__/
+.venv/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+
+# Node
+node_modules/
+dist/
+
+# Per-machine Claude Code settings
+.claude/settings.local.json
