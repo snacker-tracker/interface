@@ -102,20 +102,18 @@ a {
   max-width: 100%;
 }
 
-.scanner-status {
+.scanners-link {
   margin-left: auto;
-  font-size: 0.8125rem;
-  text-align: right;
+  font-size: 0.875rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  text-decoration: none;
 }
 
-.scanner-status ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.scanner-status p {
-  margin: 0;
+.scanners-link.offline {
+  font-weight: 600;
 }
 
 .scanner-state {
@@ -123,11 +121,11 @@ a {
 }
 
 /* Status colour on the icon only: the label stays in text colour for contrast. */
-.scanner-status .online .scanner-icon {
+.online .scanner-icon {
   color: var(--good);
 }
 
-.scanner-status .offline .scanner-icon {
+.offline .scanner-icon {
   color: var(--critical);
 }
 
@@ -135,100 +133,19 @@ a {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-.scanner-detail {
-  color: var(--text-secondary);
-}
-
-@media (max-width: 640px) {
-  .scanner-status {
-    margin-left: 0;
-    text-align: left;
-    width: 100%;
-  }
-}
-
-.period-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 12px;
-}
-
-.period-tabs button {
-  font: inherit;
-  font-size: 0.8125rem;
-  padding: 4px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background: var(--surface-0);
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.period-tabs button[aria-selected='true'] {
-  background: var(--text-primary);
-  border-color: var(--text-primary);
-  color: var(--surface-1);
-}
-
-.top-scans {
-  margin: 0;
-  padding-left: 2rem;
-}
-
-.top-scans li {
-  padding: 8px 0;
-  border-bottom: 1px solid var(--border);
-}
-
-/* Product on the left, count on the right; the count wraps under on narrow screens. */
-.top-scans li > .top-scan-row {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  gap: 4px 16px;
-}
-
-.top-scan-product {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 4px 8px;
-  min-width: 0;
-}
-
-.top-scan-product .brands,
-.top-scan-product .code,
-.top-scan-count .share {
+.exact-time {
+  display: block;
   color: var(--text-secondary);
   font-size: 0.8125rem;
 }
 
-.top-scan-product .code {
-  word-break: break-all;
+.last-scan-product {
+  display: block;
+  font-size: 0.8125rem;
 }
 
-.top-scan-count {
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  font-size: 0.875rem;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
-.not-in-off {
-  display: inline-flex;
-  gap: 6px;
-  align-items: baseline;
-  font-size: 0.75rem;
-}
-
-.not-in-off .tag {
-  padding: 1px 6px;
-  border-radius: 4px;
-  border: 1px solid var(--border);
-  color: var(--text-secondary);
+.scanners-table td {
+  vertical-align: top;
 }
 
 .app-main {

@@ -58,7 +58,7 @@ def build(
     for location in locations.selectable():
         write_json(
             data_dir / "scanners" / "by-location" / f"{path_segment(location)}.json",
-            {"location": location, "scanners": scanner_statuses(locations.within(heartbeats, location))},
+            {"location": location, "scanners": scanner_statuses(locations.within(heartbeats, location), described_scans)},
         )
 
     products = known_products(products_parquet)

@@ -125,7 +125,7 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 
 - **G1:** A prominent **location selector** appears in the header on every page. It lists `all` plus every hierarchy level from R2.
 - **G2:** The selected location is held in the browser URL as `?location=<location>`. If absent, it defaults to `all`. Changing the selection keeps the user on the current page.
-- **G3:** A **scanner status widget** in the header lists each scanner within the selected location: name, "last seen X ago", app version, and an offline indicator (R6). It also shows the data build time.
+- **G3:** The header links to a **scanners page** (`/scanners`). The link reads "✕ N offline" when any scanner within the selected location is offline (R6). The page lists each scanner within the selected location: status, name, location, last heartbeat, last scan (tied to the scanner by API key, docs/adr/0002) and app version. It also shows the data build time. (Changed from a header widget by ticket 10.)
 
 ### 6.2 Index page: `/`
 

@@ -53,8 +53,12 @@ _Avoid_: local time
 ### Hardware
 
 **Scanner**:
-An internet-connected barcode reader placed at a location.
+An internet-connected barcode scanner placed at a location. A scanner is known once it has sent a heartbeat. Its scans are the ones sent with the same API key as its heartbeats, so each scanner has its own key.
 _Avoid_: device, reader
+
+**Offline**:
+A scanner whose latest heartbeat is more than an hour old. Scans don't count: a working scanner can go a weekend without one.
+_Avoid_: down, dead, inactive
 
 **Heartbeat**:
 A periodic sign of life from a scanner, carrying its app version.

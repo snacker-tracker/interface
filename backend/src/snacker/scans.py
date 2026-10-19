@@ -21,6 +21,7 @@ SCANS_SCHEMA = pl.Schema({
     "scanned_at": pl.Datetime("us", "UTC"),
     "scanned_at_source": pl.String(),  # "device" | "reported"
     "origin": pl.String(),  # "backfill" | "live"; kept for debugging only
+    "api_key": pl.String(),  # the scanner's API key; null for backfill (see docs/adr/0002)
 })
 
 ORIGIN_BY_SOURCE = {"from-backup": "backfill", "scanner": "live"}
@@ -44,4 +45,5 @@ def normalise_scan_event(event: dict[str, Any]) -> dict[str, Any]:
         "scanned_at": parse_aware_timestamp(device_time or event["time"]),
         "scanned_at_source": "device" if device_time else "reported",
         "origin": ORIGIN_BY_SOURCE[event["source"]],
+        "api_key": event["detail"].get("apiKeyId"),
     }

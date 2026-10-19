@@ -82,6 +82,16 @@ export type ScannerStatus = {
   app_version: string
   /** UTC time of its latest heartbeat */
   last_seen: string
+  /** The latest scan sent with its API key (docs/adr/0002); null if none. */
+  last_scan: LastScan | null
+}
+
+export type LastScan = {
+  /** UTC */
+  scanned_at: string
+  code: string
+  /** Null for an unknown product. */
+  product_name: string | null
 }
 
 export type ScannersData = { location: string; scanners: ScannerStatus[] }

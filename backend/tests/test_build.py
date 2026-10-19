@@ -343,6 +343,7 @@ def test_a_scanner_is_listed_from_its_latest_heartbeat_in_any_shape(raw_dir: Pat
             "location": "thailand:bangkok:main-kitchen",
             "app_version": "v0.1.42",
             "last_seen": "2026-10-19T09:45:47Z",
+            "last_scan": {"scanned_at": "2026-09-23T06:00:00Z", "code": "8850999220000", "product_name": None},
         }],
     }
 
@@ -418,3 +419,45 @@ def test_index_files_list_top_scans_for_every_period(raw_dir: Path, out_dir: Pat
     assert [row["code"] for row in top_scans["all-time"]] == ["8851959132012", "005", "8850999220000"]
     kitchen = read_json(out_dir, "data/index/by-location/thailand:bangkok:main-kitchen.json")
     assert [row["code"] for row in kitchen["top_scans"]["all-time"]] == ["8851959132012", "005"]
+
+
+def test_each_scanner_shows_the_last_scan_sent_with_its_api_key(raw_dir: Path, out_dir: Path) -> None:
+    write_events(raw_dir, "heartbeats/2026/10/19/delivery", [
+        heartbeat_v2(time="2026-10-19T09:00:00Z", device_name="kitchen", api_key="key-kitchen"),
+        heartbeat_v2(time="2026-10-19T09:00:00Z", device_name="lobby", api_key="key-lobby"),
+        heartbeat_v2(time="2026-10-19T09:00:00Z", device_name="spare", api_key="key-spare"),
+    ])
+    write_events(raw_dir, "scans/2026/10/19/delivery", [
+        live_scan("8851959132012", time="2026-10-19T08:00:00Z", api_key="key-kitchen"),
+        live_scan("8850999220000", time="2026-10-19T07:00:00Z", api_key="key-kitchen"),
+        live_scan("005", time="2026-10-19T08:30:00Z", api_key="key-lobby"),
+    ])
+    # A later backfill scan has no API key, so it is nobody's last scan.
+    write_events(raw_dir, "scans/2026/10/19/backfill.jsonl", [
+        backfill_scan("8858702410304", scanned_at="2026-10-19T08:45:00Z", location="thailand:bangkok:main-kitchen"),
+    ])
+    write_products(raw_dir, {"8851959132012": ("Coca Cola", "Coke")})
+
+    run_build(raw_dir, out_dir)
+
+    scanners = read_json(out_dir, "data/scanners/by-location/all.json")["scanners"]
+    assert {scanner["name"]: scanner["last_scan"] for scanner in scanners} == {
+        "kitchen": {"scanned_at": "2026-10-19T08:00:00Z", "code": "8851959132012", "product_name": "Coca Cola"},
+        "lobby": {"scanned_at": "2026-10-19T08:30:00Z", "code": "005", "product_name": None},
+        "spare": None,
+    }
+
+
+def test_a_scanner_whose_heartbeats_have_no_api_key_has_no_last_scan(raw_dir: Path, out_dir: Path) -> None:
+    write_events(raw_dir, "heartbeats/2026/10/19/delivery", [
+        heartbeat_v2(time="2026-10-19T09:00:00Z", device_name="keyless", api_key=None),
+    ])
+    # Backfill scans have no API key either; a missing key must not match them.
+    write_events(raw_dir, "scans/2026/10/19/backfill.jsonl", [
+        backfill_scan("8858702410304", scanned_at="2026-10-19T08:45:00Z", location="thailand:bangkok:main-kitchen"),
+    ])
+
+    run_build(raw_dir, out_dir)
+
+    scanners = read_json(out_dir, "data/scanners/by-location/all.json")["scanners"]
+    assert [(scanner["name"], scanner["last_scan"]) for scanner in scanners] == [("keyless", None)]

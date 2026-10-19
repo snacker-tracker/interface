@@ -41,6 +41,7 @@ def live_scan(
     time: str,
     location: str = "thailand:bangkok:main-kitchen",
     event_id: str | None = None,
+    api_key: str = "s8ma4oq3ue",
 ) -> Event:
     """A scan from the current scanner: `scans`, `scanner`, no `scanned_at` in the payload."""
     return {
@@ -56,12 +57,12 @@ def live_scan(
             "client_ip": "203.0.113.10",
             "request_id": str(uuid.uuid4()),
             "payload": {"code": code, "location": location},
-            "apiKeyId": "s8ma4oq3ue",
+            "apiKeyId": api_key,
         },
     }
 
 
-def _heartbeat_envelope(time: str, payload: dict[str, Any]) -> Event:
+def _heartbeat_envelope(time: str, payload: dict[str, Any], api_key: str | None = "s8ma4oq3ue") -> Event:
     return {
         "version": "0",
         "id": str(uuid.uuid4()),
@@ -71,7 +72,7 @@ def _heartbeat_envelope(time: str, payload: dict[str, Any]) -> Event:
         "time": time,
         "region": "ap-southeast-1",
         "resources": [],
-        "detail": {"client_ip": "203.0.113.10", "request_id": str(uuid.uuid4()), "payload": payload, "apiKeyId": "s8ma4oq3ue"},
+        "detail": {"client_ip": "203.0.113.10", "request_id": str(uuid.uuid4()), "payload": payload, "apiKeyId": api_key},
     }
 
 
@@ -99,6 +100,7 @@ def heartbeat_flat_with_telemetry(
 def heartbeat_v2(
     *, time: str, device_name: str = "rpi-pico-w-01",
     location: str = "thailand:bangkok:main-kitchen", version: str = "v0.1.42",
+    api_key: str | None = "s8ma4oq3ue",
 ) -> Event:
     """`schema_version` 2: nested under platform, device, telemetry and app."""
     return _heartbeat_envelope(time, {
@@ -109,7 +111,7 @@ def heartbeat_v2(
                       "mem_free": 185872},
         "app": {"name": "snacker-tracker/pico-scanner", "version": version},
         "schema_version": 2,
-    })
+    }, api_key)
 
 
 def write_events(raw_dir: Path, relative_path: str, events: list[Event]) -> None:
