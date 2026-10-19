@@ -57,3 +57,4 @@ Every period ends at the build time.
   - **Real data:** All time is led by Soda water (446). Today and This work week are empty, as the latest live scan was on 16 Oct. Recent periods are dominated by unknown products.
   - **Checked:** rendered in happy-dom (the default, a bogus value, an empty period, and a tab click that keeps `?location=`). Not seen in a real browser.
 - 2026-10-19: Moved below the scans-per-day chart, at the user's request. The page now reads chart, then top scans, then latest scans.
+- 2026-10-19: At the user's request, the "? Not in OpenFoodFacts" tag was removed. An unknown product now shows "Unknown product" and, for barcodes, an "Add it to OpenFoodFacts" link.

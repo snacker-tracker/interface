@@ -66,7 +66,7 @@ function TopScanRow({ row }: { row: TopScan }) {
           </Link>
           {row.brands && <span className="brands">{row.brands}</span>}
           <span className="code">{row.code}</span>
-          {!row.known && <UnknownProductFlag code={row.code} />}
+          {!row.known && <AddToOpenFoodFacts code={row.code} />}
         </div>
         <div className="top-scan-count">
           <strong>{row.count}</strong> {row.count === 1 ? 'scan' : 'scans'}
@@ -83,23 +83,17 @@ function productLabel(row: TopScan): string {
   return row.known ? 'Unnamed product' : 'Unknown product'
 }
 
-/** Flags an unknown product; barcodes can be added to OpenFoodFacts so they get a name. */
-function UnknownProductFlag({ code }: { code: string }) {
-  const addable = /^\d+$/.test(code)
+/** For an unknown product with a barcode: adding it to OpenFoodFacts gives it a name. */
+function AddToOpenFoodFacts({ code }: { code: string }) {
+  if (!/^\d+$/.test(code)) return null // QR-code URLs and the like can't be added
   return (
-    <span className="not-in-off">
-      <span className="tag">
-        <span aria-hidden="true">?</span> Not in OpenFoodFacts
-      </span>
-      {addable && (
-        <a
-          href={`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code=${encodeURIComponent(code)}`}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Add it
-        </a>
-      )}
-    </span>
+    <a
+      className="add-to-off"
+      href={`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code=${encodeURIComponent(code)}`}
+      target="_blank"
+      rel="noreferrer"
+    >
+      Add it to OpenFoodFacts
+    </a>
   )
 }
