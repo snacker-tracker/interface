@@ -20,8 +20,33 @@ export type ScanRow = {
   office_time_zone: string
 }
 
+/** The periods top scans are ranked over, in display order (see GLOSSARY.md, Period). */
+export const PERIODS = [
+  'today',
+  'this-work-week',
+  'last-7-days',
+  'this-month',
+  'last-30-days',
+  'this-year',
+  'last-365-days',
+  'all-time',
+] as const
+export type Period = (typeof PERIODS)[number]
+
+export type TopScan = {
+  code: string
+  name: string | null
+  brands: string | null
+  /** Whether OpenFoodFacts has the product. */
+  known: boolean
+  count: number
+  /** Fraction of the period's scans, e.g. 0.25. */
+  share: number
+}
+
 export type IndexData = {
   location: string
+  top_scans: Record<Period, TopScan[]>
   daily: DailyCount[]
   recent: ScanRow[]
 }

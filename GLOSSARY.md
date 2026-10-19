@@ -25,6 +25,14 @@ A code with no matching product; its scans still count.
 What a set of scans amounts to: how many fell on each day and in each hour of the day in their office time zone, and which were the most recent.
 _Avoid_: stats, aggregates, report
 
+**Top scans**:
+The codes scanned most often within a period, most first, unknown products included. It ranks codes, not individual scans.
+_Avoid_: most scanned, popular, top items, best sellers, favourites
+
+**Period**:
+A span of time ending when the data was built: calendar-aligned in each scan's office time zone (today, this work week from Monday, this month, this year), rolling (the last 7, 30 or 365 days), or all time.
+_Avoid_: range, window (for this concept)
+
 ### Places and time
 
 **Location**:

@@ -8,3 +8,6 @@ OFFICE_TIME_ZONES: dict[str, str] = {
 
 RECENT_SCANS_LIMIT = 25
 """How many of the most recent scans each list shows."""
+
+TOP_SCANS_LIMIT = 10
+"""How many codes each period's top scans list shows."""

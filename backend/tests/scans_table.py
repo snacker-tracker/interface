@@ -14,6 +14,7 @@ def scan(
     office_time_zone: str = "UTC",
     product_name: str | None = None,
     product_brands: str | None = None,
+    product_known: bool = False,
 ) -> dict[str, object]:
     return {
         "event_id": str(uuid.uuid4()),
@@ -23,6 +24,7 @@ def scan(
         "office_time_zone": office_time_zone,
         "product_name": product_name,
         "product_brands": product_brands,
+        "product_known": product_known,
     }
 
 
@@ -37,5 +39,6 @@ def scans_table(*scans: dict[str, object]) -> pl.DataFrame:
             "office_time_zone": pl.String(),
             "product_name": pl.String(),
             "product_brands": pl.String(),
+            "product_known": pl.Boolean(),
         },
     )

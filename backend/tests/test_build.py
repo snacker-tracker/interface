@@ -90,6 +90,17 @@ def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) 
 
     assert read_json(out_dir, "data/index/by-location/all.json") == {
         "location": "all",
+        # Scans from 2023 fall only in all time, as of the 2026 build; equal counts go to the latest.
+        "top_scans": {
+            **{period: [] for period in (
+                "today", "this-work-week", "last-7-days", "this-month",
+                "last-30-days", "this-year", "last-365-days",
+            )},
+            "all-time": [
+                {"code": "8851959132012", "name": None, "brands": None, "known": False, "count": 1, "share": 0.5},
+                {"code": "8850999220000", "name": None, "brands": None, "known": False, "count": 1, "share": 0.5},
+            ],
+        },
         "daily": [{"date": "2023-01-08", "count": 2}],
         "recent": [
             {
@@ -379,3 +390,31 @@ def test_a_heartbeat_in_an_unknown_shape_stops_the_build(raw_dir: Path, out_dir:
 
     with pytest.raises(ValueError, match="heartbeat in an unknown shape"):
         run_build(raw_dir, out_dir)
+
+
+def test_index_files_list_top_scans_for_every_period(raw_dir: Path, out_dir: Path) -> None:
+    # GENERATED_AT is 2026-10-19 12:00 UTC (19:00 Monday in Bangkok).
+    write_events(raw_dir, "scans/2026/10/19/delivery", [
+        live_scan("8851959132012", time="2026-10-19T03:00:00Z"),
+        live_scan("8851959132012", time="2026-10-19T04:00:00Z"),
+        live_scan("005", time="2026-10-19T05:00:00Z"),
+    ])
+    write_events(raw_dir, "scans/2023/01/08/backfill-2023-01-08.jsonl", [
+        backfill_scan("8850999220000", scanned_at="2023-01-08T03:10:22Z", location="thailand:bangkok"),
+    ])
+    write_products(raw_dir, {"8851959132012": ("Coca Cola", "Coke"), "005": (None, None)})
+
+    run_build(raw_dir, out_dir)
+
+    top_scans = read_json(out_dir, "data/index/by-location/all.json")["top_scans"]
+    assert list(top_scans) == [
+        "today", "this-work-week", "last-7-days", "this-month",
+        "last-30-days", "this-year", "last-365-days", "all-time",
+    ]
+    assert top_scans["today"] == [
+        {"code": "8851959132012", "name": "Coca Cola", "brands": "Coke", "known": True, "count": 2, "share": 0.6667},
+        {"code": "005", "name": None, "brands": None, "known": False, "count": 1, "share": 0.3333},
+    ]
+    assert [row["code"] for row in top_scans["all-time"]] == ["8851959132012", "005", "8850999220000"]
+    kitchen = read_json(out_dir, "data/index/by-location/thailand:bangkok:main-kitchen.json")
+    assert [row["code"] for row in kitchen["top_scans"]["all-time"]] == ["8851959132012", "005"]

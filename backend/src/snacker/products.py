@@ -115,16 +115,20 @@ def update_products(
 
 
 def with_products(scans: pl.DataFrame, products_parquet: Path) -> pl.DataFrame:
-    """Attach each scan's product as `product_name` and `product_brands` columns.
+    """Attach each scan's product as `product_name`, `product_brands` and `product_known` columns.
 
-    Both are null for unknown products, including codes scanned since the last extraction.
+    Name and brands are null, and known is false, for unknown products, including codes
+    scanned since the last extraction.
     """
     products = pl.read_parquet(products_parquet, columns=PRODUCTS_SCHEMA.names()).select(
         "code",
         pl.col("name").alias("product_name"),
         pl.col("brands").alias("product_brands"),
+        pl.col("known").alias("product_known"),
     )
-    return scans.join(products, on="code", how="left", maintain_order="left")
+    return scans.join(products, on="code", how="left", maintain_order="left").with_columns(
+        pl.col("product_known").fill_null(False)
+    )
 
 
 class Product(TypedDict):

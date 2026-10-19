@@ -2,11 +2,12 @@
 
 Days are counted in each scan's office time zone, so the scans table must carry an
 `office_time_zone` column (see Locations.with_office_time_zones) alongside `scanned_at` in UTC,
-plus `product_name` and `product_brands` columns, null for unknown products (see products.with_products).
+plus `product_name`, `product_brands` and `product_known` columns (see products.with_products).
 """
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime, timedelta
+from collections.abc import Callable
 from typing import TypedDict
 from zoneinfo import ZoneInfo
 
@@ -24,6 +25,44 @@ class HourlyCount(TypedDict):
     hour: int
     """0-23, in the office time zone."""
     count: int
+
+
+class TopScan(TypedDict):
+    code: str
+    name: str | None
+    brands: str | None
+    known: bool
+    """Whether OpenFoodFacts has the product; unknown products are flagged in the UI."""
+    count: int
+    share: float
+    """This code's fraction of all scans in the period, e.g. 0.25."""
+
+
+PERIODS = [
+    "today",
+    "this-work-week",
+    "last-7-days",
+    "this-month",
+    "last-30-days",
+    "this-year",
+    "last-365-days",
+    "all-time",
+]
+"""Every period top scans are ranked over, in display order (see GLOSSARY.md, Period)."""
+
+CALENDAR_PERIODS: dict[str, Callable[[date], date]] = {
+    # Each maps today's office date to the period's first office date.
+    "today": lambda today: today,
+    "this-work-week": lambda today: today - timedelta(days=today.weekday()),  # back to Monday
+    "this-month": lambda today: today.replace(day=1),
+    "this-year": lambda today: date(today.year, 1, 1),
+}
+
+ROLLING_PERIODS = {
+    "last-7-days": timedelta(days=7),
+    "last-30-days": timedelta(days=30),
+    "last-365-days": timedelta(days=365),
+}
 
 
 class ScanRow(TypedDict):
@@ -119,3 +158,76 @@ def _recent_scans(scans: pl.DataFrame, limit: int) -> list[ScanRow]:
 def in_office_time_zone(moment: datetime, office_time_zone: str) -> str:
     """The moment as ISO 8601 in the office time zone, e.g. "2026-09-23T13:26:00+07:00"."""
     return moment.astimezone(ZoneInfo(office_time_zone)).isoformat(timespec="seconds")
+
+
+def top_scans(scans: pl.DataFrame, *, limit: int, now: datetime) -> dict[str, list[TopScan]]:
+    """For every period (see PERIODS), the codes scanned most within it, most first.
+
+    `now` is when the data is built: every period ends then, so later scans aren't counted.
+    Kept apart from `summarise` because only index files show top scans, and code files are many.
+    """
+    flagged = _with_period_flags(scans, now)
+    return {period: _rank(flagged.filter(pl.col(period)), limit) for period in PERIODS}
+
+
+def _with_period_flags(scans: pl.DataFrame, now: datetime) -> pl.DataFrame:
+    """Add a boolean column per period: whether each scan falls within it.
+
+    Calendar periods start at midnight in each scan's own office time zone, so each
+    zone's period starts are worked out from `now` in that zone and joined on.
+    Rolling periods include a scan exactly at their cutoff.
+    """
+    starts = pl.DataFrame(
+        [_calendar_starts(zone, now) for zone in scans["office_time_zone"].unique().to_list()],
+        schema={"office_time_zone": pl.String(), **{f"{period}-start": pl.Date() for period in CALENDAR_PERIODS}},
+    )
+    dated = _with_office_moments(scans).join(starts, on="office_time_zone", how="left")
+    before_now = pl.col("scanned_at") <= now
+    return dated.with_columns(
+        *(
+            (before_now & (pl.col("office_date") >= pl.col(f"{period}-start"))).alias(period)
+            for period in CALENDAR_PERIODS
+        ),
+        *(
+            (before_now & (pl.col("scanned_at") >= now - duration)).alias(period)
+            for period, duration in ROLLING_PERIODS.items()
+        ),
+        before_now.alias("all-time"),
+    )
+
+
+def _calendar_starts(time_zone: str, now: datetime) -> dict[str, object]:
+    """The first office date of each calendar period, as of `now` in `time_zone`."""
+    today = now.astimezone(ZoneInfo(time_zone)).date()
+    return {
+        "office_time_zone": time_zone,
+        **{f"{period}-start": first_day(today) for period, first_day in CALENDAR_PERIODS.items()},
+    }
+
+
+def _rank(scans: pl.DataFrame, limit: int) -> list[TopScan]:
+    """The codes in `scans` by number of scans, most first; ties go to the most recently scanned."""
+    total = scans.height
+    ranked = (
+        scans.group_by("code")
+        .agg(
+            pl.len().alias("count"),
+            pl.col("scanned_at").max().alias("last_scanned_at"),
+            pl.col("product_name").first(),
+            pl.col("product_brands").first(),
+            pl.col("product_known").first(),
+        )
+        .sort(["count", "last_scanned_at", "code"], descending=[True, True, False])
+        .head(limit)
+    )
+    return [
+        TopScan(
+            code=row["code"],
+            name=row["product_name"],
+            brands=row["product_brands"],
+            known=bool(row["product_known"]),
+            count=row["count"],
+            share=round(row["count"] / total, 4),
+        )
+        for row in ranked.iter_rows(named=True)
+    ]
