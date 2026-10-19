@@ -1,6 +1,6 @@
 import type { VisualizationSpec } from 'vega-embed'
 
-import type { DailyCount } from '../data'
+import type { DailyCount } from '../contract'
 import { type ChartTokens, chartConfig } from '../theme'
 
 /**

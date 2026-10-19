@@ -1,6 +1,6 @@
 import type { VisualizationSpec } from 'vega-embed'
 
-import type { HourlyCount } from '../data'
+import type { HourlyCount } from '../contract'
 import { type ChartTokens, chartConfig } from '../theme'
 
 /** Vega-Lite spec for scans per hour of the day: always 24 bars, 00 to 23, in office time. */

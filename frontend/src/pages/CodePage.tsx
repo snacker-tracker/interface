@@ -4,7 +4,8 @@ import { DailyScansChart } from '../components/DailyScansChart'
 import { HourlyScansChart } from '../components/HourlyScansChart'
 import { ProductCard } from '../components/ProductCard'
 import { RecentScans } from '../components/RecentScans'
-import { type CodeScansData, codeScansDataPath, type ProductData, productDataPath, useJson } from '../data'
+import type { CodeScansFile, ProductFile } from '../contract'
+import { codeScansDataPath, productDataPath, useJson } from '../data'
 import { ALL_LOCATIONS, useSelectedLocation } from '../selectedLocation'
 
 /** One code: its product (the same everywhere) and its scans within the selected location. */
@@ -12,8 +13,8 @@ export function CodePage() {
   // The route param arrives decoded, so it's the code exactly as scanned.
   const { code = '' } = useParams()
   const [location] = useSelectedLocation()
-  const product = useJson<ProductData>(productDataPath(code))
-  const scans = useJson<CodeScansData>(codeScansDataPath(code, location))
+  const product = useJson<ProductFile>(productDataPath(code))
+  const scans = useJson<CodeScansFile>(codeScansDataPath(code, location))
 
   if (product.status === 'loading' || scans.status === 'loading') return <p className="status">Loading…</p>
   if (product.status === 'missing') {
@@ -57,7 +58,7 @@ export function CodePage() {
   )
 }
 
-function noScans(code: string, location: string): CodeScansData {
+function noScans(code: string, location: string): CodeScansFile {
   return {
     code,
     location,

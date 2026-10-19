@@ -1,10 +1,11 @@
-import { type LocationsData, locationsDataPath, useJson } from '../data'
+import type { LocationsFile } from '../contract'
+import { locationsDataPath, useJson } from '../data'
 import { ALL_LOCATIONS, LOCATION_SEPARATOR, useSelectedLocation } from '../selectedLocation'
 
 /** Lists `all` and every location prefix, indented by depth so the hierarchy reads at a glance. */
 export function LocationSelector() {
   const [selected, select] = useSelectedLocation()
-  const locations = useJson<LocationsData>(locationsDataPath())
+  const locations = useJson<LocationsFile>(locationsDataPath())
 
   const ids = locations.status === 'ready' ? locations.data.locations.map(({ id }) => id) : [selected]
   // Keep an unknown `?location=` visible rather than silently showing another value.

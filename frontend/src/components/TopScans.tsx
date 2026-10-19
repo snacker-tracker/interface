@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router'
 
-import { type Period, PERIODS, type TopScan } from '../data'
+import { type Period, PERIODS, type TopScan } from '../contract'
 import { codePagePath } from '../routes'
 import { useSelectedPeriod, useUnknownOnly } from '../selectedPeriod'
 

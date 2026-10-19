@@ -1,12 +1,13 @@
 import { DailyScansChart } from '../components/DailyScansChart'
 import { RecentScans } from '../components/RecentScans'
 import { TopScans } from '../components/TopScans'
-import { type IndexData, indexDataPath, useJson } from '../data'
+import type { IndexFile } from '../contract'
+import { indexDataPath, useJson } from '../data'
 import { useSelectedLocation } from '../selectedLocation'
 
 export function IndexPage() {
   const [location] = useSelectedLocation()
-  const index = useJson<IndexData>(indexDataPath(location))
+  const index = useJson<IndexFile>(indexDataPath(location))
 
   if (index.status === 'loading') return <p className="status">Loading scans…</p>
   if (index.status === 'missing') {

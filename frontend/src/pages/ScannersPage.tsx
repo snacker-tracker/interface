@@ -2,7 +2,8 @@ import { Link, useLocation } from 'react-router'
 
 import { Ago } from '../components/Ago'
 import { ScannerStateLabel } from '../components/ScannerStateLabel'
-import { type MetaData, metaDataPath, type ScannersData, type ScannerStatus, scannersDataPath, useJson } from '../data'
+import type { MetaFile, ScannersFile, ScannerStatus } from '../contract'
+import { metaDataPath, scannersDataPath, useJson } from '../data'
 import { codePagePath } from '../routes'
 import { isOffline, scannerState } from '../scanners'
 import { ALL_LOCATIONS, useSelectedLocation } from '../selectedLocation'
@@ -11,8 +12,8 @@ import { exactTime, useNow } from '../time'
 /** Every known scanner within the selected location: offline first, then by name. */
 export function ScannersPage() {
   const [location] = useSelectedLocation()
-  const scanners = useJson<ScannersData>(scannersDataPath(location))
-  const meta = useJson<MetaData>(metaDataPath())
+  const scanners = useJson<ScannersFile>(scannersDataPath(location))
+  const meta = useJson<MetaFile>(metaDataPath())
   const now = useNow()
   const where = location === ALL_LOCATIONS ? 'anywhere' : `at ${location}`
 

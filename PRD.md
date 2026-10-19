@@ -211,6 +211,7 @@ The shapes are defined by the JSON Schema at `contract/static-json.schema.json`.
 | `codes/{code}/by-location/{location}.json` | `CodeScansFile` |
 
 - **Generated, not hand-edited:** the schema comes from the backend's contract module (`snacker schema`), and a test fails when the committed copy is out of date.
+- **Frontend types:** the frontend's types for these files (`frontend/src/contract.ts`) are generated from the schema by `npm run contract`. The frontend build and lint fail when they're out of date.
 - **Strict:** every field is required, even one that may be null, and fields the schema doesn't list are rejected.
 - **What the schema can't express:** which files exist (§7.1) and the rules that hold across fields and files (§7.4).
 

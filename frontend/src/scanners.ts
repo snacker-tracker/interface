@@ -1,5 +1,5 @@
 // What makes a scanner offline (see GLOSSARY.md, Offline).
-import type { ScannerStatus } from './data'
+import type { ScannerStatus } from './contract'
 
 /** A scanner sends a heartbeat every few minutes; an hour without one means something is wrong. */
 const OFFLINE_AFTER_MS = 60 * 60 * 1000

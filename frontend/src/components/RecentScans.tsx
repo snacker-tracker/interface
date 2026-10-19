@@ -1,6 +1,6 @@
 import { Link, useLocation } from 'react-router'
 
-import type { ScanRow } from '../data'
+import type { ScanRow } from '../contract'
 import { codePagePath } from '../routes'
 
 // One formatter per office time zone; a list rarely spans more than a few.

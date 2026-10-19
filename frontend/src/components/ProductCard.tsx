@@ -1,6 +1,6 @@
 import { useState } from 'react'
 
-import type { Product } from '../data'
+import type { Product } from '../contract'
 
 /** A code's product: image, name, brands, quantity, category tags and a link to OpenFoodFacts. */
 export function ProductCard({ code, product, headingId }: { code: string; product: Product | null; headingId: string }) {

@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router'
 
-import { type ScannersData, scannersDataPath, useJson } from '../data'
+import type { ScannersFile } from '../contract'
+import { scannersDataPath, useJson } from '../data'
 import { isOffline } from '../scanners'
 import { useSelectedLocation } from '../selectedLocation'
 import { useNow } from '../time'
@@ -10,7 +11,7 @@ import { ScannerStateLabel } from './ScannerStateLabel'
 export function ScannersLink() {
   const { search } = useLocation()
   const [location] = useSelectedLocation()
-  const scanners = useJson<ScannersData>(scannersDataPath(location))
+  const scanners = useJson<ScannersFile>(scannersDataPath(location))
   const now = useNow()
 
   const offline = scanners.status === 'ready' ? scanners.data.scanners.filter((s) => isOffline(s, now)).length : 0

@@ -2,7 +2,7 @@
 import { useCallback } from 'react'
 import { useSearchParams } from 'react-router'
 
-import { type Period, PERIODS } from './data'
+import { type Period, PERIODS } from './contract'
 
 export const DEFAULT_PERIOD: Period = 'last-30-days'
 const PARAM = 'period'

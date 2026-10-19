@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { VegaEmbed } from 'react-vega'
 
-import type { DailyCount } from '../data'
+import type { DailyCount } from '../contract'
 import { useChartTokens } from '../theme'
 import { dailyScansSpec } from './dailyScansSpec'
 
