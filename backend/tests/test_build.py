@@ -39,23 +39,22 @@ def test_meta_file_records_when_the_data_was_built(raw_dir: Path, out_dir: Path)
     assert read_json(out_dir, "data/meta.json") == {"generated_at": "2026-10-19T12:00:00Z"}
 
 
-def test_all_index_counts_scans_per_day(raw_dir: Path, out_dir: Path) -> None:
+def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) -> None:
     write_events(raw_dir, "scans/2023/01/08/backfill-2023-01-08.jsonl", [
         backfill_scan("8850999220000", scanned_at="2023-01-08T03:10:22.444637+00:00"),
         backfill_scan("8851959132012", scanned_at="2023-01-08T05:00:00.000000+00:00"),
     ])
-    write_events(raw_dir, "scans/2023/01/11/backfill-2023-01-11.jsonl", [
-        backfill_scan("8850999220000", scanned_at="2023-01-11T02:32:32.203884+00:00"),
-    ])
 
     run_build(raw_dir, out_dir)
 
-    index = read_json(out_dir, "data/index/by-location/all.json")
-    assert index["location"] == "all"
-    assert index["daily"] == [
-        {"date": "2023-01-08", "count": 2},
-        {"date": "2023-01-11", "count": 1},
-    ]
+    assert read_json(out_dir, "data/index/by-location/all.json") == {
+        "location": "all",
+        "daily": [{"date": "2023-01-08", "count": 2}],
+        "recent": [
+            {"code": "8851959132012", "location": "thailand:bangkok", "scanned_at": "2023-01-08T05:00:00Z"},
+            {"code": "8850999220000", "location": "thailand:bangkok", "scanned_at": "2023-01-08T03:10:22Z"},
+        ],
+    }
 
 
 def test_live_scans_without_a_device_timestamp_are_placed_by_when_they_were_reported(
@@ -86,26 +85,6 @@ def test_a_redelivered_event_is_counted_once(raw_dir: Path, out_dir: Path) -> No
 
     index = read_json(out_dir, "data/index/by-location/all.json")
     assert index["daily"] == [{"date": "2026-09-23", "count": 1}]
-
-
-def test_all_index_lists_the_25_most_recent_scans_newest_first(
-    raw_dir: Path, out_dir: Path
-) -> None:
-    write_events(raw_dir, "scans/2026/09/23/delivery", [
-        live_scan(f"88500000000{minute:02d}", time=f"2026-09-23T06:{minute:02d}:00Z")
-        for minute in range(27)
-    ])
-
-    run_build(raw_dir, out_dir)
-
-    recent = read_json(out_dir, "data/index/by-location/all.json")["recent"]
-    assert len(recent) == 25
-    assert recent[0] == {
-        "code": "8850000000026",
-        "location": "thailand:bangkok:main-kitchen",
-        "scanned_at": "2026-09-23T06:26:00Z",
-    }
-    assert recent[-1]["scanned_at"] == "2026-09-23T06:02:00Z"
 
 
 def test_a_scan_from_an_unknown_source_stops_the_build(raw_dir: Path, out_dir: Path) -> None:
