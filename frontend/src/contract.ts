@@ -122,6 +122,10 @@ export interface MetaFile {
    * UTC time the data was built; every top-scans period ends then.
    */
   generated_at: string
+  /**
+   * The version of this contract the data was built to (CONTRACT_VERSION).
+   */
+  contract_version: 1
 }
 /**
  * What a code page shows about a product (PRD R5).
@@ -192,3 +196,6 @@ export const PERIODS = [
   'all-time'
 ] as const
 export type Period = (typeof PERIODS)[number]
+
+/** The contract version this frontend was built for; meta.json names the one the data was built to. */
+export const CONTRACT_VERSION = 1

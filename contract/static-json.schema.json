@@ -173,10 +173,16 @@
         "generated_at": {
           "description": "UTC time the data was built; every top-scans period ends then.",
           "type": "string"
+        },
+        "contract_version": {
+          "const": 1,
+          "description": "The version of this contract the data was built to (CONTRACT_VERSION).",
+          "type": "integer"
         }
       },
       "required": [
-        "generated_at"
+        "generated_at",
+        "contract_version"
       ],
       "title": "MetaFile",
       "type": "object"

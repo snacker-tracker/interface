@@ -11,6 +11,7 @@ import polars as pl
 from snacker.check import Violation, contract_violations
 from snacker.config import OFFICE_TIME_ZONES, RECENT_SCANS_LIMIT, TOP_SCANS_LIMIT
 from snacker.contract import (
+    CONTRACT_VERSION,
     CodeScansFile,
     ContractFile,
     IndexFile,
@@ -98,7 +99,7 @@ def write_data(
     top_limit: int,
 ) -> None:
     """Every file of the static JSON, under `data_dir`."""
-    write_json(data_dir / meta_path(), MetaFile(generated_at=format_utc(generated_at)))
+    write_json(data_dir / meta_path(), MetaFile(generated_at=format_utc(generated_at), contract_version=CONTRACT_VERSION))
 
     scans = normalise_scans(raw_dir)
     locations = Locations.from_scans(scans, office_time_zones)

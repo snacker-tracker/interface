@@ -119,10 +119,25 @@ class SelectableLocation(TypedDict):
 
 # --- Files ---
 
+ContractVersion = Literal[1]
+CONTRACT_VERSION: ContractVersion = 1
+"""The version of this contract, written to meta.json so the frontend can tell when the data
+it was built for and the data it is served are out of step.
+
+Bump it (here and in ContractVersion) on any change that could break a reader of the old
+contract: a field removed, renamed, retyped or newly nullable, a file moved, or a rule in
+PRD.md §7 tightened or relaxed. Adding a whole new file is not breaking. Adding a field is,
+because the schema rejects fields it doesn't list. Then regenerate the schema and the
+frontend's types, and deploy both together.
+"""
+
+
 
 class MetaFile(TypedDict):
     generated_at: str
     """UTC time the data was built; every top-scans period ends then."""
+    contract_version: ContractVersion
+    """The version of this contract the data was built to (CONTRACT_VERSION)."""
 
 
 class LocationsFile(TypedDict):

@@ -51,6 +51,9 @@ const generated =
 /** Every period top scans are ranked over, in display order (see GLOSSARY.md, Period). */
 export const PERIODS = ${JSON.stringify(schema.$defs.TopScansByPeriod.required, null, 2).replaceAll('"', "'")} as const
 export type Period = (typeof PERIODS)[number]
+
+/** The contract version this frontend was built for; meta.json names the one the data was built to. */
+export const CONTRACT_VERSION = ${schema.$defs.MetaFile.properties.contract_version.const}
 `
 
 if (process.argv.includes('--check')) {

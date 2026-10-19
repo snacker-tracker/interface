@@ -15,10 +15,10 @@ from raw_events import (
 )
 
 
-def test_meta_file_records_when_the_data_was_built(raw_dir: Path, out_dir: Path) -> None:
+def test_meta_file_records_when_the_data_was_built_and_to_which_contract(raw_dir: Path, out_dir: Path) -> None:
     run_build(raw_dir, out_dir)
 
-    assert read_json(out_dir, "data/meta.json") == {"generated_at": "2026-10-19T12:00:00Z"}
+    assert read_json(out_dir, "data/meta.json") == {"generated_at": "2026-10-19T12:00:00Z", "contract_version": 1}
 
 
 def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) -> None:
