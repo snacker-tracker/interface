@@ -2,7 +2,7 @@ import { Link, useLocation } from 'react-router'
 
 import { type Period, PERIODS, type TopScan } from '../data'
 import { codePagePath } from '../routes'
-import { useSelectedPeriod } from '../selectedPeriod'
+import { useSelectedPeriod, useUnknownOnly } from '../selectedPeriod'
 
 const LABELS: Record<Period, { tab: string; empty: string }> = {
   today: { tab: 'Today', empty: 'No scans today' },
@@ -17,31 +17,54 @@ const LABELS: Record<Period, { tab: string; empty: string }> = {
 
 const percent = new Intl.NumberFormat('en', { style: 'percent', maximumFractionDigits: 1 })
 
-/** The codes scanned most in the chosen period, with a tab per period (see GLOSSARY.md, Top scans). */
-export function TopScans({ topScans }: { topScans: Record<Period, TopScan[]> }) {
+/**
+ * The codes scanned most in the chosen period, with a tab per period (see GLOSSARY.md, Top scans).
+ * "Unknown only" switches to the most-scanned unknown products, the ones worth adding to OpenFoodFacts.
+ */
+export function TopScans({
+  topScans,
+  topUnknownScans,
+}: {
+  topScans: Record<Period, TopScan[]>
+  topUnknownScans: Record<Period, TopScan[]>
+}) {
   const [period, select] = useSelectedPeriod()
-  const rows = topScans[period] ?? []
+  const [unknownOnly, setUnknownOnly] = useUnknownOnly()
+  const rows = (unknownOnly ? topUnknownScans : topScans)[period] ?? []
+  const empty = unknownOnly
+    ? LABELS[period].empty.replace('No scans', 'No unknown products scanned')
+    : LABELS[period].empty
 
   return (
     <>
-      <div className="period-tabs" role="tablist" aria-label="Period">
-        {PERIODS.map((id) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            id={`period-${id}`}
-            aria-selected={id === period}
-            aria-controls="top-scans-list"
-            onClick={() => select(id)}
-          >
-            {LABELS[id].tab}
-          </button>
-        ))}
+      <div className="top-scans-controls">
+        <div className="period-tabs" role="tablist" aria-label="Period">
+          {PERIODS.map((id) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              id={`period-${id}`}
+              aria-selected={id === period}
+              aria-controls="top-scans-list"
+              onClick={() => select(id)}
+            >
+              {LABELS[id].tab}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="unknown-toggle"
+          aria-pressed={unknownOnly}
+          onClick={() => setUnknownOnly(!unknownOnly)}
+        >
+          Unknown only
+        </button>
       </div>
       <div id="top-scans-list" role="tabpanel" aria-labelledby={`period-${period}`}>
         {rows.length === 0 ? (
-          <p className="status">{LABELS[period].empty}.</p>
+          <p className="status">{empty}.</p>
         ) : (
           <ol className="top-scans">
             {rows.map((row) => (

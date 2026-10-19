@@ -160,14 +160,22 @@ def in_office_time_zone(moment: datetime, office_time_zone: str) -> str:
     return moment.astimezone(ZoneInfo(office_time_zone)).isoformat(timespec="seconds")
 
 
-def top_scans(scans: pl.DataFrame, *, limit: int, now: datetime) -> dict[str, list[TopScan]]:
+def top_scans(
+    scans: pl.DataFrame, *, limit: int, now: datetime, unknown_only: bool = False
+) -> dict[str, list[TopScan]]:
     """For every period (see PERIODS), the codes scanned most within it, most first.
 
     `now` is when the data is built: every period ends then, so later scans aren't counted.
+    With `unknown_only`, only unknown products are ranked, but each share is still of all
+    scans in the period, so it shows how much of what's taken is missing a product.
     Kept apart from `summarise` because only index files show top scans, and code files are many.
     """
     flagged = _with_period_flags(scans, now)
-    return {period: _rank(flagged.filter(pl.col(period)), limit) for period in PERIODS}
+    ranked = flagged.filter(~pl.col("product_known")) if unknown_only else flagged
+    return {
+        period: _rank(ranked.filter(pl.col(period)), limit, total=flagged.filter(pl.col(period)).height)
+        for period in PERIODS
+    }
 
 
 def _with_period_flags(scans: pl.DataFrame, now: datetime) -> pl.DataFrame:
@@ -205,9 +213,11 @@ def _calendar_starts(time_zone: str, now: datetime) -> dict[str, object]:
     }
 
 
-def _rank(scans: pl.DataFrame, limit: int) -> list[TopScan]:
-    """The codes in `scans` by number of scans, most first; ties go to the most recently scanned."""
-    total = scans.height
+def _rank(scans: pl.DataFrame, limit: int, *, total: int) -> list[TopScan]:
+    """The codes in `scans` by number of scans, most first; ties go to the most recently scanned.
+
+    `total` is the number of scans each share is a fraction of.
+    """
     ranked = (
         scans.group_by("code")
         .agg(

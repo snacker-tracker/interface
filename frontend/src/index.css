@@ -172,6 +172,37 @@ a {
   color: var(--surface-1);
 }
 
+.top-scans-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 6px 12px;
+  margin-bottom: 12px;
+}
+
+.top-scans-controls .period-tabs {
+  margin-bottom: 0;
+}
+
+.unknown-toggle {
+  margin-left: auto;
+  font: inherit;
+  font-size: 0.8125rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px dashed var(--border);
+  background: var(--surface-0);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+.unknown-toggle[aria-pressed='true'] {
+  background: var(--text-primary);
+  border-color: var(--text-primary);
+  border-style: solid;
+  color: var(--surface-1);
+}
+
 .top-scans {
   margin: 0;
   padding-left: 2rem;

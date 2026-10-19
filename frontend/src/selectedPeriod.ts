@@ -28,3 +28,23 @@ export function useSelectedPeriod(): [Period, (period: Period) => void] {
 
   return [period, select]
 }
+
+const UNKNOWN_PARAM = 'unknown'
+
+/** Whether Top scans shows unknown products only: `?unknown=1`, absent means off. */
+export function useUnknownOnly(): [boolean, (on: boolean) => void] {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const on = searchParams.get(UNKNOWN_PARAM) === '1'
+
+  const set = useCallback(
+    (next: boolean) =>
+      setSearchParams((params) => {
+        if (next) params.set(UNKNOWN_PARAM, '1')
+        else params.delete(UNKNOWN_PARAM)
+        return params
+      }),
+    [setSearchParams],
+  )
+
+  return [on, set]
+}

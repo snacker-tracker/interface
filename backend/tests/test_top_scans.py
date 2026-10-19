@@ -115,3 +115,28 @@ def test_the_work_week_starts_on_each_offices_own_monday() -> None:
 
 def test_scans_after_the_build_are_not_counted() -> None:
     assert top_codes([scan("future", "2026-10-21T06:00:00Z", office_time_zone=BANGKOK)], "all-time") == []
+
+
+def test_unknown_only_ranks_unknown_products_even_below_the_overall_top() -> None:
+    scans = scans_table(
+        # Two known products outrank the unknown ones overall.
+        *(scan("soda", f"2026-10-20T0{n}:00:00Z", office_time_zone=BANGKOK, product_known=True) for n in range(4)),
+        *(scan("chips", f"2026-10-20T0{n}:00:00Z", office_time_zone=BANGKOK, product_known=True) for n in range(3)),
+        scan("qr-code", "2026-10-20T01:00:00Z", office_time_zone=BANGKOK),
+        scan("qr-code", "2026-10-20T02:00:00Z", office_time_zone=BANGKOK),
+        scan("8858998581234", "2026-10-20T03:00:00Z", office_time_zone=BANGKOK),
+        # Known to OpenFoodFacts but unnamed: not an unknown product.
+        scan("unnamed", "2026-10-20T04:00:00Z", office_time_zone=BANGKOK, product_known=True),
+    )
+
+    rows = top_scans(scans, limit=2, now=NOW, unknown_only=True)["last-7-days"]
+
+    assert [(row["code"], row["known"]) for row in rows] == [("qr-code", False), ("8858998581234", False)]
+    # Share is of all 11 scans in the period, not just the unknown ones.
+    assert [row["share"] for row in rows] == [0.1818, 0.0909]
+
+
+def test_unknown_only_lists_every_period() -> None:
+    by_period = top_scans(scans_table(), limit=10, now=NOW, unknown_only=True)
+
+    assert list(by_period) == PERIODS

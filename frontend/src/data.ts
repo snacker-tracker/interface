@@ -47,6 +47,8 @@ export type TopScan = {
 export type IndexData = {
   location: string
   top_scans: Record<Period, TopScan[]>
+  /** Top scans of unknown products only; shares are still of all scans in the period. */
+  top_unknown_scans: Record<Period, TopScan[]>
   daily: DailyCount[]
   recent: ScanRow[]
 }

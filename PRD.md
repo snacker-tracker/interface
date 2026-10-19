@@ -133,6 +133,7 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 - Calendar periods (today, this work week from Monday 00:00 with weekends included, this month, this year) start at midnight in each scan's own office time zone.
 - Rolling periods are exact durations back from the build time, and a scan exactly at the cutoff counts.
 - Each list holds at most N codes (N = 10, in config), with ties going to the most recently scanned. Each row has the code, name, brands, whether the product is known, the count, and its share of the period's scans.
+- A second set of lists ranks **unknown products only** (ticket 11): every unknown code is ranked, not just those in the overall top N, and shares are still of all scans in the period. Unnamed products OpenFoodFacts has aren't included.
 
 ## 6. Functional requirements
 
@@ -146,7 +147,7 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 
 - **I1:** Bar chart of scans per local day across **all history**, with brush-to-zoom.
 - **I2:** List of the **last 25 scans**: local date and time, location, product name and brands (or "Unknown product" and the code). Each row links to its code page, keeping `?location`.
-- **I3:** A **Top scans** panel (R7), below the chart. It has a tab per period, and the chosen period is kept in `?period=` (default `last-30-days`; unknown values fall back to it). Each row shows rank, product, code, count and share, and links to its code page. An unknown product with a barcode also links to "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`). An empty period says so, and its tab stays.
+- **I3:** A **Top scans** panel (R7), below the chart. It has a tab per period, and the chosen period is kept in `?period=` (default `last-30-days`; unknown values fall back to it). An "Unknown only" toggle, kept in `?unknown=1`, switches to the unknown-products lists. Each row shows rank, product, code, count and share, and links to its code page. An unknown product with a barcode also links to "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`). An empty period says so, and its tab stays.
 
 Page order: scans per day (I1), top scans (I3), latest scans (I2).
 
@@ -202,6 +203,7 @@ data/codes/{code}/by-location/{location}.json   code page scan data
   "top_scans": {                                             // every period always present (R7)
     "last-30-days": [ { "code", "name", "brands", "known", "count", "share" } ], ...
   },
+  "top_unknown_scans": { ... },                              // same shape; unknown products only
   "daily": [ { "date": "2026-10-16", "count": 4 } ],         // local dates; zero days omitted
   "recent": [ ScanRow ]                                      // newest first, max 25
 }

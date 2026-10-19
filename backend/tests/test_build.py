@@ -101,6 +101,16 @@ def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) 
                 {"code": "8850999220000", "name": None, "brands": None, "known": False, "count": 1, "share": 0.5},
             ],
         },
+        "top_unknown_scans": {
+            **{period: [] for period in (
+                "today", "this-work-week", "last-7-days", "this-month",
+                "last-30-days", "this-year", "last-365-days",
+            )},
+            "all-time": [
+                {"code": "8851959132012", "name": None, "brands": None, "known": False, "count": 1, "share": 0.5},
+                {"code": "8850999220000", "name": None, "brands": None, "known": False, "count": 1, "share": 0.5},
+            ],
+        },
         "daily": [{"date": "2023-01-08", "count": 2}],
         "recent": [
             {
@@ -417,6 +427,11 @@ def test_index_files_list_top_scans_for_every_period(raw_dir: Path, out_dir: Pat
         {"code": "005", "name": None, "brands": None, "known": False, "count": 1, "share": 0.3333},
     ]
     assert [row["code"] for row in top_scans["all-time"]] == ["8851959132012", "005", "8850999220000"]
+    top_unknown = read_json(out_dir, "data/index/by-location/all.json")["top_unknown_scans"]
+    assert list(top_unknown) == list(top_scans)
+    assert top_unknown["today"] == [
+        {"code": "005", "name": None, "brands": None, "known": False, "count": 1, "share": 0.3333},
+    ]
     kitchen = read_json(out_dir, "data/index/by-location/thailand:bangkok:main-kitchen.json")
     assert [row["code"] for row in kitchen["top_scans"]["all-time"]] == ["8851959132012", "005"]
 

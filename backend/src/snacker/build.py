@@ -49,6 +49,9 @@ def build(
             {
                 "location": location,
                 "top_scans": top_scans(scans_within, limit=top_limit, now=generated_at),
+                "top_unknown_scans": top_scans(
+                    scans_within, limit=top_limit, now=generated_at, unknown_only=True
+                ),
                 "daily": summary.daily,
                 "recent": summary.recent,
             },
