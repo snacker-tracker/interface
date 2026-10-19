@@ -1,6 +1,6 @@
 # PRD: Snacker Tracker Interface
 
-Status: agreed, ready to build · Last updated: 2026-10-19
+Status: built (tickets 01–10) · Last updated: 2026-10-19 to match the code
 Builds on: [project.md](project.md)
 
 ## 1. Summary
@@ -13,9 +13,9 @@ A Python + Polars **build step** turns raw scanner events and OpenFoodFacts data
 
 ### Goals
 
-- Show scan volume over time and the most recent scans, filterable by location.
+- Show scan volume over time, the most recent scans and the top scans per period, filterable by location.
 - Show per-product detail: product info, scans over time, scans by hour of day, recent scans.
-- Show whether each scanner is alive (last heartbeat, app version).
+- Show whether each scanner is alive (last heartbeat, last scan, app version).
 - Support more offices than Bangkok without code changes beyond configuration.
 - Keep the backend easy to lift into a Dagster pipeline later.
 
@@ -55,7 +55,7 @@ There is also one scan at `thailand:test`. About 204 scans (130 codes) are not p
 
 ### 4.2 Heartbeats (`scanner/heartbeats/YYYY/MM/DD/*`)
 
-About 11k events since 2026-09-04, sent every few minutes, all from one device (`rpi-pico-w-01`, `thailand:bangkok:main-kitchen`). The payload comes in three shapes:
+About 11k events since 2026-09-04, sent every few minutes, all from one scanner (`rpi-pico-w-01`, `thailand:bangkok:main-kitchen`). The payload comes in three shapes:
 
 | Shape | Name | Location | App version |
 |---|---|---|---|
@@ -86,6 +86,7 @@ Both eras are normalised into one table, which the UI treats identically:
 | `scanned_at` | UTC. `payload.scanned_at` if present, otherwise the envelope `time` |
 | `scanned_at_source` | `device` or `reported` |
 | `origin` | `backfill` or `live`; for debugging only |
+| `api_key` | The scanner's API key (envelope `apiKeyId`); null for backfill. Ties scans to scanners (R6) |
 
 Duplicate `event_id`s are dropped.
 
@@ -98,7 +99,10 @@ Duplicate `event_id`s are dropped.
 
 ### R3: All codes count
 
-Every scan counts in every chart and list, whether or not the code is a barcode or has product info. Codes without product info display as **"Unknown product"** with the raw code.
+Every scan counts in every chart and list, whether or not the code is a barcode or has product info.
+
+- A code OpenFoodFacts doesn't have is an **unknown product** (GLOSSARY.md). It displays as **"Unknown product"** with the raw code.
+- A code OpenFoodFacts has but without a name displays as **"Unnamed product"** in Top scans. The recent-scan lists and the code page still show "Unknown product" for it; see §10.
 
 ### R4: Office time
 
@@ -115,9 +119,20 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 
 ### R6: Scanner status
 
-- Heartbeats from all three shapes are normalised to `{device_name, location, app_version, last_seen}`.
-- A scanner is **offline** if `now − last_seen > 1 hour`, evaluated in the browser.
+- Heartbeats from all three shapes are normalised to one row each: scanner name, location, app version, sent time and API key.
+- A scanner is known once it has sent a heartbeat. Its status comes from its latest heartbeat: `{name, location, app_version, last_seen}`.
+- A scanner's **last scan** is the latest scan sent with the API key of its latest heartbeat (docs/adr/0002). Backfill scans have no key and never count, and each scanner must have its own key.
+- A scanner is **offline** if `now − last_seen > 1 hour`, evaluated in the browser. Scans don't count.
 - Because data is pre-built, the UI also shows when the data was generated, so stale data is visible.
+
+### R7: Top scans
+
+- **Top scans** rank codes by number of scans within a **period**, most first (GLOSSARY.md). Unknown products are included.
+- The periods, in order: `today`, `this-work-week`, `last-7-days`, `this-month`, `last-30-days`, `this-year`, `last-365-days`, `all-time`.
+- Every period ends at the build time. Scans after the build time fall in no period.
+- Calendar periods (today, this work week from Monday 00:00 with weekends included, this month, this year) start at midnight in each scan's own office time zone.
+- Rolling periods are exact durations back from the build time, and a scan exactly at the cutoff counts.
+- Each list holds at most N codes (N = 10, in config), with ties going to the most recently scanned. Each row has the code, name, brands, whether the product is known, the count, and its share of the period's scans.
 
 ## 6. Functional requirements
 
@@ -125,12 +140,15 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 
 - **G1:** A prominent **location selector** appears in the header on every page. It lists `all` plus every hierarchy level from R2.
 - **G2:** The selected location is held in the browser URL as `?location=<location>`. If absent, it defaults to `all`. Changing the selection keeps the user on the current page.
-- **G3:** The header links to a **scanners page** (`/scanners`). The link reads "✕ N offline" when any scanner within the selected location is offline (R6). The page lists each scanner within the selected location: status, name, location, last heartbeat, last scan (tied to the scanner by API key, docs/adr/0002) and app version. It also shows the data build time. (Changed from a header widget by ticket 10.)
+- **G3:** The header links to the **scanners page** (§6.4), keeping `?location`. The link reads "Scanners", or "✕ N offline" when any scanner within the selected location is offline (R6). (This replaced a header widget, in ticket 10.)
 
 ### 6.2 Index page: `/`
 
 - **I1:** Bar chart of scans per local day across **all history**, with brush-to-zoom.
 - **I2:** List of the **last 25 scans**: local date and time, location, product name and brands (or "Unknown product" and the code). Each row links to its code page, keeping `?location`.
+- **I3:** A **Top scans** panel (R7), below the chart. It has a tab per period, and the chosen period is kept in `?period=` (default `last-30-days`; unknown values fall back to it). Each row shows rank, product, code, count and share, and links to its code page. An unknown product with a barcode also links to "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`). An empty period says so, and its tab stays.
+
+Page order: scans per day (I1), top scans (I3), latest scans (I2).
 
 ### 6.3 Code page: `/codes/:code`
 
@@ -140,6 +158,18 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 - **C4:** List of the last 25 scans of this code: local date and time, location.
 - **C5:** C2–C4 are filtered by the selected location. C1 is global.
 - **C6:** `:code` is the URL-encoded code (see §7.3).
+
+### 6.4 Scanners page: `/scanners`
+
+- **S1:** Lists every known scanner within the selected location (`all` shows every one), offline scanners first, then by name.
+- **S2:** Each row shows:
+  - status: ✓ Online / ✕ Offline, with icon and label,
+  - name,
+  - location,
+  - last heartbeat ("X ago" with the exact time),
+  - last scan ("X ago" with the product or code linking to its code page, or "Never"),
+  - app version.
+- **S3:** It shows when the data was built. A location with no scanners says so; a missing or failed file says scanner status is unavailable.
 
 ## 7. Data contract (static JSON)
 
@@ -151,7 +181,7 @@ The build writes everything under `public-data/data/`. No file needs query param
 data/meta.json                                  { generated_at }
 data/locations.json                             all selectable locations
 data/index/by-location/{location}.json          index page data
-data/scanners/by-location/{location}.json       status widget data
+data/scanners/by-location/{location}.json       scanners page and header link data
 data/codes/{code}/product.json                  product info (global)
 data/codes/{code}/by-location/{location}.json   code page scan data
 ```
@@ -169,6 +199,9 @@ data/codes/{code}/by-location/{location}.json   code page scan data
 // index/by-location/{location}.json
 {
   "location": "thailand:bangkok",
+  "top_scans": {                                             // every period always present (R7)
+    "last-30-days": [ { "code", "name", "brands", "known", "count", "share" } ], ...
+  },
   "daily": [ { "date": "2026-10-16", "count": 4 } ],         // local dates; zero days omitted
   "recent": [ ScanRow ]                                      // newest first, max 25
 }
@@ -186,7 +219,10 @@ data/codes/{code}/by-location/{location}.json   code page scan data
 { "code": "...", "product": null | { "name", "brands", "quantity", "image_url", "categories": [], "off_url" } }
 
 // scanners/by-location/{location}.json
-{ "location": "...", "scanners": [ { "name", "location", "app_version", "last_seen" } ] }
+{ "location": "...", "scanners": [ {
+    "name", "location", "app_version", "last_seen",
+    "last_scan": null | { "scanned_at", "code", "product_name" }
+} ] }
 
 // ScanRow
 { "code", "name": null | "...", "brands": null | "...", "location", "scanned_at", "office_time", "office_time_zone" }
@@ -202,21 +238,30 @@ data/codes/{code}/by-location/{location}.json   code page scan data
 
 ### 8.1 Backend (`backend/`, Python, Polars, uv)
 
-The backend is a CLI with no running server. Each step is a pure function with explicit inputs and outputs, so it maps 1:1 onto a Dagster asset later.
+The backend is a CLI with no running server and two commands:
 
-| Step | Input | Output |
+- `snacker extract-products --raw … --food … --products … [--force]`
+- `snacker build --raw … --products … --out …`
+
+Inside, each step is a named function with explicit inputs and outputs, so it can become a Dagster asset later:
+
+| Step (module) | Input | Output |
 |---|---|---|
-| `extract-products` | `food.parquet`, scanned codes | `products.parquet` (scanned codes and needed columns only) |
-| `normalise-scans` | raw scan files | scans table (R1) |
-| `normalise-heartbeats` | raw heartbeat files | scanner status table (R6) |
-| `build` | the three tables above + time zone config | JSON files (§7) |
+| Product extraction (`products`) | `food.parquet`, scanned codes | `products.parquet`: one row per scanned code, with `known` false for unknown products |
+| Scan normalisation (`scans`) | raw scan files | scans table (R1) |
+| Heartbeat normalisation (`heartbeats`) | raw heartbeat files | heartbeats table, then scanner statuses (R6) |
+| Locations (`locations`) | scans, time zone map | selectable locations, scans within a location, office time zones |
+| Scan summary (`scan_summary`) | scans with office time zones and products | daily, hourly and recent (`summarise`); top scans (`top_scans`, R7) |
+| Build (`build`) | raw files, products table, config, build time | JSON files (§7) |
 
-- `extract-products` reruns only when there are unseen codes or a `--force` flag. This keeps normal builds off the 8 GB file.
-- Configuration covers the time zone prefix map, the recent-list size N (25), and the input and output paths.
+- `extract-products` reruns only when there are unseen codes, when the table predates a column change, or with `--force`. This keeps normal builds off the 8 GB file.
+- `build` runs the normalisation steps itself and never reads `food.parquet`. Codes scanned since the last extraction count as unknown products.
+- Configuration (`config.py`) holds the time zone prefix map, the recent-list size (25) and the top-scans size (10). Input and output paths are CLI arguments.
+- Product images are hotlinked from OpenFoodFacts (docs/adr/0001).
 
 ### 8.2 Frontend (`frontend/`)
 
-- Vite, React, TypeScript, React Router (`/`, `/codes/:code`).
+- Vite, React, TypeScript, React Router (`/`, `/codes/:code`, `/scanners`).
 - Charts use Vega-Lite via `react-vega`.
 - Node 22 LTS, pinned in `.nvmrc`.
 - In development, Vite serves `public-data/` as static files.
@@ -228,7 +273,15 @@ The backend is a CLI with no running server. Each step is a pure function with e
 
 ## 9. Testing
 
-Backend tests run against small fixture files, never the real data:
+Backend tests run against small fixture files, never the real data. They sit at five seams:
+
+- the end-to-end build (fixture raw files → the JSON tree)
+- product extraction (a fixture food parquet → the products table)
+- Scan summary (`summarise`)
+- top scans (`top_scans`)
+- Locations
+
+They cover:
 
 - **Parsing and normalising**
   - Both scan eras.
@@ -241,6 +294,8 @@ Backend tests run against small fixture files, never the real data:
   - An unmapped location failing the build.
   - Last-N ordering.
   - Product name selection, including no match.
+  - Top scans: each period's boundaries (including zones that disagree about the day), ties, the size limit and share.
+  - A scanner's last scan by API key.
 - **Output contract**
   - A fixture build writes the expected paths, including URL-encoded codes and locations.
   - The JSON matches the expected shapes, including `product: null` and 24-entry `hourly`.
@@ -249,9 +304,10 @@ Frontend tests are out of scope for this phase.
 
 ## 10. Future / open
 
-- Choose an image URL source from the OpenFoodFacts `images` column (resolve during implementation).
+- **Label inconsistency:** known products without a name read "Unnamed product" in Top scans, but "Unknown product" in recent-scan lists and on the code page. Scan rows don't carry `known` yet.
 - Range toggle or weekly/monthly roll-ups on the index chart, if the all-history daily chart proves hard to read.
-- A scanner health page with telemetry.
+- Telemetry (wifi RSSI, uptime, free memory, reset cause) on the scanners page.
+- The scanner name in the scan payload (a firmware change), which would replace the API-key link (docs/adr/0002).
 - Nutrition info on code pages.
 - Frontend component tests.
 - Moving the build into Dagster, reading from S3.

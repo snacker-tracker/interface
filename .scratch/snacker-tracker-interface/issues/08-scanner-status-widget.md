@@ -4,7 +4,7 @@
 
 **Blocked by:** 03 (Location hierarchy and selector).
 
-**Status:** resolved
+**Status:** superseded by 10 (Scanners page)
 
 - [x] Heartbeats are parsed and normalised in all three payload shapes (unversioned flat, unversioned flat with telemetry, `schema_version` 2 nested) to device name, location, app version and last-seen time.
 - [x] For each selectable location, the build writes a scanners file listing every scanner within that location (hierarchy rules apply) with its latest last-seen time and the app version from its most recent heartbeat.
@@ -26,3 +26,4 @@
     - refreshed every minute.
   - **Real data:** ~11k heartbeats parse; rpi-pico-w-01 shows v0.1.42, last seen 2026-10-19T09:45:47Z.
   - **Checked:** the widget was rendered in happy-dom at simulated times. It hasn't been seen in a real browser.
+- 2026-10-19: **Superseded by ticket 10 (Scanners page).** The header widget built here was removed. The heartbeat parsing and scanners files from this ticket remain, extended with each scanner's last scan. The header now shows a "Scanners" link, and the details live on `/scanners`.
