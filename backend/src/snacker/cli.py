@@ -2,6 +2,7 @@
 
     snacker extract-products --raw <scanner dir> --food <food.parquet> --products <products.parquet>
     snacker build --raw <scanner dir> --products <products.parquet> --out <output dir>
+    snacker schema --out <schema file>
 """
 
 import argparse
@@ -12,6 +13,7 @@ import polars as pl
 
 from snacker.build import build
 from snacker.products import update_products
+from snacker.schema import schema_json
 from snacker.scans import normalise_scans
 
 RAW_HELP = "Raw scanner data directory, containing scans/."
@@ -42,8 +44,19 @@ def main() -> None:
         help="Output directory; JSON is written under <out>/data/.",
     )
 
+    schema_command = commands.add_parser(
+        "schema", help="Write the JSON Schema of the static JSON, generated from the output contract."
+    )
+    schema_command.add_argument(
+        "--out", type=Path, required=True, help="Schema file to write, e.g. ../contract/static-json.schema.json."
+    )
+
     args = parser.parse_args()
-    if args.command == "extract-products":
+    if args.command == "schema":
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        args.out.write_text(schema_json())
+        print(f"Wrote {args.out}")
+    elif args.command == "extract-products":
         codes = normalise_scans(args.raw)["code"].unique().to_list()
         if update_products(args.food, codes, args.products, force=args.force):
             named = pl.read_parquet(args.products)["name"].is_not_null().sum()

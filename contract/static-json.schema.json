@@ -1,0 +1,523 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Snacker Tracker static JSON",
+  "description": "Every file the build writes under data/ (see PRD.md §7). Each file is one of the MetaFile, LocationsFile, IndexFile, ScannersFile, ProductFile, CodeScansFile documents in $defs. Generated from the backend's contract module: don't edit by hand.",
+  "$defs": {
+    "CodeScansFile": {
+      "additionalProperties": false,
+      "description": "One code's scans within one selectable location; written only where it was scanned.",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "location": {
+          "type": "string"
+        },
+        "daily": {
+          "description": "Scans per office date, oldest first; days without scans are left out.",
+          "items": {
+            "$ref": "#/$defs/DailyCount"
+          },
+          "type": "array"
+        },
+        "hourly": {
+          "description": "Scans per office hour of the day: always 24 entries, 0 to 23.",
+          "items": {
+            "$ref": "#/$defs/HourlyCount"
+          },
+          "type": "array"
+        },
+        "recent": {
+          "description": "The most recent scans, newest first.",
+          "items": {
+            "$ref": "#/$defs/ScanRow"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "code",
+        "location",
+        "daily",
+        "hourly",
+        "recent"
+      ],
+      "title": "CodeScansFile",
+      "type": "object"
+    },
+    "DailyCount": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "description": "A date in the office time zone, e.g. \"2026-10-16\".",
+          "type": "string"
+        },
+        "count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "date",
+        "count"
+      ],
+      "title": "DailyCount",
+      "type": "object"
+    },
+    "HourlyCount": {
+      "additionalProperties": false,
+      "properties": {
+        "hour": {
+          "description": "0-23, in the office time zone.",
+          "type": "integer"
+        },
+        "count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "hour",
+        "count"
+      ],
+      "title": "HourlyCount",
+      "type": "object"
+    },
+    "IndexFile": {
+      "additionalProperties": false,
+      "description": "The index page for one selectable location.",
+      "properties": {
+        "location": {
+          "type": "string"
+        },
+        "top_scans": {
+          "$ref": "#/$defs/TopScansByPeriod"
+        },
+        "top_unknown_scans": {
+          "$ref": "#/$defs/TopScansByPeriod",
+          "description": "Top scans of unknown products only; shares are still of all scans in the period."
+        },
+        "daily": {
+          "description": "Scans per office date, oldest first; days without scans are left out.",
+          "items": {
+            "$ref": "#/$defs/DailyCount"
+          },
+          "type": "array"
+        },
+        "recent": {
+          "description": "The most recent scans, newest first.",
+          "items": {
+            "$ref": "#/$defs/ScanRow"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "location",
+        "top_scans",
+        "top_unknown_scans",
+        "daily",
+        "recent"
+      ],
+      "title": "IndexFile",
+      "type": "object"
+    },
+    "LastScan": {
+      "additionalProperties": false,
+      "properties": {
+        "scanned_at": {
+          "description": "UTC, e.g. \"2026-10-16T10:33:45Z\".",
+          "type": "string"
+        },
+        "code": {
+          "type": "string"
+        },
+        "product_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Null for an unknown product."
+        }
+      },
+      "required": [
+        "scanned_at",
+        "code",
+        "product_name"
+      ],
+      "title": "LastScan",
+      "type": "object"
+    },
+    "LocationsFile": {
+      "additionalProperties": false,
+      "properties": {
+        "locations": {
+          "description": "`all`, then every prefix of every scanned location, in path order.",
+          "items": {
+            "$ref": "#/$defs/SelectableLocation"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "locations"
+      ],
+      "title": "LocationsFile",
+      "type": "object"
+    },
+    "MetaFile": {
+      "additionalProperties": false,
+      "properties": {
+        "generated_at": {
+          "description": "UTC time the data was built; every top-scans period ends then.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "generated_at"
+      ],
+      "title": "MetaFile",
+      "type": "object"
+    },
+    "Product": {
+      "additionalProperties": false,
+      "description": "What a code page shows about a product (PRD R5).",
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "brands": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "quantity": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "categories": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "image_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "OpenFoodFacts's front image (docs/adr/0001)."
+        },
+        "off_url": {
+          "description": "The product's page on OpenFoodFacts.",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "brands",
+        "quantity",
+        "categories",
+        "image_url",
+        "off_url"
+      ],
+      "title": "Product",
+      "type": "object"
+    },
+    "ProductFile": {
+      "additionalProperties": false,
+      "description": "A code's product; written for every scanned code, whatever the location.",
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "product": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Product"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Null for an unknown product."
+        }
+      },
+      "required": [
+        "code",
+        "product"
+      ],
+      "title": "ProductFile",
+      "type": "object"
+    },
+    "ScanRow": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The product's name; null for an unknown product."
+        },
+        "brands": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "location": {
+          "type": "string"
+        },
+        "scanned_at": {
+          "description": "UTC, e.g. \"2026-09-23T06:26:00Z\".",
+          "type": "string"
+        },
+        "office_time": {
+          "description": "The same moment in the office time zone, e.g. \"2026-09-23T13:26:00+07:00\".",
+          "type": "string"
+        },
+        "office_time_zone": {
+          "description": "IANA name, e.g. \"Asia/Bangkok\".",
+          "type": "string"
+        }
+      },
+      "required": [
+        "code",
+        "name",
+        "brands",
+        "location",
+        "scanned_at",
+        "office_time",
+        "office_time_zone"
+      ],
+      "title": "ScanRow",
+      "type": "object"
+    },
+    "ScannerStatus": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "The scanner's name, e.g. \"rpi-pico-w-01\".",
+          "type": "string"
+        },
+        "location": {
+          "description": "Where its latest heartbeat said it was.",
+          "type": "string"
+        },
+        "app_version": {
+          "description": "From its latest heartbeat.",
+          "type": "string"
+        },
+        "last_seen": {
+          "description": "UTC time of its latest heartbeat, e.g. \"2026-10-19T09:45:47Z\".",
+          "type": "string"
+        },
+        "last_scan": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LastScan"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The latest scan sent with its API key (docs/adr/0002); null if it has sent none."
+        }
+      },
+      "required": [
+        "name",
+        "location",
+        "app_version",
+        "last_seen",
+        "last_scan"
+      ],
+      "title": "ScannerStatus",
+      "type": "object"
+    },
+    "ScannersFile": {
+      "additionalProperties": false,
+      "description": "Every scanner within one selectable location, ordered by name.",
+      "properties": {
+        "location": {
+          "type": "string"
+        },
+        "scanners": {
+          "items": {
+            "$ref": "#/$defs/ScannerStatus"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "location",
+        "scanners"
+      ],
+      "title": "ScannersFile",
+      "type": "object"
+    },
+    "SelectableLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "description": "`all`, or a location path such as \"thailand:bangkok\".",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "SelectableLocation",
+      "type": "object"
+    },
+    "TopScan": {
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "brands": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "known": {
+          "description": "Whether OpenFoodFacts has the product; unknown products are flagged in the UI.",
+          "type": "boolean"
+        },
+        "count": {
+          "type": "integer"
+        },
+        "share": {
+          "description": "This code's fraction of all scans in the period, e.g. 0.25.",
+          "type": "number"
+        }
+      },
+      "required": [
+        "code",
+        "name",
+        "brands",
+        "known",
+        "count",
+        "share"
+      ],
+      "title": "TopScan",
+      "type": "object"
+    },
+    "TopScansByPeriod": {
+      "additionalProperties": false,
+      "properties": {
+        "today": {
+          "items": {
+            "$ref": "#/$defs/TopScan"
+          },
+          "type": "array"
+        },
+        "this-work-week": {
+          "items": {
+            "$ref": "#/$defs/TopScan"
+          },
+          "type": "array"
+        },
+        "last-7-days": {
+          "items": {
+            "$ref": "#/$defs/TopScan"
+          },
+          "type": "array"
+        },
+        "this-month": {
+          "items": {
+            "$ref": "#/$defs/TopScan"
+          },
+          "type": "array"
+        },
+        "last-30-days": {
+          "items": {
+            "$ref": "#/$defs/TopScan"
+          },
+          "type": "array"
+        },
+        "this-year": {
+          "items": {
+            "$ref": "#/$defs/TopScan"
+          },
+          "type": "array"
+        },
+        "last-365-days": {
+          "items": {
+            "$ref": "#/$defs/TopScan"
+          },
+          "type": "array"
+        },
+        "all-time": {
+          "items": {
+            "$ref": "#/$defs/TopScan"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "today",
+        "this-work-week",
+        "last-7-days",
+        "this-month",
+        "last-30-days",
+        "this-year",
+        "last-365-days",
+        "all-time"
+      ],
+      "title": "TopScansByPeriod",
+      "type": "object"
+    }
+  }
+}

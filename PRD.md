@@ -191,44 +191,22 @@ data/codes/{code}/by-location/{location}.json   code page scan data
 - `codes/{code}/by-location/{location}.json` is only written for locations where that code was scanned. If the file is missing, the frontend shows zero scans.
 - `product.json` is written for **every** scanned code, with `"product": null` when there is no OpenFoodFacts match.
 
-### 7.2 Shapes (indicative)
+### 7.2 Shapes
 
-```jsonc
-// locations.json
-{ "locations": [ { "id": "all" }, { "id": "thailand" }, { "id": "thailand:bangkok" }, ... ] }
+The shapes are defined by the JSON Schema at `contract/static-json.schema.json`. It has one entry in `$defs` per file, and the rows files share are also defined once there:
 
-// index/by-location/{location}.json
-{
-  "location": "thailand:bangkok",
-  "top_scans": {                                             // every period always present (R7)
-    "last-30-days": [ { "code", "name", "brands", "known", "count", "share" } ], ...
-  },
-  "top_unknown_scans": { ... },                              // same shape; unknown products only
-  "daily": [ { "date": "2026-10-16", "count": 4 } ],         // local dates; zero days omitted
-  "recent": [ ScanRow ]                                      // newest first, max 25
-}
+| File | Document |
+|---|---|
+| `meta.json` | `MetaFile` |
+| `locations.json` | `LocationsFile` |
+| `index/by-location/{location}.json` | `IndexFile` |
+| `scanners/by-location/{location}.json` | `ScannersFile` |
+| `codes/{code}/product.json` | `ProductFile` |
+| `codes/{code}/by-location/{location}.json` | `CodeScansFile` |
 
-// codes/{code}/by-location/{location}.json
-{
-  "code": "8850999220000",
-  "location": "all",
-  "daily": [ { "date": "...", "count": 3 } ],
-  "hourly": [ { "hour": 0, "count": 0 }, ... ],              // exactly 24 entries
-  "recent": [ ScanRow ]
-}
-
-// codes/{code}/product.json
-{ "code": "...", "product": null | { "name", "brands", "quantity", "image_url", "categories": [], "off_url" } }
-
-// scanners/by-location/{location}.json
-{ "location": "...", "scanners": [ {
-    "name", "location", "app_version", "last_seen",
-    "last_scan": null | { "scanned_at", "code", "product_name" }
-} ] }
-
-// ScanRow
-{ "code", "name": null | "...", "brands": null | "...", "location", "scanned_at", "office_time", "office_time_zone" }
-```
+- **Generated, not hand-edited:** the schema comes from the backend's contract module (`snacker schema`), and a test fails when the committed copy is out of date.
+- **Strict:** every field is required, even one that may be null, and fields the schema doesn't list are rejected.
+- **What the schema can't express:** which files exist (§7.1) and the rules that hold across fields and files (§7.4).
 
 ### 7.3 Encoding
 

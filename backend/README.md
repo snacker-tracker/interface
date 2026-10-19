@@ -1,12 +1,15 @@
 # snacker (backend)
 
 Build step that turns raw scanner events into the static JSON read by the frontend.
-See `PRD.md` at the repo root for the data contract.
+See `PRD.md` at the repo root for the data contract. Its shapes are defined in
+`src/snacker/contract.py`; after changing them, rerun `snacker schema` to update the
+committed JSON Schema (a test fails until you do).
 
 ```sh
 uv run snacker extract-products --raw ../data/raw/data/scanner \
   --food ../data/openfoodfacts__product-database/food.parquet --products ../data/products.parquet
 uv run snacker build --raw ../data/raw/data/scanner --products ../data/products.parquet --out ../public-data
+uv run snacker schema --out ../contract/static-json.schema.json
 uv run pytest
 uv run mypy
 ```
