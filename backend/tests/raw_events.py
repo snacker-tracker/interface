@@ -61,6 +61,57 @@ def live_scan(
     }
 
 
+def _heartbeat_envelope(time: str, payload: dict[str, Any]) -> Event:
+    return {
+        "version": "0",
+        "id": str(uuid.uuid4()),
+        "detail-type": "heartbeats",
+        "source": "scanner",
+        "account": "132218943709",
+        "time": time,
+        "region": "ap-southeast-1",
+        "resources": [],
+        "detail": {"client_ip": "203.0.113.10", "request_id": str(uuid.uuid4()), "payload": payload, "apiKeyId": "s8ma4oq3ue"},
+    }
+
+
+def heartbeat_flat(
+    *, time: str, device_name: str = "rpi-pico-w-01",
+    location: str = "thailand:bangkok:main-kitchen", version: str = "v0.1.35",
+) -> Event:
+    """The first firmware's heartbeat: flat, unversioned."""
+    return _heartbeat_envelope(time, {"location": location, "device_name": device_name, "uptime": 3902, "version": version})
+
+
+def heartbeat_flat_with_telemetry(
+    *, time: str, device_name: str = "rpi-pico-w-01",
+    location: str = "thailand:bangkok:main-kitchen", version: str = "v0.1.36",
+) -> Event:
+    """A brief interim shape: still flat and unversioned, with telemetry."""
+    return _heartbeat_envelope(time, {
+        "location": location, "serial_number": "e6614c311b334739", "version": version,
+        "board_model": "Raspberry Pi Pico W with RP2040",
+        "telemetry": {"wifi_ssid": "Office", "wifi_rssi": -46, "reset_cause": "WDT_RESET", "mem_free": 180592},
+        "device_name": device_name, "uptime": 600, "micropython_version": "1.28.0",
+    })
+
+
+def heartbeat_v2(
+    *, time: str, device_name: str = "rpi-pico-w-01",
+    location: str = "thailand:bangkok:main-kitchen", version: str = "v0.1.42",
+) -> Event:
+    """`schema_version` 2: nested under platform, device, telemetry and app."""
+    return _heartbeat_envelope(time, {
+        "platform": {"name": "micropython", "version": "1.28.0"},
+        "device": {"id": "e6614c311b334739", "location": location, "name": device_name,
+                   "board": "Raspberry Pi Pico W with RP2040"},
+        "telemetry": {"wifi_rssi": -46, "reset_cause": "PWRON_RESET", "wifi_ssid": "Office", "uptime": 20094,
+                      "mem_free": 185872},
+        "app": {"name": "snacker-tracker/pico-scanner", "version": version},
+        "schema_version": 2,
+    })
+
+
 def write_events(raw_dir: Path, relative_path: str, events: list[Event]) -> None:
     """Write events one JSON envelope per line, as the delivery stream does."""
     path = raw_dir / relative_path

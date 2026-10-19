@@ -186,7 +186,7 @@ data/codes/{code}/by-location/{location}.json   code page scan data
 { "code": "...", "product": null | { "name", "brands", "quantity", "image_url", "categories": [], "off_url" } }
 
 // scanners/by-location/{location}.json
-{ "scanners": [ { "device_name", "location", "app_version", "last_seen" } ] }
+{ "location": "...", "scanners": [ { "name", "location", "app_version", "last_seen" } ] }
 
 // ScanRow
 { "code", "name": null | "...", "brands": null | "...", "location", "scanned_at", "office_time", "office_time_zone" }

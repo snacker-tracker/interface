@@ -50,6 +50,22 @@ export type ProductData = {
   product: Product | null
 }
 
+export type ScannerStatus = {
+  /** The scanner's name, e.g. "rpi-pico-w-01" */
+  name: string
+  location: string
+  app_version: string
+  /** UTC time of its latest heartbeat */
+  last_seen: string
+}
+
+export type ScannersData = { location: string; scanners: ScannerStatus[] }
+
+export type MetaData = {
+  /** UTC time the data was built */
+  generated_at: string
+}
+
 export type LocationsData = {
   /** The selectable locations: `all`, then every prefix of every scanned location, in path order. */
   locations: { id: string }[]
@@ -73,6 +89,8 @@ export function dataPath(...segments: string[]): string {
 }
 
 export const locationsDataPath = () => dataPath('locations')
+export const metaDataPath = () => dataPath('meta')
+export const scannersDataPath = (location: string) => dataPath('scanners', 'by-location', location)
 export const indexDataPath = (location: string) => dataPath('index', 'by-location', location)
 export const productDataPath = (code: string) => dataPath('codes', code, 'product')
 export const codeScansDataPath = (code: string, location: string) =>

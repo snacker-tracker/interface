@@ -10,6 +10,7 @@ from urllib.parse import quote
 import polars as pl
 
 from snacker.config import OFFICE_TIME_ZONES, RECENT_SCANS_LIMIT
+from snacker.heartbeats import normalise_heartbeats, scanner_statuses
 from snacker.locations import Locations
 from snacker.products import Product, known_products, with_products
 from snacker.scan_summary import summarise
@@ -43,6 +44,13 @@ def build(
         write_json(
             data_dir / "index" / "by-location" / f"{path_segment(location)}.json",
             {"location": location, "daily": summary.daily, "recent": summary.recent},
+        )
+
+    heartbeats = normalise_heartbeats(raw_dir)
+    for location in locations.selectable():
+        write_json(
+            data_dir / "scanners" / "by-location" / f"{path_segment(location)}.json",
+            {"location": location, "scanners": scanner_statuses(locations.within(heartbeats, location))},
         )
 
     products = known_products(products_parquet)

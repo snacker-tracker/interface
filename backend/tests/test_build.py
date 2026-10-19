@@ -8,7 +8,14 @@ from typing import Any
 import polars as pl
 import pytest
 
-from raw_events import backfill_scan, live_scan, write_events
+from raw_events import (
+    backfill_scan,
+    heartbeat_flat,
+    heartbeat_flat_with_telemetry,
+    heartbeat_v2,
+    live_scan,
+    write_events,
+)
 from snacker.build import build
 from snacker.products import OPENFOODFACTS_PRODUCT_PAGE, PRODUCTS_SCHEMA
 
@@ -303,3 +310,72 @@ def test_a_code_gets_a_scans_file_for_each_location_it_was_scanned_in(
     assert len(kitchen["hourly"]) == 24
     assert kitchen["hourly"][9] == {"hour": 9, "count": 1}  # 02:15 UTC is 09:15 in Bangkok
     assert [row["code"] for row in kitchen["recent"]] == ["8851959132012"]
+
+
+def test_a_scanner_is_listed_from_its_latest_heartbeat_in_any_shape(raw_dir: Path, out_dir: Path) -> None:
+    write_events(raw_dir, "scans/2026/09/23/delivery", [live_scan("8850999220000", time="2026-09-23T06:00:00Z")])
+    write_events(raw_dir, "heartbeats/2026/09/04/a", [heartbeat_flat(time="2026-09-04T11:27:30Z", version="v0.1.35")])
+    write_events(raw_dir, "heartbeats/2026/09/08/b", [
+        heartbeat_flat_with_telemetry(time="2026-09-08T17:40:59Z", version="v0.1.36"),
+    ])
+    write_events(raw_dir, "heartbeats/2026/10/19/c", [
+        heartbeat_v2(time="2026-10-19T09:45:47Z", version="v0.1.42"),
+        heartbeat_v2(time="2026-10-19T09:15:47Z", version="v0.1.41"),
+    ])
+
+    run_build(raw_dir, out_dir)
+
+    assert read_json(out_dir, "data/scanners/by-location/all.json") == {
+        "location": "all",
+        "scanners": [{
+            "name": "rpi-pico-w-01",
+            "location": "thailand:bangkok:main-kitchen",
+            "app_version": "v0.1.42",
+            "last_seen": "2026-10-19T09:45:47Z",
+        }],
+    }
+
+
+def test_scanners_are_listed_under_their_location_and_every_location_above_it(
+    raw_dir: Path, out_dir: Path
+) -> None:
+    write_events(raw_dir, "scans/2026/09/23/delivery", [
+        live_scan("8850999220000", time="2026-09-23T06:00:00Z", location="thailand:bangkok:main-kitchen"),
+        live_scan("8850999220000", time="2026-09-23T06:01:00Z", location="thailand:test"),
+    ])
+    write_events(raw_dir, "heartbeats/2026/09/23/delivery", [
+        heartbeat_flat(time="2026-09-23T06:00:00Z", device_name="kitchen-flat"),
+        heartbeat_flat_with_telemetry(time="2026-09-23T06:00:00Z", device_name="test-bench",
+                                      location="thailand:test"),
+        heartbeat_v2(time="2026-09-23T06:00:00Z", device_name="kitchen-v2"),
+    ])
+
+    run_build(raw_dir, out_dir)
+
+    def names(location: str) -> list[str]:
+        scanners = read_json(out_dir, f"data/scanners/by-location/{location}.json")["scanners"]
+        return [scanner["name"] for scanner in scanners]
+
+    assert names("all") == ["kitchen-flat", "kitchen-v2", "test-bench"]
+    assert names("thailand") == ["kitchen-flat", "kitchen-v2", "test-bench"]
+    assert names("thailand:bangkok") == ["kitchen-flat", "kitchen-v2"]
+    assert names("thailand:bangkok:main-kitchen") == ["kitchen-flat", "kitchen-v2"]
+    assert names("thailand:test") == ["test-bench"]
+
+
+def test_without_heartbeats_every_location_lists_no_scanners(raw_dir: Path, out_dir: Path) -> None:
+    write_events(raw_dir, "scans/2026/09/23/delivery", [live_scan("8850999220000", time="2026-09-23T06:00:00Z")])
+
+    run_build(raw_dir, out_dir)
+
+    assert read_json(out_dir, "data/scanners/by-location/all.json") == {"location": "all", "scanners": []}
+
+
+def test_a_heartbeat_in_an_unknown_shape_stops_the_build(raw_dir: Path, out_dir: Path) -> None:
+    write_events(raw_dir, "scans/2026/09/23/delivery", [live_scan("8850999220000", time="2026-09-23T06:00:00Z")])
+    odd = heartbeat_v2(time="2026-09-23T06:00:00Z")
+    odd["detail"]["payload"] = {"schema_version": 3, "scanner": {"name": "rpi-pico-w-02"}}
+    write_events(raw_dir, "heartbeats/2026/09/23/delivery", [odd])
+
+    with pytest.raises(ValueError, match="heartbeat in an unknown shape"):
+        run_build(raw_dir, out_dir)

@@ -2,6 +2,7 @@ import { createBrowserRouter, Link, Outlet, useLocation } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 
 import { LocationSelector } from './components/LocationSelector'
+import { ScannerStatusWidget } from './components/ScannerStatusWidget'
 import { CodePage } from './pages/CodePage'
 import { IndexPage } from './pages/IndexPage'
 
@@ -15,6 +16,7 @@ function Layout() {
           <Link to={{ pathname: '/', search }}>Snacker Tracker</Link>
         </h1>
         <LocationSelector />
+        <ScannerStatusWidget />
       </header>
       <main className="app-main">
         <Outlet />

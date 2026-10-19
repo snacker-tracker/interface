@@ -6,12 +6,12 @@ Two eras of scan events exist and are treated identically downstream:
   envelope `time` (when the event was reported) stands in for it
 """
 
-import json
 from pathlib import Path
 from typing import Any
 
 import polars as pl
 
+from snacker.events import read_events
 from snacker.timestamps import parse_aware_timestamp
 
 SCANS_SCHEMA = pl.Schema({
@@ -45,15 +45,3 @@ def normalise_scan_event(event: dict[str, Any]) -> dict[str, Any]:
         "scanned_at_source": "device" if device_time else "reported",
         "origin": ORIGIN_BY_SOURCE[event["source"]],
     }
-
-
-def read_events(directory: Path) -> list[dict[str, Any]]:
-    """Every JSON envelope in every file under `directory`; a file holds one envelope per line."""
-    events = []
-    for path in sorted(directory.rglob("*")):
-        if not path.is_file():
-            continue
-        for line in path.read_text().splitlines():
-            if line.strip():
-                events.append(json.loads(line))
-    return events
