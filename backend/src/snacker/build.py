@@ -1,12 +1,14 @@
 """The build: raw scanner events in, the static JSON tree read by the frontend out."""
 
 import json
+import shutil
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
 
 import polars as pl
 
+from snacker.check import Violation, contract_violations
 from snacker.config import OFFICE_TIME_ZONES, RECENT_SCANS_LIMIT, TOP_SCANS_LIMIT
 from snacker.contract import (
     CodeScansFile,
@@ -43,8 +45,59 @@ def build(
     recent_limit: int = RECENT_SCANS_LIMIT,
     top_limit: int = TOP_SCANS_LIMIT,
 ) -> None:
-    """`generated_at` is when the data is built; every top-scans period ends then."""
-    data_dir = out_dir / "data"
+    """Write the static JSON to `out_dir/data`, replacing what's there, but only if it keeps
+    the output contract: otherwise raise ContractBroken and leave the previous data alone.
+
+    `generated_at` is when the data is built; every top-scans period ends then.
+    """
+    staging_dir = out_dir / ".data-building"
+    if staging_dir.exists():
+        shutil.rmtree(staging_dir)  # left by an earlier build that broke the contract
+    write_data(
+        staging_dir,
+        raw_dir=raw_dir,
+        products_parquet=products_parquet,
+        generated_at=generated_at,
+        office_time_zones=office_time_zones,
+        recent_limit=recent_limit,
+        top_limit=top_limit,
+    )
+    violations = contract_violations(staging_dir, recent_limit=recent_limit, top_limit=top_limit)
+    if violations:
+        raise ContractBroken(staging_dir, violations)
+    publish(staging_dir, out_dir / "data")
+
+
+class ContractBroken(Exception):
+    def __init__(self, staging_dir: Path, violations: list[Violation]) -> None:
+        super().__init__(f"the build breaks the output contract in {len(violations)} places; see {staging_dir}")
+        self.staging_dir = staging_dir
+        self.violations = violations
+
+
+def publish(staging_dir: Path, data_dir: Path) -> None:
+    """Swap the checked build in for the previous one."""
+    previous = data_dir.with_name(".data-previous")
+    if previous.exists():
+        shutil.rmtree(previous)
+    if data_dir.exists():
+        data_dir.rename(previous)
+    staging_dir.rename(data_dir)
+    if previous.exists():
+        shutil.rmtree(previous)
+
+
+def write_data(
+    data_dir: Path,
+    *,
+    raw_dir: Path,
+    products_parquet: Path,
+    generated_at: datetime,
+    office_time_zones: Mapping[str, str],
+    recent_limit: int,
+    top_limit: int,
+) -> None:
+    """Every file of the static JSON, under `data_dir`."""
     write_json(data_dir / meta_path(), MetaFile(generated_at=format_utc(generated_at)))
 
     scans = normalise_scans(raw_dir)

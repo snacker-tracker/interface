@@ -5,7 +5,9 @@ description = "Builds the static JSON behind the Snacker Tracker interface from 
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "jsonschema>=4.26.0",
     "polars>=2.0.0",
+    "pydantic>=2.14.1",
 ]
 
 [project.scripts]
@@ -17,9 +19,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "jsonschema>=4.26.0",
     "mypy>=2.4.0",
-    "pydantic>=2.14.1",
     "pytest>=9.1.1",
     "types-jsonschema>=4.26.0.20261006",
 ]

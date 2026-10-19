@@ -2,16 +2,19 @@
 
     snacker extract-products --raw <scanner dir> --food <food.parquet> --products <products.parquet>
     snacker build --raw <scanner dir> --products <products.parquet> --out <output dir>
+    snacker check --out <output dir>
     snacker schema --out <schema file>
 """
 
 import argparse
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
 import polars as pl
 
-from snacker.build import build
+from snacker.build import ContractBroken, build
+from snacker.check import Violation, contract_violations
 from snacker.products import update_products
 from snacker.schema import schema_json
 from snacker.scans import normalise_scans
@@ -44,6 +47,11 @@ def main() -> None:
         help="Output directory; JSON is written under <out>/data/.",
     )
 
+    check_command = commands.add_parser(
+        "check", help="Check a built output against the output contract (the build does this itself)."
+    )
+    check_command.add_argument("--out", type=Path, required=True, help="Output directory holding data/.")
+
     schema_command = commands.add_parser(
         "schema", help="Write the JSON Schema of the static JSON, generated from the output contract."
     )
@@ -63,11 +71,28 @@ def main() -> None:
             print(f"Looked up {len(codes)} scanned codes; {named} have a product name. Wrote {args.products}")
         else:
             print(f"Every scanned code is already in {args.products}; nothing to do (use --force to redo)")
+    elif args.command == "check":
+        violations = contract_violations(args.out / "data")
+        if violations:
+            fail(f"{args.out / 'data'} breaks the output contract", violations)
+        print(f"{args.out / 'data'} keeps the output contract")
     else:
-        build(
-            raw_dir=args.raw,
-            products_parquet=args.products,
-            out_dir=args.out,
-            generated_at=datetime.now(UTC),
-        )
+        try:
+            build(
+                raw_dir=args.raw,
+                products_parquet=args.products,
+                out_dir=args.out,
+                generated_at=datetime.now(UTC),
+            )
+        except ContractBroken as broken:
+            fail(f"Not published: {broken}. The previous data is unchanged", broken.violations)
         print(f"Built {args.out / 'data'}")
+
+
+def fail(message: str, violations: list[Violation], *, shown: int = 50) -> None:
+    print(f"{message}:", file=sys.stderr)
+    for violation in violations[:shown]:
+        print(f"  {violation}", file=sys.stderr)
+    if len(violations) > shown:
+        print(f"  ... and {len(violations) - shown} more", file=sys.stderr)
+    sys.exit(1)

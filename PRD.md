@@ -254,10 +254,12 @@ The backend's `check` module tests a built output against all of §7, and names 
 
 ### 8.1 Backend (`backend/`, Python, Polars, uv)
 
-The backend is a CLI with no running server and two commands:
+The backend is a CLI with no running server and these commands:
 
 - `snacker extract-products --raw … --food … --products … [--force]`
-- `snacker build --raw … --products … --out …`
+- `snacker build --raw … --products … --out …`: it publishes only output that passes the contract check (§7.4). Otherwise it lists the violations and leaves the previous data in place.
+- `snacker check --out …`: runs the contract check on its own.
+- `snacker schema --out …`: regenerates `contract/static-json.schema.json`.
 
 Inside, each step is a named function with explicit inputs and outputs, so it can become a Dagster asset later:
 
