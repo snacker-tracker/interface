@@ -11,10 +11,9 @@ ones sent with the API key its heartbeats use (see docs/adr/0002).
 """
 
 from pathlib import Path
-from typing import TypedDict
-
 import polars as pl
 
+from snacker.contract import LastScan, ScannerStatus
 from snacker.events import read_events
 from snacker.timestamps import UTC_TIMESTAMP_FORMAT, require_timestamps, utc_timestamps
 
@@ -25,27 +24,6 @@ HEARTBEATS_SCHEMA = pl.Schema({
     "sent_at": pl.Datetime("us", "UTC"),
     "api_key": pl.String(),
 })
-
-
-class LastScan(TypedDict):
-    scanned_at: str
-    """UTC, e.g. "2026-10-16T10:33:45Z"."""
-    code: str
-    product_name: str | None
-    """Null for an unknown product."""
-
-
-class ScannerStatus(TypedDict):
-    name: str
-    """The scanner's name, e.g. "rpi-pico-w-01"."""
-    location: str
-    """Where its latest heartbeat said it was."""
-    app_version: str
-    """From its latest heartbeat."""
-    last_seen: str
-    """UTC time of its latest heartbeat, e.g. "2026-10-19T09:45:47Z"."""
-    last_scan: LastScan | None
-    """The latest scan sent with its API key; None if it has sent none."""
 
 
 # The envelope fields heartbeats use, across all three payload shapes; a field a shape

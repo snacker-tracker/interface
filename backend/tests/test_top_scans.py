@@ -5,14 +5,15 @@ from datetime import UTC, datetime
 import pytest
 
 from scans_table import scan, scans_table
-from snacker.scan_summary import PERIODS, top_scans
+from snacker.contract import PERIODS, Period
+from snacker.scan_summary import top_scans
 
 # Wednesday 21 October 2026, 12:00 in Bangkok (UTC+7).
 NOW = datetime(2026, 10, 21, 5, 0, tzinfo=UTC)
 BANGKOK = "Asia/Bangkok"
 
 
-def top_codes(scans: list[dict[str, object]], period: str, *, top_limit: int = 10) -> list[str]:
+def top_codes(scans: list[dict[str, object]], period: Period, *, top_limit: int = 10) -> list[str]:
     return [row["code"] for row in top_scans(scans_table(*scans), limit=top_limit, now=NOW)[period]]
 
 
@@ -59,7 +60,7 @@ def test_a_row_names_the_product_counts_its_scans_and_gives_its_share_of_the_per
 def test_every_period_is_listed_even_when_it_has_no_scans() -> None:
     by_period = top_scans(scans_table(), limit=10, now=NOW)
 
-    assert list(by_period) == PERIODS
+    assert tuple(by_period) == PERIODS
     assert all(rows == [] for rows in by_period.values())
 
 
@@ -80,7 +81,7 @@ def test_every_period_is_listed_even_when_it_has_no_scans() -> None:
         ("last-365-days", "2025-10-21T05:00:00Z", "2025-10-21T04:59:59Z"),
     ],
 )
-def test_a_period_includes_scans_from_its_start_onwards(period: str, just_inside: str, just_outside: str) -> None:
+def test_a_period_includes_scans_from_its_start_onwards(period: Period, just_inside: str, just_outside: str) -> None:
     scans = [
         scan("inside", just_inside, office_time_zone=BANGKOK),
         scan("outside", just_outside, office_time_zone=BANGKOK),
@@ -139,4 +140,4 @@ def test_unknown_only_ranks_unknown_products_even_below_the_overall_top() -> Non
 def test_unknown_only_lists_every_period() -> None:
     by_period = top_scans(scans_table(), limit=10, now=NOW, unknown_only=True)
 
-    assert list(by_period) == PERIODS
+    assert tuple(by_period) == PERIODS

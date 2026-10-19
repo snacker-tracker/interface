@@ -8,47 +8,14 @@ plus `product_name`, `product_brands` and `product_known` columns (see products.
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from collections.abc import Callable
-from typing import TypedDict
+from typing import cast
 from zoneinfo import ZoneInfo
 
 import polars as pl
 
+from snacker.contract import PERIODS, DailyCount, HourlyCount, ScanRow, TopScan, TopScansByPeriod
 from snacker.timestamps import DATE_FORMAT, UTC_TIMESTAMP_FORMAT
 
-
-class DailyCount(TypedDict):
-    date: str
-    count: int
-
-
-class HourlyCount(TypedDict):
-    hour: int
-    """0-23, in the office time zone."""
-    count: int
-
-
-class TopScan(TypedDict):
-    code: str
-    name: str | None
-    brands: str | None
-    known: bool
-    """Whether OpenFoodFacts has the product; unknown products are flagged in the UI."""
-    count: int
-    share: float
-    """This code's fraction of all scans in the period, e.g. 0.25."""
-
-
-PERIODS = [
-    "today",
-    "this-work-week",
-    "last-7-days",
-    "this-month",
-    "last-30-days",
-    "this-year",
-    "last-365-days",
-    "all-time",
-]
-"""Every period top scans are ranked over, in display order (see GLOSSARY.md, Period)."""
 
 CALENDAR_PERIODS: dict[str, Callable[[date], date]] = {
     # Each maps today's office date to the period's first office date.
@@ -63,19 +30,6 @@ ROLLING_PERIODS = {
     "last-30-days": timedelta(days=30),
     "last-365-days": timedelta(days=365),
 }
-
-
-class ScanRow(TypedDict):
-    code: str
-    name: str | None
-    """The product's name; null for an unknown product."""
-    brands: str | None
-    location: str
-    scanned_at: str
-    """UTC, e.g. "2026-09-23T06:26:00Z"."""
-    office_time: str
-    """The same moment in the office time zone, e.g. "2026-09-23T13:26:00+07:00"."""
-    office_time_zone: str
 
 
 @dataclass(frozen=True)
@@ -162,7 +116,7 @@ def in_office_time_zone(moment: datetime, office_time_zone: str) -> str:
 
 def top_scans(
     scans: pl.DataFrame, *, limit: int, now: datetime, unknown_only: bool = False
-) -> dict[str, list[TopScan]]:
+) -> TopScansByPeriod:
     """For every period (see PERIODS), the codes scanned most within it, most first.
 
     `now` is when the data is built: every period ends then, so later scans aren't counted.
@@ -172,10 +126,10 @@ def top_scans(
     """
     flagged = _with_period_flags(scans, now)
     ranked = flagged.filter(~pl.col("product_known")) if unknown_only else flagged
-    return {
+    return cast(TopScansByPeriod, {
         period: _rank(ranked.filter(pl.col(period)), limit, total=flagged.filter(pl.col(period)).height)
         for period in PERIODS
-    }
+    })
 
 
 def _with_period_flags(scans: pl.DataFrame, now: datetime) -> pl.DataFrame:

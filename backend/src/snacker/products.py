@@ -10,9 +10,11 @@ is an unknown product and its details are null.
 import re
 from collections.abc import Iterable
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any
 
 import polars as pl
+
+from snacker.contract import Product
 
 PRODUCTS_SCHEMA = pl.Schema({
     "code": pl.String(),
@@ -129,17 +131,6 @@ def with_products(scans: pl.DataFrame, products_parquet: Path) -> pl.DataFrame:
     return scans.join(products, on="code", how="left", maintain_order="left").with_columns(
         pl.col("product_known").fill_null(False)
     )
-
-
-class Product(TypedDict):
-    """What a code page shows about a product (PRD R5)."""
-
-    name: str | None
-    brands: str | None
-    quantity: str | None
-    categories: list[str]
-    image_url: str | None
-    off_url: str
 
 
 def known_products(products_parquet: Path) -> dict[str, Product]:
