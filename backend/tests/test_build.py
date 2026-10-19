@@ -51,8 +51,20 @@ def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) 
         "location": "all",
         "daily": [{"date": "2023-01-08", "count": 2}],
         "recent": [
-            {"code": "8851959132012", "location": "thailand:bangkok", "scanned_at": "2023-01-08T05:00:00Z"},
-            {"code": "8850999220000", "location": "thailand:bangkok", "scanned_at": "2023-01-08T03:10:22Z"},
+            {
+                "code": "8851959132012",
+                "location": "thailand:bangkok",
+                "scanned_at": "2023-01-08T05:00:00Z",
+                "office_time": "2023-01-08T12:00:00+07:00",
+                "office_time_zone": "Asia/Bangkok",
+            },
+            {
+                "code": "8850999220000",
+                "location": "thailand:bangkok",
+                "scanned_at": "2023-01-08T03:10:22Z",
+                "office_time": "2023-01-08T10:10:22+07:00",
+                "office_time_zone": "Asia/Bangkok",
+            },
         ],
     }
 
@@ -145,3 +157,25 @@ def test_location_file_names_are_percent_encoded_but_keep_colons_readable(
 
     index = read_json(out_dir, "data/index/by-location/thailand:staff%20room%2F2.json")
     assert index["location"] == "thailand:staff room/2"
+
+
+def test_days_are_counted_in_the_office_time_zone(raw_dir: Path, out_dir: Path) -> None:
+    # 18:30 UTC on the 22nd is 01:30 on the 23rd in Bangkok, where Thai locations are.
+    write_events(raw_dir, "scans/2026/09/22/delivery", [
+        live_scan("8853333010015", time="2026-09-22T18:30:00Z", location="thailand:bangkok:main-kitchen"),
+    ])
+
+    run_build(raw_dir, out_dir)
+
+    index = read_json(out_dir, "data/index/by-location/all.json")
+    assert index["daily"] == [{"date": "2026-09-23", "count": 1}]
+    assert index["recent"][0]["office_time"] == "2026-09-23T01:30:00+07:00"
+
+
+def test_a_location_without_an_office_time_zone_stops_the_build(raw_dir: Path, out_dir: Path) -> None:
+    write_events(raw_dir, "scans/2026/09/23/delivery", [
+        live_scan("8853333010015", time="2026-09-23T06:05:42Z", location="vietnam:hanoi"),
+    ])
+
+    with pytest.raises(ValueError, match="no office time zone for location 'vietnam:hanoi'"):
+        run_build(raw_dir, out_dir)

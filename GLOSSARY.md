@@ -38,6 +38,10 @@ A location someone can filter by: `all`, or any prefix of a location some scan c
 The time zone of the office a location belongs to; days and hours for its scans are counted in it.
 _Avoid_: local timezone (ambiguous with the viewer's browser)
 
+**Office time**:
+When a scan happened, as a clock in its office time zone would show it.
+_Avoid_: local time
+
 ### Hardware
 
 **Scanner**:

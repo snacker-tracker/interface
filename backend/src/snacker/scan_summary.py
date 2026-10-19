@@ -5,7 +5,9 @@ Days are counted in each scan's office time zone, so the scans table must carry 
 """
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TypedDict
+from zoneinfo import ZoneInfo
 
 import polars as pl
 
@@ -21,6 +23,10 @@ class ScanRow(TypedDict):
     code: str
     location: str
     scanned_at: str
+    """UTC, e.g. "2026-09-23T06:26:00Z"."""
+    office_time: str
+    """The same moment in the office time zone, e.g. "2026-09-23T13:26:00+07:00"."""
+    office_time_zone: str
 
 
 @dataclass(frozen=True)
@@ -68,13 +74,20 @@ def _recent_scans(scans: pl.DataFrame, limit: int) -> list[ScanRow]:
     rows = (
         scans.sort(["scanned_at", "event_id"], descending=True)
         .head(limit)
-        .select(
-            "code",
-            "location",
-            pl.col("scanned_at").dt.to_string(UTC_TIMESTAMP_FORMAT),
-        )
+        .select("code", "location", "scanned_at", "office_time_zone")
     )
     return [
-        ScanRow(code=row["code"], location=row["location"], scanned_at=row["scanned_at"])
+        ScanRow(
+            code=row["code"],
+            location=row["location"],
+            scanned_at=row["scanned_at"].strftime(UTC_TIMESTAMP_FORMAT),
+            office_time=in_office_time_zone(row["scanned_at"], row["office_time_zone"]),
+            office_time_zone=row["office_time_zone"],
+        )
         for row in rows.to_dicts()
     ]
+
+
+def in_office_time_zone(moment: datetime, office_time_zone: str) -> str:
+    """The moment as ISO 8601 in the office time zone, e.g. "2026-09-23T13:26:00+07:00"."""
+    return moment.astimezone(ZoneInfo(office_time_zone)).isoformat(timespec="seconds")

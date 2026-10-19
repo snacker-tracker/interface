@@ -100,13 +100,13 @@ Duplicate `event_id`s are dropped.
 
 Every scan counts in every chart and list, whether or not the code is a barcode or has product info. Codes without product info display as **"Unknown product"** with the raw code.
 
-### R4: Local time
+### R4: Office time
 
 - Timestamps are stored in UTC.
-- Day and hour buckets use the local time of the office the scan came from.
-- Displayed times are shown in the scan's local time, with the time zone indicated.
+- Day and hour buckets use the office time zone of the location the scan came from (see GLOSSARY.md).
+- Displayed times are shown in the scan's office time, with the time zone indicated.
 - Time zones come from a **prefix map** in backend config, e.g. `{"thailand": "Asia/Bangkok"}`. The longest matching prefix wins. An unmapped location **fails the build**.
-- `all`, and parent locations spanning several time zones, bucket each scan by its own office's local time.
+- `all`, and parent locations spanning several time zones, bucket each scan in its own office time zone.
 
 ### R5: Product display
 
@@ -189,7 +189,7 @@ data/codes/{code}/by-location/{location}.json   code page scan data
 { "scanners": [ { "device_name", "location", "app_version", "last_seen" } ] }
 
 // ScanRow
-{ "code", "name": null | "...", "brands": null | "...", "location", "scanned_at", "local_time", "timezone" }
+{ "code", "name": null | "...", "brands": null | "...", "location", "scanned_at", "office_time", "office_time_zone" }
 ```
 
 ### 7.3 Encoding

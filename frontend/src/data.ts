@@ -8,6 +8,10 @@ export type ScanRow = {
   location: string
   /** UTC, e.g. "2026-10-16T10:33:45Z" */
   scanned_at: string
+  /** The same moment in the office time zone, e.g. "2026-10-16T17:33:45+07:00" */
+  office_time: string
+  /** IANA name, e.g. "Asia/Bangkok" */
+  office_time_zone: string
 }
 
 export type IndexData = {
