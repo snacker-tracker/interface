@@ -105,3 +105,43 @@ def test_a_scan_timestamp_without_a_timezone_stops_the_build(
 
     with pytest.raises(ValueError, match="timestamp without a timezone: '2023-01-08T03:10:22'"):
         run_build(raw_dir, out_dir)
+
+
+def test_every_selectable_location_gets_its_own_index_file(raw_dir: Path, out_dir: Path) -> None:
+    write_events(raw_dir, "scans/2023/01/08/backfill-2023-01-08.jsonl", [
+        backfill_scan("8850999220000", scanned_at="2023-01-08T03:10:22Z", location="thailand:bangkok"),
+    ])
+    write_events(raw_dir, "scans/2026/09/23/delivery", [
+        live_scan("8853333010015", time="2026-09-23T06:05:42Z", location="thailand:bangkok:main-kitchen"),
+    ])
+
+    run_build(raw_dir, out_dir)
+
+    assert read_json(out_dir, "data/locations.json") == {"locations": [
+        {"id": "all"},
+        {"id": "thailand"},
+        {"id": "thailand:bangkok"},
+        {"id": "thailand:bangkok:main-kitchen"},
+    ]}
+    assert sorted(p.name for p in (out_dir / "data/index/by-location").iterdir()) == [
+        "all.json",
+        "thailand.json",
+        "thailand:bangkok.json",
+        "thailand:bangkok:main-kitchen.json",
+    ]
+    kitchen = read_json(out_dir, "data/index/by-location/thailand:bangkok:main-kitchen.json")
+    assert kitchen["location"] == "thailand:bangkok:main-kitchen"
+    assert [row["code"] for row in kitchen["recent"]] == ["8853333010015"]
+
+
+def test_location_file_names_are_percent_encoded_but_keep_colons_readable(
+    raw_dir: Path, out_dir: Path
+) -> None:
+    write_events(raw_dir, "scans/2026/09/23/delivery", [
+        live_scan("8853333010015", time="2026-09-23T06:05:42Z", location="thailand:staff room/2"),
+    ])
+
+    run_build(raw_dir, out_dir)
+
+    index = read_json(out_dir, "data/index/by-location/thailand:staff%20room%2F2.json")
+    assert index["location"] == "thailand:staff room/2"

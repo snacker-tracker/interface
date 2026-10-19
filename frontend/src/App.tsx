@@ -1,15 +1,19 @@
-import { createBrowserRouter, Link, Outlet } from 'react-router'
+import { createBrowserRouter, Link, Outlet, useLocation } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 
+import { LocationSelector } from './components/LocationSelector'
 import { IndexPage } from './pages/IndexPage'
 
 function Layout() {
+  const { search } = useLocation()
   return (
     <>
       <header className="app-header">
         <h1 className="app-title">
-          <Link to="/">Snacker Tracker</Link>
+          {/* Keeps ?location= so going home doesn't reset the filter. */}
+          <Link to={{ pathname: '/', search }}>Snacker Tracker</Link>
         </h1>
+        <LocationSelector />
       </header>
       <main className="app-main">
         <Outlet />

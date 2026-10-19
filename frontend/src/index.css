@@ -79,6 +79,26 @@ a {
   text-decoration: none;
 }
 
+.location-selector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.location-selector select {
+  font: inherit;
+  font-size: 1rem;
+  color: var(--text-primary);
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 8px;
+  min-width: 14rem;
+  max-width: 100%;
+}
+
 .app-main {
   max-width: 1100px;
   margin: 0 auto;

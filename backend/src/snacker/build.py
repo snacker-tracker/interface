@@ -4,6 +4,7 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 from snacker.locations import Locations
 from snacker.scan_summary import summarise
@@ -28,12 +29,22 @@ def build(
     locations = Locations.from_scans(scans)
     zoned_scans = locations.with_office_time_zones(scans)
 
+    write_json(
+        data_dir / "locations.json",
+        {"locations": [{"id": location} for location in locations.selectable()]},
+    )
     for location in locations.selectable():
         summary = summarise(locations.within(zoned_scans, location), recent_limit=recent_limit)
         write_json(
-            data_dir / "index" / "by-location" / f"{location}.json",
+            data_dir / "index" / "by-location" / f"{path_segment(location)}.json",
             {"location": location, "daily": summary.daily, "recent": summary.recent},
         )
+
+
+def path_segment(value: str) -> str:
+    """A location or code as a file name: percent-encoded like JavaScript's
+    encodeURIComponent, except that `:` stays readable (`thailand:bangkok`)."""
+    return quote(value, safe="!*'():")
 
 
 def format_utc(moment: datetime) -> str:

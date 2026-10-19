@@ -16,15 +16,29 @@ export type IndexData = {
   recent: ScanRow[]
 }
 
-/**
- * Path to a data file. Codes and locations are percent-encoded in file names, and
- * static servers decode the request path before looking the file up, so each
- * segment is encoded twice to land on the literal `%`-encoded file name.
- */
-export function dataPath(...segments: string[]): string {
-  return '/data/' + segments.map((s) => encodeURIComponent(encodeURIComponent(s))).join('/') + '.json'
+export type LocationsData = {
+  /** The selectable locations: `all`, then every prefix of every scanned location, in path order. */
+  locations: { id: string }[]
 }
 
+/**
+ * A location or code as the backend names its file: percent-encoded like
+ * encodeURIComponent, except that `:` stays readable (`thailand:bangkok`).
+ */
+function fileName(value: string): string {
+  return encodeURIComponent(value).replaceAll('%3A', ':')
+}
+
+/**
+ * Path to a data file. Static servers decode the request path before looking the
+ * file up, so each file name is encoded once more to land on its literal `%` escapes.
+ * `:` stays literal in the request too: Vite's dev server doesn't match `%3A` to it.
+ */
+export function dataPath(...segments: string[]): string {
+  return '/data/' + segments.map((s) => fileName(fileName(s))).join('/') + '.json'
+}
+
+export const locationsDataPath = () => dataPath('locations')
 export const indexDataPath = (location: string) => dataPath('index', 'by-location', location)
 
 export type Fetched<T> =

@@ -1,16 +1,19 @@
 import { DailyScansChart } from '../components/DailyScansChart'
 import { RecentScans } from '../components/RecentScans'
 import { type IndexData, indexDataPath, useJson } from '../data'
-
-// Every location until the location selector arrives (ticket 03).
-const ALL_LOCATIONS = 'all'
+import { useSelectedLocation } from '../selectedLocation'
 
 export function IndexPage() {
-  const index = useJson<IndexData>(indexDataPath(ALL_LOCATIONS))
+  const [location] = useSelectedLocation()
+  const index = useJson<IndexData>(indexDataPath(location))
 
   if (index.status === 'loading') return <p className="status">Loading scans…</p>
   if (index.status === 'error') {
-    return <p className="status status-error">Couldn't load scans ({index.message}). Has the data been built?</p>
+    return (
+      <p className="status status-error">
+        Couldn't load scans for {location} ({index.message}). Is it a known location, and has the data been built?
+      </p>
+    )
   }
 
   const { daily, recent } = index.data

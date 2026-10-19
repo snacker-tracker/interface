@@ -194,8 +194,8 @@ data/codes/{code}/by-location/{location}.json   code page scan data
 
 ### 7.3 Encoding
 
-- `{code}` and `{location}` are path segments encoded with `encodeURIComponent` semantics, so barcodes and `thailand:bangkok` stay readable.
-- Static servers decode `%` escapes before looking up a file, so the frontend **encodes the segment again** when fetching. That way a file named `http%3A%2F%2F…` resolves correctly.
+- `{code}` and `{location}` are file names percent-encoded like `encodeURIComponent`, **except that `:` stays literal**. So barcodes and `thailand:bangkok` stay readable, while a URL code becomes `http:%2F%2Fwww.example.com%2F…`. (Decided 2026-10-19. The cost is that `:` isn't a valid file-name character on Windows.)
+- Static servers decode `%` escapes before looking up a file, so the frontend **applies the same encoding again** when fetching, still leaving `:` literal. For example, `thailand:staff room` is stored as `thailand:staff%20room.json` and requested as `thailand:staff%2520room.json`. Vite's dev server doesn't match `%3A` to a literal `:`, which is why `:` stays literal in requests too.
 - Browser routes use single encoding.
 
 ## 8. Technical design
