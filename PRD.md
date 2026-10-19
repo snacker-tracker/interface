@@ -187,9 +187,15 @@ data/codes/{code}/product.json                  product info (global)
 data/codes/{code}/by-location/{location}.json   code page scan data
 ```
 
-- One file is written per `{location}` for every entry in `locations.json`, including `all`.
+These rules decide which files exist:
+
+- `meta.json` and `locations.json` always exist. `locations.json` includes `all`.
+- An index file and a scanners file are written for every entry in `locations.json`, including `all`.
 - `codes/{code}/by-location/{location}.json` is only written for locations where that code was scanned. If the file is missing, the frontend shows zero scans.
-- `product.json` is written for **every** scanned code, with `"product": null` when there is no OpenFoodFacts match.
+- Every scanned code has a scans file for `all`.
+- `product.json` is written for **every** scanned code, with `"product": null` when there is no OpenFoodFacts match. Every code named in any file has one.
+- Each file sits at the path its own `code` and `location` give, encoded as in §7.3.
+- No other files are written.
 
 ### 7.2 Shapes
 
@@ -213,6 +219,36 @@ The shapes are defined by the JSON Schema at `contract/static-json.schema.json`.
 - `{code}` and `{location}` are file names percent-encoded like `encodeURIComponent`, **except that `:` stays literal**. So barcodes and `thailand:bangkok` stay readable, while a URL code becomes `http:%2F%2Fwww.example.com%2F…`. (Decided 2026-10-19. The cost is that `:` isn't a valid file-name character on Windows.)
 - Static servers decode `%` escapes before looking up a file, so the frontend **applies the same encoding again** when fetching, still leaving `:` literal. For example, `thailand:staff room` is stored as `thailand:staff%20room.json` and requested as `thailand:staff%2520room.json`. Vite's dev server doesn't match `%3A` to a literal `:`, which is why `:` stays literal in requests too.
 - Browser routes use single encoding.
+
+### 7.4 Rules across fields and files
+
+These hold in every build, alongside the schema (§7.2) and the file rules (§7.1):
+
+- **Locations:**
+  - Every file's `location` is selectable.
+  - Every scan row is from a selectable location within the file's location.
+  - Every scanner is within its file's location.
+- **`daily`:**
+  - Office dates, unique and oldest first.
+  - Every count is positive.
+- **`hourly`:**
+  - Exactly hours 0–23, in order.
+  - In a code scans file, `hourly` and `daily` add up to the same total, and that total isn't zero.
+- **`recent`:**
+  - Newest first.
+  - Holds the most recent `min(total, 25)` scans.
+  - In a code scans file, only that code's scans.
+- **Top scans:**
+  - All eight periods are present, in both `top_scans` and `top_unknown_scans`.
+  - Each list has at most 10 codes, each code once, with counts positive and most first.
+  - Each share is in (0, 1], and a list's shares add up to at most 1, allowing for rounding.
+  - `top_unknown_scans` lists only unknown products.
+- **Scanners:** unique, ordered by name.
+- **Times:**
+  - `generated_at`, `scanned_at`, `last_seen` and a last scan's `scanned_at` are UTC, written like `2026-10-19T12:00:00Z`.
+  - A scan row's `office_time` is the same moment as its `scanned_at`, written with the UTC offset its `office_time_zone` (an IANA name) had then.
+
+The backend's `check` module tests a built output against all of §7, and names the file behind each violation.
 
 ## 8. Technical design
 

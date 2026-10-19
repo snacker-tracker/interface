@@ -1,5 +1,8 @@
-"""Tests at the contract seam: the published JSON Schema, and built output checked against it."""
+"""Tests at the contract seam: the published JSON Schema, and built output checked against the
+whole contract (shapes, which files exist, and the rules across them)."""
 
+import json
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -111,3 +114,97 @@ def test_index_files_must_list_every_period() -> None:
     index = {"location": "all", "top_scans": without_today, "top_unknown_scans": every_period, "daily": [], "recent": []}
 
     assert schema_errors("IndexFile", index) == ["top_scans: 'today' is a required property"]
+
+
+def edit_json(data_dir: Path, relative_path: str, edit: Callable[[Any], None]) -> None:
+    file = data_dir / relative_path
+    content = json.loads(file.read_text())
+    edit(content)
+    file.write_text(json.dumps(content))
+
+
+KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitchen.json"
+
+
+@pytest.mark.parametrize(
+    ("breakage", "expected"),
+    [
+        (
+            lambda data: (data / "index/by-location/thailand:test.json").unlink(),
+            "index/by-location/thailand:test.json: missing: every selectable location has one ('thailand:test')",
+        ),
+        (
+            lambda data: (data / "codes/005/product.json").unlink(),
+            "codes/005/by-location/all.json: codes/005/product.json is missing",
+        ),
+        (
+            lambda data: (data / "stray.json").write_text("{}"),
+            "stray.json: not a file the contract describes",
+        ),
+        (
+            # Written at a single-encoded path, as if the encoding rule had changed.
+            lambda data: (data / "index/by-location/thailand:staff%20room.json").rename(
+                data / "index/by-location/thailand:staff room.json"
+            ),
+            "index/by-location/thailand:staff room.json: its content belongs at index/by-location/thailand:staff%20room.json",
+        ),
+        (
+            lambda data: edit_json(data, KITCHEN_CODE_SCANS, lambda content: content["hourly"].pop()),
+            f"{KITCHEN_CODE_SCANS}: hourly: isn't exactly hours 0 to 23 in order",
+        ),
+        (
+            lambda data: edit_json(data, "locations.json", lambda content: content["locations"].remove({"id": "thailand:test"})),
+            "index/by-location/thailand:test.json: location 'thailand:test' isn't selectable",
+        ),
+        (
+            lambda data: edit_json(
+                data, KITCHEN_CODE_SCANS, lambda content: content["recent"][0].update(office_time="2026-10-19T02:00:00+07:00")
+            ),
+            f"{KITCHEN_CODE_SCANS}: recent/0: office_time '2026-10-19T02:00:00+07:00' isn't the moment 2026-10-19T02:00:00Z",
+        ),
+        (
+            lambda data: edit_json(
+                data, KITCHEN_CODE_SCANS, lambda content: content["recent"][0].update(office_time="2026-10-19T03:00:00+01:00")
+            ),
+            f"{KITCHEN_CODE_SCANS}: recent/0: office_time '2026-10-19T03:00:00+01:00' isn't in Asia/Bangkok",
+        ),
+        (
+            lambda data: edit_json(data, "index/by-location/all.json", lambda content: content["daily"].reverse()),
+            "index/by-location/all.json: daily: dates aren't unique and oldest first",
+        ),
+        (
+            lambda data: edit_json(data, "index/by-location/all.json", lambda content: content["recent"].reverse()),
+            "index/by-location/all.json: recent: isn't newest first",
+        ),
+        (
+            lambda data: edit_json(
+                data, "index/by-location/all.json", lambda content: content["top_unknown_scans"]["all-time"][0].update(known=True)
+            ),
+            "index/by-location/all.json: top_unknown_scans/all-time: lists a known product",
+        ),
+        (
+            lambda data: edit_json(
+                data, "index/by-location/all.json", lambda content: content["top_scans"]["all-time"][0].update(share=0.9)
+            ),
+            "index/by-location/all.json: top_scans/all-time: shares add up to more than 1",
+        ),
+        (
+            lambda data: edit_json(data, "meta.json", lambda content: content.update(generated_at="2026-10-19T12:00:00+00:00")),
+            "meta.json: generated_at: '2026-10-19T12:00:00+00:00' isn't a UTC time like 2026-10-19T12:00:00Z",
+        ),
+    ],
+    ids=[
+        "missing index file", "missing product file", "stray file", "wrong encoding", "23-entry hourly",
+        "unselectable location", "office time a different moment", "office time in another zone",
+        "daily out of order", "recent out of order", "known product in unknown-only list", "shares over 1",
+        "generated_at not in UTC",
+    ],
+)
+def test_the_check_names_each_way_a_build_breaks_the_contract(
+    raw_dir: Path, out_dir: Path, breakage: Callable[[Path], object], expected: str
+) -> None:
+    data_dir = build_every_kind_of_file(raw_dir, out_dir)
+
+    breakage(data_dir)
+
+    assert expected in [str(violation) for violation in contract_violations(data_dir)]
