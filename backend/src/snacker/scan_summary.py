@@ -1,7 +1,8 @@
 """Scan summary: what a set of scans amounts to, shaped like the published JSON.
 
 Days are counted in each scan's office time zone, so the scans table must carry an
-`office_time_zone` column (see Locations.with_office_time_zones) alongside `scanned_at` in UTC.
+`office_time_zone` column (see Locations.with_office_time_zones) alongside `scanned_at` in UTC,
+plus `product_name` and `product_brands` columns, null for unknown products (see products.with_products).
 """
 
 from dataclasses import dataclass
@@ -21,6 +22,9 @@ class DailyCount(TypedDict):
 
 class ScanRow(TypedDict):
     code: str
+    name: str | None
+    """The product's name; null for an unknown product."""
+    brands: str | None
     location: str
     scanned_at: str
     """UTC, e.g. "2026-09-23T06:26:00Z"."""
@@ -74,11 +78,13 @@ def _recent_scans(scans: pl.DataFrame, limit: int) -> list[ScanRow]:
     rows = (
         scans.sort(["scanned_at", "event_id"], descending=True)
         .head(limit)
-        .select("code", "location", "scanned_at", "office_time_zone")
+        .select("code", "product_name", "product_brands", "location", "scanned_at", "office_time_zone")
     )
     return [
         ScanRow(
             code=row["code"],
+            name=row["product_name"],
+            brands=row["product_brands"],
             location=row["location"],
             scanned_at=row["scanned_at"].strftime(UTC_TIMESTAMP_FORMAT),
             office_time=in_office_time_zone(row["scanned_at"], row["office_time_zone"]),

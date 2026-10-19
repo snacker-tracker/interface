@@ -5,10 +5,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import polars as pl
 import pytest
 
 from raw_events import backfill_scan, live_scan, write_events
 from snacker.build import build
+from snacker.products import PRODUCTS_SCHEMA
 
 GENERATED_AT = datetime(2026, 10, 19, 12, 0, tzinfo=UTC)
 
@@ -25,8 +27,27 @@ def out_dir(tmp_path: Path) -> Path:
     return tmp_path / "out"
 
 
+def products_parquet(raw_dir: Path) -> Path:
+    return raw_dir.parent / "products.parquet"
+
+
+def write_products(raw_dir: Path, products: dict[str, tuple[str | None, str | None]]) -> None:
+    """The extracted products table: code -> (name, brands)."""
+    pl.DataFrame(
+        [{"code": code, "name": name, "brands": brands} for code, (name, brands) in products.items()],
+        schema=PRODUCTS_SCHEMA,
+    ).write_parquet(products_parquet(raw_dir))
+
+
 def run_build(raw_dir: Path, out_dir: Path) -> None:
-    build(raw_dir=raw_dir, out_dir=out_dir, generated_at=GENERATED_AT)
+    if not products_parquet(raw_dir).exists():
+        write_products(raw_dir, {})
+    build(
+        raw_dir=raw_dir,
+        out_dir=out_dir,
+        products_parquet=products_parquet(raw_dir),
+        generated_at=GENERATED_AT,
+    )
 
 
 def read_json(out_dir: Path, relative_path: str) -> Any:
@@ -53,6 +74,8 @@ def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) 
         "recent": [
             {
                 "code": "8851959132012",
+                "name": None,
+                "brands": None,
                 "location": "thailand:bangkok",
                 "scanned_at": "2023-01-08T05:00:00Z",
                 "office_time": "2023-01-08T12:00:00+07:00",
@@ -60,6 +83,8 @@ def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) 
             },
             {
                 "code": "8850999220000",
+                "name": None,
+                "brands": None,
                 "location": "thailand:bangkok",
                 "scanned_at": "2023-01-08T03:10:22Z",
                 "office_time": "2023-01-08T10:10:22+07:00",
@@ -179,3 +204,25 @@ def test_a_location_without_an_office_time_zone_stops_the_build(raw_dir: Path, o
 
     with pytest.raises(ValueError, match="no office time zone for location 'vietnam:hanoi'"):
         run_build(raw_dir, out_dir)
+
+
+def test_scan_rows_carry_product_names_from_the_extracted_products(raw_dir: Path, out_dir: Path) -> None:
+    write_events(raw_dir, "scans/2026/09/23/delivery", [
+        live_scan("8851959132012", time="2026-09-23T06:03:00Z"),
+        live_scan("http://oishidrink.com/m/", time="2026-09-23T06:02:00Z"),
+        live_scan("8850999220000", time="2026-09-23T06:01:00Z"),
+    ])
+    write_products(raw_dir, {
+        "8851959132012": ("Coca Cola", "Coke, coca cola"),
+        "http://oishidrink.com/m/": (None, None),
+        # 8850999220000 was scanned after the last extraction, so it isn't in the table yet.
+    })
+
+    run_build(raw_dir, out_dir)
+
+    recent = read_json(out_dir, "data/index/by-location/all.json")["recent"]
+    assert [(row["code"], row["name"], row["brands"]) for row in recent] == [
+        ("8851959132012", "Coca Cola", "Coke, coca cola"),
+        ("http://oishidrink.com/m/", None, None),
+        ("8850999220000", None, None),
+    ]

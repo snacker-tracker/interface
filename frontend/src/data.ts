@@ -5,6 +5,9 @@ export type DailyCount = { date: string; count: number }
 
 export type ScanRow = {
   code: string
+  /** The product's name; null for an unknown product. */
+  name: string | null
+  brands: string | null
   location: string
   /** UTC, e.g. "2026-10-16T10:33:45Z" */
   scanned_at: string

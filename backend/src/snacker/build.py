@@ -9,6 +9,7 @@ from urllib.parse import quote
 
 from snacker.config import OFFICE_TIME_ZONES, RECENT_SCANS_LIMIT
 from snacker.locations import Locations
+from snacker.products import with_products
 from snacker.scan_summary import summarise
 from snacker.scans import normalise_scans
 from snacker.timestamps import UTC_TIMESTAMP_FORMAT
@@ -17,6 +18,7 @@ from snacker.timestamps import UTC_TIMESTAMP_FORMAT
 def build(
     *,
     raw_dir: Path,
+    products_parquet: Path,
     out_dir: Path,
     generated_at: datetime,
     office_time_zones: Mapping[str, str] = OFFICE_TIME_ZONES,
@@ -28,13 +30,14 @@ def build(
     scans = normalise_scans(raw_dir)
     locations = Locations.from_scans(scans, office_time_zones)
     zoned_scans = locations.with_office_time_zones(scans)
+    described_scans = with_products(zoned_scans, products_parquet)
 
     write_json(
         data_dir / "locations.json",
         {"locations": [{"id": location} for location in locations.selectable()]},
     )
     for location in locations.selectable():
-        summary = summarise(locations.within(zoned_scans, location), recent_limit=recent_limit)
+        summary = summarise(locations.within(described_scans, location), recent_limit=recent_limit)
         write_json(
             data_dir / "index" / "by-location" / f"{path_segment(location)}.json",
             {"location": location, "daily": summary.daily, "recent": summary.recent},

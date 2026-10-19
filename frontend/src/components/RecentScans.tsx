@@ -30,6 +30,7 @@ export function RecentScans({ scans }: { scans: ScanRow[] }) {
         <thead>
           <tr>
             <th>When (office time)</th>
+            <th>Product</th>
             <th>Location</th>
             <th>Code</th>
           </tr>
@@ -41,6 +42,10 @@ export function RecentScans({ scans }: { scans: ScanRow[] }) {
                 <time dateTime={scan.office_time} title={`${scan.scanned_at} (UTC) · ${scan.office_time_zone}`}>
                   {officeTime(scan)}
                 </time>
+              </td>
+              <td className="product">
+                <span className={scan.name ? undefined : 'unknown'}>{scan.name ?? 'Unknown product'}</span>
+                {scan.brands && <span className="brands">{scan.brands}</span>}
               </td>
               <td>{scan.location}</td>
               <td className="code">{scan.code}</td>

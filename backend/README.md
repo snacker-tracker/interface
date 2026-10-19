@@ -4,7 +4,9 @@ Build step that turns raw scanner events into the static JSON read by the fronte
 See `PRD.md` at the repo root for the data contract.
 
 ```sh
-uv run snacker build --raw ../data/raw/data/scanner --out ../public-data
+uv run snacker extract-products --raw ../data/raw/data/scanner \
+  --food ../data/openfoodfacts__product-database/food.parquet --products ../data/products.parquet
+uv run snacker build --raw ../data/raw/data/scanner --products ../data/products.parquet --out ../public-data
 uv run pytest
 uv run mypy
 ```

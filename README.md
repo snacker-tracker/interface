@@ -24,10 +24,15 @@ Requires [uv](https://docs.astral.sh/uv/) and Node 22 (see `frontend/.nvmrc`).
 
    ```sh
    cd backend
-   uv run snacker build --raw ../data/raw/data/scanner --out ../public-data
+   uv run snacker extract-products --raw ../data/raw/data/scanner \
+     --food ../data/openfoodfacts__product-database/food.parquet --products ../data/products.parquet
+   uv run snacker build --raw ../data/raw/data/scanner --products ../data/products.parquet --out ../public-data
    ```
 
-   This writes `public-data/data/…`. Rerun it whenever the raw data changes.
+   `extract-products` looks up scanned codes in the 8 GB OpenFoodFacts file and saves a
+   small products table; it does nothing when every scanned code was already looked up
+   (`--force` redoes it). `build` writes `public-data/data/…`. Rerun both whenever the
+   raw data changes; codes scanned since the last extraction show as unknown products.
 
 2. Run the frontend:
 
