@@ -11,12 +11,12 @@ ones sent with the API key its heartbeats use (see docs/adr/0002).
 """
 
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import TypedDict
 
 import polars as pl
 
 from snacker.events import read_events
-from snacker.timestamps import UTC_TIMESTAMP_FORMAT, parse_aware_timestamp
+from snacker.timestamps import UTC_TIMESTAMP_FORMAT, require_timestamps, utc_timestamps
 
 HEARTBEATS_SCHEMA = pl.Schema({
     "scanner": pl.String(),
@@ -48,32 +48,56 @@ class ScannerStatus(TypedDict):
     """The latest scan sent with its API key; None if it has sent none."""
 
 
+# The envelope fields heartbeats use, across all three payload shapes; a field a shape
+# lacks reads as null. Anything else in an envelope is ignored.
+HEARTBEAT_ENVELOPE = {
+    "id": pl.String(),
+    "time": pl.String(),
+    "detail": pl.Struct({
+        "apiKeyId": pl.String(),
+        "payload": pl.Struct({
+            "schema_version": pl.Int64(),
+            # flat shapes
+            "device_name": pl.String(),
+            "location": pl.String(),
+            "version": pl.String(),
+            # schema_version 2
+            "device": pl.Struct({"name": pl.String(), "location": pl.String()}),
+            "app": pl.Struct({"version": pl.String()}),
+        }),
+    }),
+}
+
+
 def normalise_heartbeats(raw_dir: Path) -> pl.DataFrame:
-    """Every heartbeat as one row: which scanner, where it is, its app version, when it was sent."""
-    rows = [normalise_heartbeat_event(event) for event in read_events(raw_dir / "heartbeats")]
-    return pl.DataFrame(rows, schema=HEARTBEATS_SCHEMA)
+    """Every heartbeat as one row: which scanner, where it is, its app version, when it was sent.
 
+    Fails on a heartbeat in an unknown shape, or a timestamp without a timezone.
+    """
+    events = read_events(raw_dir / "heartbeats", HEARTBEAT_ENVELOPE).unnest("detail").unnest("payload")
 
-def normalise_heartbeat_event(event: dict[str, Any]) -> dict[str, Any]:
-    payload = event["detail"]["payload"]
-    unknown_shape = ValueError(f"heartbeat in an unknown shape in event {event['id']}: {sorted(payload)}")
-    try:
-        if payload.get("schema_version") == 2:
-            device, app = payload["device"], payload["app"]
-            scanner, location, app_version = device["name"], device["location"], app["version"]
-        elif "schema_version" not in payload:
-            scanner, location, app_version = payload["device_name"], payload["location"], payload["version"]
-        else:
-            raise unknown_shape
-    except KeyError:
-        raise unknown_shape from None
-    return {
-        "scanner": scanner,
-        "location": location,
-        "app_version": app_version,
-        "sent_at": parse_aware_timestamp(event["time"]),
-        "api_key": event["detail"].get("apiKeyId"),
-    }
+    v2 = pl.col("schema_version") == 2
+    flat = pl.col("schema_version").is_null()
+    heartbeats = events.select(
+        "id",
+        pl.when(v2).then(pl.col("device").struct.field("name"))
+        .when(flat).then(pl.col("device_name")).alias("scanner"),
+        pl.when(v2).then(pl.col("device").struct.field("location"))
+        .when(flat).then(pl.col("location")).alias("location"),
+        pl.when(v2).then(pl.col("app").struct.field("version"))
+        .when(flat).then(pl.col("version")).alias("app_version"),
+        pl.col("time").alias("sent_at_text"),
+        utc_timestamps(pl.col("time")).alias("sent_at"),
+        pl.col("apiKeyId").alias("api_key"),
+    )
+
+    # Any other schema_version, or a shape missing one of these facts, isn't one we know.
+    unknown = heartbeats.filter(pl.any_horizontal(pl.col("scanner", "location", "app_version").is_null()))
+    if not unknown.is_empty():
+        raise ValueError(f"heartbeat in an unknown shape in event {unknown['id'][0]}")
+    require_timestamps(heartbeats, text="sent_at_text", parsed="sent_at")
+
+    return heartbeats.select(HEARTBEATS_SCHEMA.names()).cast(HEARTBEATS_SCHEMA)
 
 
 def scanner_statuses(heartbeats: pl.DataFrame, scans: pl.DataFrame) -> list[ScannerStatus]:
