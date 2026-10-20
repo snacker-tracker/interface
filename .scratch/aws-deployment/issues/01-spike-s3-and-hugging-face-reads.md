@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- **Raw events:** can a Polars `s3://` glob over the raw bucket's scanner prefix (about 11.5k small objects, 51 MB) read the scans and heartbeats well within a 15-minute Lambda run, with about 1–2 GB of memory? If not, how long does copying the prefix to /tmp take?
+- **Raw events:** can a Polars `s3://` glob over the raw scanner bucket (`snacker-tracker-prod`, about 11.5k small objects, 51 MB) read the scans and heartbeats well within a 15-minute Lambda run, with about 1–2 GB of memory? If not, how long does copying the prefix to /tmp take?
 - **OpenFoodFacts:** how long, and with how much memory, does a lazy Polars scan of `hf://datasets/openfoodfacts/product-database/food.parquet` take for about 850 codes? The codes aren't sorted, so expect it to read the whole `code` column.
 - **Where to measure:** from a laptop, and if possible from a Lambda-sized environment (same region, similar memory).
 
