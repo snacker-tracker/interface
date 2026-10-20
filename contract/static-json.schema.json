@@ -284,6 +284,58 @@
             }
           ],
           "description": "The product's page on OpenFoodFacts; null when OpenFoodFacts doesn't have it."
+        },
+        "nutri_score": {
+          "anyOf": [
+            {
+              "enum": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The product's grades; null where OpenFoodFacts has none, and always for a product it doesn't have."
+        },
+        "nova_group": {
+          "anyOf": [
+            {
+              "enum": [
+                1,
+                2,
+                3,
+                4
+              ],
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "green_score": {
+          "anyOf": [
+            {
+              "enum": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E",
+                "F"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       },
       "required": [
@@ -293,7 +345,10 @@
         "quantity",
         "categories",
         "image_url",
-        "off_url"
+        "off_url",
+        "nutri_score",
+        "nova_group",
+        "green_score"
       ],
       "title": "Product",
       "type": "object"

@@ -1,10 +1,11 @@
 import { useState } from 'react'
 
 import type { ProductFile } from '../contract'
+import { Grades } from './Grades'
 import { ArchiveTag, OpenFoodFactsLink } from './ScannedProduct'
 
 /**
- * A code's product: image, name, brands, quantity, category tags and a link to OpenFoodFacts.
+ * A code's product: image, name, brands, quantity, grades, category tags and a link to OpenFoodFacts.
  * A product only the Snacker archive has shows just its tagged name, and a link to add it to OpenFoodFacts.
  */
 export function ProductCard({ file: { code, known, product }, headingId }: { file: ProductFile; headingId: string }) {
@@ -18,6 +19,7 @@ export function ProductCard({ file: { code, known, product }, headingId }: { fil
         </h2>
         {product?.brands && <p className="brands">{product.brands}</p>}
         {product?.quantity && <p className="quantity">{product.quantity}</p>}
+        {product && <Grades product={product} />}
         {product && product.categories.length > 0 && (
           <ul className="categories" aria-label="Categories">
             {product.categories.map((category) => (

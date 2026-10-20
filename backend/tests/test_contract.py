@@ -39,13 +39,16 @@ def build_every_kind_of_file(raw_dir: Path, out_dir: Path) -> Path:
     ])
     write_products(
         raw_dir,
-        {"8851959132012": ("Coca Cola", "Coke"), "8850999220000": (None, None)},
+        {"8851959132012": ("Coca Cola", "Coke"), "8850999220000": (None, None), "http://oishidrink.com/m/": (None, None)},
         # Only the Snacker archive names the QR code.
         archive_names={"http://oishidrink.com/m/": "Oishi green tea"},
         details={"8851959132012": {
             "quantity": "325 ml",
             "categories": ["Sodas"],
             "image_url": "https://images.openfoodfacts.org/images/products/885/195/913/2012/front_en.4.400.jpg",
+            "nutri_score": "E",
+            "nova_group": 4,
+            "green_score": "D",
         }},
     )
     run_build(raw_dir, out_dir)
@@ -217,6 +220,13 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
             "codes/8851959132012/product.json: product: name_source is null but the name isn't",
         ),
         (
+            lambda data: edit_json(
+                data, "codes/http:%2F%2Foishidrink.com%2Fm%2F/product.json",
+                lambda content: content["product"].update(nutri_score="A"),
+            ),
+            "codes/http:%2F%2Foishidrink.com%2Fm%2F/product.json: product: grades for a product OpenFoodFacts doesn't have",
+        ),
+        (
             lambda data: edit_json(data, "meta.json", lambda content: content.update(generated_at="2026-10-19T12:00:00+00:00")),
             "meta.json: generated_at: '2026-10-19T12:00:00+00:00' isn't a UTC time like 2026-10-19T12:00:00Z",
         ),
@@ -225,7 +235,8 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
         "missing index file", "missing product file", "stray file", "wrong encoding", "23-entry hourly",
         "unselectable location", "office time a different moment", "office time in another zone",
         "daily out of order", "recent out of order", "known product in unknown-only list", "shares over 1",
-        "name without a source", "OpenFoodFacts name for an unknown product", "product name without a source", "generated_at not in UTC",
+        "name without a source", "OpenFoodFacts name for an unknown product", "product name without a source",
+        "grades for an unknown product", "generated_at not in UTC",
     ],
 )
 def test_the_check_names_each_way_a_build_breaks_the_contract(

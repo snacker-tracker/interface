@@ -227,6 +227,9 @@ def test_every_scanned_code_gets_a_product_file(raw_dir: Path, out_dir: Path) ->
             "quantity": "325 ml",
             "categories": ["Carbonated drinks", "Sodas"],
             "image_url": "https://images.openfoodfacts.org/images/products/885/195/913/2012/front_en.4.400.jpg",
+            "nutri_score": "E",
+            "nova_group": 4,
+            "green_score": "D",
         }},
     )
 
@@ -243,6 +246,9 @@ def test_every_scanned_code_gets_a_product_file(raw_dir: Path, out_dir: Path) ->
             "categories": ["Carbonated drinks", "Sodas"],
             "image_url": "https://images.openfoodfacts.org/images/products/885/195/913/2012/front_en.4.400.jpg",
             "off_url": "https://world.openfoodfacts.org/product/8851959132012",
+            "nutri_score": "E",
+            "nova_group": 4,
+            "green_score": "D",
         },
     }
     assert read_json(out_dir, "data/codes/http:%2F%2Foishidrink.com%2Fm%2F/product.json") == {
@@ -517,6 +523,9 @@ def test_a_product_file_has_a_product_whenever_either_source_describes_the_code(
             "categories": [],
             "image_url": None,
             "off_url": None,
+            "nutri_score": None,
+            "nova_group": None,
+            "green_score": None,
         },
     }
     assert read_json(out_dir, "data/codes/8850999220000/product.json") == {
@@ -530,6 +539,9 @@ def test_a_product_file_has_a_product_whenever_either_source_describes_the_code(
             "categories": [],
             "image_url": None,
             "off_url": "https://world.openfoodfacts.org/product/8850999220000",
+            "nutri_score": None,
+            "nova_group": None,
+            "green_score": None,
         },
     }
     assert read_json(out_dir, "data/codes/005/product.json") == {"code": "005", "known": False, "product": None}

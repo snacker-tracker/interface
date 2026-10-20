@@ -31,6 +31,9 @@ def food_product(
     categories: str | None = None,
     lang: str | None = None,
     images: list[dict[str, Any]] | None = None,
+    nutriscore_grade: str | None = None,
+    nova_group: int | None = None,
+    environmental_score_grade: str | None = None,
 ) -> dict[str, Any]:
     """`names` maps a language (`main`, `en`, `th`, ...) to the product name in it; None for no names."""
     return {
@@ -41,7 +44,10 @@ def food_product(
         "categories": categories,
         "lang": lang,
         "images": images,
-        "nova_group": None,  # a column the extraction doesn't need
+        "nutriscore_grade": nutriscore_grade,
+        "nova_group": nova_group,
+        "environmental_score_grade": environmental_score_grade,
+        "nutriscore_score": None,  # a column the extraction doesn't need
     }
 
 
@@ -56,7 +62,10 @@ def write_food_parquet(path: Path, *products: dict[str, Any]) -> Path:
             "categories": pl.String(),
             "lang": pl.String(),
             "images": pl.List(IMAGE),
+            "nutriscore_grade": pl.String(),
             "nova_group": pl.Int32(),
+            "environmental_score_grade": pl.String(),
+            "nutriscore_score": pl.Int32(),
         },
     ).write_parquet(path)
     return path

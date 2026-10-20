@@ -24,7 +24,7 @@ A Python + Polars **build step** turns raw scanner events and OpenFoodFacts data
 - Authentication, user accounts, or attributing scans to people.
 - Writing or editing data from the UI.
 - Scanner telemetry beyond last-seen and version (RSSI, memory, uptime, reset cause).
-- Nutrition data (Nutri-Score, NOVA, nutrients).
+- Nutrients and other nutrition data beyond the grades (R5).
 - Frontend automated tests.
 
 ## 3. Users
@@ -126,8 +126,9 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 ### R5: Product display
 
 - **Name:** the `main` entry of `product_name`, falling back to the first available entry. Without one, the Snacker archive's name, tagged "Snacker archive" (R3).
-- **Shown fields:** name, `brands`, `quantity`, image, categories (as tags), and a link to the product's OpenFoodFacts page.
-- **Archive only:** a product only the Snacker archive has shows its tagged name and the code, then "Not on OpenFoodFacts" and "Add it to OpenFoodFacts" for a barcode. It has no image, brands, quantity or categories.
+- **Shown fields:** name, `brands`, `quantity`, grades, image, categories (as tags), and a link to the product's OpenFoodFacts page.
+- **Grades** (GLOSSARY.md): the Nutri-Score (A–E), NOVA group (1–4) and Green-Score (A–F) from OpenFoodFacts's `nutriscore_grade`, `nova_group` and `environmental_score_grade`. Each is a text badge on its grade's colour, e.g. "Nutri-Score B", with a tooltip saying what the grade means. A grade OpenFoodFacts lacks, or gives as "unknown" or "not-applicable", is left out. Raw scores aren't shown.
+- **Archive only:** a product only the Snacker archive has shows its tagged name and the code, then "Not on OpenFoodFacts" and "Add it to OpenFoodFacts" for a barcode. It has no image, brands, quantity, grades or categories.
 
 ### R6: Scanner status
 
@@ -258,7 +259,8 @@ These hold in every build, alongside the schema (§7.2) and the file rules (§7.
   - Each share is in (0, 1], and a list's shares add up to at most 1, allowing for rounding.
   - `top_unknown_scans` lists only unknown products.
 - **Scanners:** unique, ordered by name.
-- **Names:** on scan rows, top scans and last scans, `name_source` is null exactly when the name is, and `openfoodfacts` only for a known product.
+- **Names:** on scan rows, top scans and last scans, `name_source` is null exactly when the name is, and `openfoodfacts` only for a known product. The same holds for a product file's product.
+- **Grades:** only a known product's product file has grades.
 - **Times:**
   - `generated_at`, `scanned_at`, `last_seen` and a last scan's `scanned_at` are UTC, written like `2026-10-19T12:00:00Z`.
   - A scan row's `office_time` is the same moment as its `scanned_at`, written with the UTC offset its `office_time_zone` (an IANA name) had then.
@@ -340,6 +342,6 @@ Frontend tests are out of scope for this phase.
 - Range toggle or weekly/monthly roll-ups on the index chart, if the all-history daily chart proves hard to read.
 - Telemetry (wifi RSSI, uptime, free memory, reset cause) on the scanners page.
 - The scanner name in the scan payload (a firmware change), which would replace the API-key link (docs/adr/0002).
-- Nutrition info on code pages.
+- Nutrients on code pages.
 - Frontend component tests.
 - Moving the build into Dagster, reading from S3.

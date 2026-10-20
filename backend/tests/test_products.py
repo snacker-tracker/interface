@@ -281,3 +281,48 @@ def test_archive_names_are_kept_when_the_food_file_is_not_read_again(tmp_path: P
 
     assert update_products(tmp_path / "gone.parquet", ["220000"], products, archive=archive) is False
     assert pl.read_parquet(products)["name"].to_list() == ["Singha soda 325 ml", "Soda water"]
+
+
+def test_a_product_has_its_openfoodfacts_grades(tmp_path: Path) -> None:
+    food = write_food_parquet(
+        tmp_path / "food.parquet",
+        food_product("8850999220000", names={"main": "Soda"},
+                     nutriscore_grade="b", nova_group=4, environmental_score_grade="d"),
+    )
+
+    card = product_card(food, "8850999220000")
+
+    assert (card["nutri_score"], card["nova_group"], card["green_score"]) == ("B", 4, "D")
+
+
+def test_grades_openfoodfacts_could_not_work_out_are_no_grades(tmp_path: Path) -> None:
+    food = write_food_parquet(
+        tmp_path / "food.parquet",
+        food_product("8850999220000", names={"main": "Soda"},
+                     nutriscore_grade="unknown", nova_group=None, environmental_score_grade="not-applicable"),
+        food_product("8851959132012", names={"main": "Water"}, nutriscore_grade="", environmental_score_grade=None),
+    )
+
+    for code in ("8850999220000", "8851959132012"):
+        card = product_card(food, code)
+        assert (card["nutri_score"], card["nova_group"], card["green_score"]) == (None, None, None)
+
+
+def test_an_unknown_product_has_no_grades(tmp_path: Path) -> None:
+    food = write_food_parquet(tmp_path / "food.parquet", food_product("8850999220000", names={"main": "Soda"},
+                                                                      nutriscore_grade="a"))
+
+    card = product_card(food, "005")
+
+    assert (card["nutri_score"], card["nova_group"], card["green_score"]) == (None, None, None)
+
+
+def test_a_products_table_from_before_the_grades_is_extracted_again(tmp_path: Path) -> None:
+    food = write_food_parquet(tmp_path / "food.parquet", food_product("8850999220000", names={"main": "Soda"},
+                                                                      nutriscore_grade="c"))
+    products = tmp_path / "products.parquet"
+    update_products(food, ["8850999220000"], products)
+    pl.read_parquet(products).drop("nutri_score", "nova_group", "green_score").write_parquet(products)
+
+    assert update_products(food, ["8850999220000"], products) is True
+    assert pl.read_parquet(products)["nutri_score"].to_list() == ["C"]

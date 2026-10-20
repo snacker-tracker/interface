@@ -446,3 +446,92 @@ details .table-scroll {
   overflow-y: auto;
   margin-top: 8px;
 }
+
+/* Grades keep OpenFoodFacts's colours in both themes; the label carries the grade without them. */
+.grades {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+}
+
+.grade {
+  display: inline-block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  color: #fff;
+  white-space: nowrap;
+  cursor: help;
+}
+
+.nutri-score[data-grade='A'] {
+  background: #038141;
+}
+
+.nutri-score[data-grade='B'] {
+  background: #85bb2f;
+  color: #0b0b0b;
+}
+
+.nutri-score[data-grade='C'] {
+  background: #fecb02;
+  color: #0b0b0b;
+}
+
+.nutri-score[data-grade='D'] {
+  background: #ee8100;
+  color: #0b0b0b;
+}
+
+.nutri-score[data-grade='E'] {
+  background: #e63e11;
+}
+
+.nova-group[data-grade='1'] {
+  background: #038141;
+}
+
+.nova-group[data-grade='2'] {
+  background: #fecb02;
+  color: #0b0b0b;
+}
+
+.nova-group[data-grade='3'] {
+  background: #ee8100;
+  color: #0b0b0b;
+}
+
+.nova-group[data-grade='4'] {
+  background: #e63e11;
+}
+
+.green-score[data-grade='A'] {
+  background: #1e8f4e;
+}
+
+.green-score[data-grade='B'] {
+  background: #2ecc71;
+  color: #0b0b0b;
+}
+
+.green-score[data-grade='C'] {
+  background: #f5c100;
+  color: #0b0b0b;
+}
+
+.green-score[data-grade='D'] {
+  background: #ef7e1a;
+  color: #0b0b0b;
+}
+
+.green-score[data-grade='E'] {
+  background: #e63e11;
+}
+
+.green-score[data-grade='F'] {
+  background: #a5110a;
+}

@@ -14,6 +14,15 @@ from urllib.parse import quote
 NameSource = Literal["openfoodfacts", "snacker-archive"]
 """Where a product's name came from: OpenFoodFacts, or the Snacker archive (GLOSSARY.md)."""
 
+NutriScore = Literal["A", "B", "C", "D", "E"]
+"""Nutritional quality, A (best) to E (worst) (GLOSSARY.md, Grade)."""
+
+NovaGroup = Literal[1, 2, 3, 4]
+"""How processed a food is, 1 (unprocessed) to 4 (ultra-processed)."""
+
+GreenScore = Literal["A", "B", "C", "D", "E", "F"]
+"""Environmental impact, A (lowest) to F (highest); OpenFoodFacts's former Eco-Score."""
+
 
 class DailyCount(TypedDict):
     date: str
@@ -101,6 +110,14 @@ class Product(TypedDict):
     """OpenFoodFacts's front image (docs/adr/0001)."""
     off_url: str | None
     """The product's page on OpenFoodFacts; null when OpenFoodFacts doesn't have it."""
+    nutri_score: NutriScore | None
+    """The product's grades; null where OpenFoodFacts has none, and always for a product it doesn't have."""
+    nova_group: NovaGroup | None
+    green_score: GreenScore | None
+
+
+GRADES = ("nutri_score", "nova_group", "green_score")
+"""The Product fields holding its grades (GLOSSARY.md, Grade)."""
 
 
 class LastScan(TypedDict):

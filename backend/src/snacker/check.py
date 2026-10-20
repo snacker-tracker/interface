@@ -17,6 +17,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from snacker.config import RECENT_SCANS_LIMIT, TOP_SCANS_LIMIT
 from snacker.contract import (
+    GRADES,
     code_scans_path,
     index_path,
     locations_path,
@@ -179,6 +180,8 @@ class _Output:
         for path, content in self.of("ProductFile"):
             if product := content["product"]:
                 yield from _name_source(path, "product", product["name"], {**product, "known": content["known"]})
+                if not content["known"] and any(product[grade] is not None for grade in GRADES):
+                    yield Violation(path, "product: grades for a product OpenFoodFacts doesn't have")
         for path, content in self.of("ScannersFile"):
             names = [scanner["name"] for scanner in content["scanners"]]
             if names != sorted(names) or len(set(names)) != len(names):

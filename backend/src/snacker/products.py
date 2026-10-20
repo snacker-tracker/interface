@@ -13,11 +13,11 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, get_args
 
 import polars as pl
 
-from snacker.contract import NameSource, Product, ProductFile
+from snacker.contract import GreenScore, NameSource, NovaGroup, NutriScore, Product, ProductFile
 
 PRODUCTS_SCHEMA = pl.Schema({
     "code": pl.String(),
@@ -29,6 +29,9 @@ PRODUCTS_SCHEMA = pl.Schema({
     "categories": pl.List(pl.String()),
     "image_url": pl.String(),
     "off_url": pl.String(),
+    "nutri_score": pl.Enum(get_args(NutriScore)),
+    "nova_group": pl.Int8(),
+    "green_score": pl.Enum(get_args(GreenScore)),
 })
 
 OPENFOODFACTS_PRODUCT_PAGE = "https://world.openfoodfacts.org/product/{code}"
@@ -71,7 +74,10 @@ def extract_products(food_parquet: Path, codes: Iterable[str], *, archive: Archi
     requested = sorted(set(codes))
     found = (
         pl.scan_parquet(food_parquet)
-        .select("code", "product_name", "brands", "quantity", "categories", "lang", "images")
+        .select(
+            "code", "product_name", "brands", "quantity", "categories", "lang", "images",
+            "nutriscore_grade", "nova_group", "environmental_score_grade",
+        )
         .filter(pl.col("code").is_in(requested))
         .unique("code", keep="first", maintain_order=True)
         .collect()
@@ -109,7 +115,16 @@ def describe(food_row: dict[str, Any]) -> dict[str, Any]:
         "categories": category_names(food_row["categories"]),
         "image_url": front_image_url(code, food_row["lang"], food_row["images"]),
         "off_url": OPENFOODFACTS_PRODUCT_PAGE.format(code=code),
+        "nutri_score": grade(food_row["nutriscore_grade"], get_args(NutriScore)),
+        "nova_group": grade(food_row["nova_group"], get_args(NovaGroup)),
+        "green_score": grade(food_row["environmental_score_grade"], get_args(GreenScore)),
     }
+
+
+def grade[G: (str, int)](value: str | int | None, scale: tuple[G, ...]) -> G | None:
+    """`"b"` -> `"B"` on its scale; anything off the scale ("unknown", "not-applicable") is no grade."""
+    value = value.upper() if isinstance(value, str) else value
+    return next((step for step in scale if step == value), None)
 
 
 def product_name(names: list[dict[str, str | None]] | None) -> str | None:
@@ -203,6 +218,9 @@ def product_files(products_parquet: Path) -> dict[str, ProductFile]:
                 categories=row["categories"] or [],
                 image_url=row["image_url"],
                 off_url=row["off_url"],
+                nutri_score=row["nutri_score"],
+                nova_group=row["nova_group"],
+                green_score=row["green_score"],
             ) if row["known"] or row["name"] else None,
         )
         for row in products.iter_rows(named=True)

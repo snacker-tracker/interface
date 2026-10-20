@@ -168,6 +168,12 @@ export interface Product {
    * The product's page on OpenFoodFacts; null when OpenFoodFacts doesn't have it.
    */
   off_url: string | null
+  /**
+   * The product's grades; null where OpenFoodFacts has none, and always for a product it doesn't have.
+   */
+  nutri_score: ('A' | 'B' | 'C' | 'D' | 'E') | null
+  nova_group: (1 | 2 | 3 | 4) | null
+  green_score: ('A' | 'B' | 'C' | 'D' | 'E' | 'F') | null
 }
 /**
  * A code's product; written for every scanned code, whatever the location.
