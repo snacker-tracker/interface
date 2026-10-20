@@ -1,5 +1,5 @@
 import type { Period, TopScan } from '../contract'
-import { PERIOD_LABELS, useSelectedPeriod, useUnknownOnly } from '../selectedPeriod'
+import { PERIOD_LABELS, useUnknownOnly } from '../selectedPeriod'
 import { ScannedProduct } from './ScannedProduct'
 
 const percent = new Intl.NumberFormat('en', { style: 'percent', maximumFractionDigits: 1 })
@@ -9,13 +9,14 @@ const percent = new Intl.NumberFormat('en', { style: 'percent', maximumFractionD
  * "Unknown only" switches to the most-scanned unknown products, the ones worth adding to OpenFoodFacts.
  */
 export function TopScans({
+  period,
   topScans,
   topUnknownScans,
 }: {
+  period: Period
   topScans: Record<Period, TopScan[]>
   topUnknownScans: Record<Period, TopScan[]>
 }) {
-  const [period] = useSelectedPeriod()
   const [unknownOnly, setUnknownOnly] = useUnknownOnly()
   const rows = (unknownOnly ? topUnknownScans : topScans)[period] ?? []
   const empty = unknownOnly

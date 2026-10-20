@@ -1,5 +1,5 @@
 import type { HealthiestAndLeastHealthy as Lists, Period, TopScan } from '../contract'
-import { PERIOD_LABELS, useSelectedPeriod } from '../selectedPeriod'
+import { PERIOD_LABELS } from '../selectedPeriod'
 import { TopScanRow } from './TopScans'
 
 const count = new Intl.NumberFormat('en')
@@ -8,8 +8,7 @@ const count = new Intl.NumberFormat('en')
  * The healthiest and least healthy products scanned in the selected period (GLOSSARY.md), side by
  * side: only products with a Nutri-Score are ranked, and the coverage line says how many scans that is.
  */
-export function HealthiestAndLeastHealthy({ byPeriod }: { byPeriod: Record<Period, Lists> }) {
-  const [period] = useSelectedPeriod()
+export function HealthiestAndLeastHealthy({ period, byPeriod }: { period: Period; byPeriod: Record<Period, Lists> }) {
   const lists = byPeriod[period]
   if (!lists || lists.graded_scans === 0) {
     return <p className="status">{PERIOD_LABELS[period].empty.replace('No scans', 'No products with a Nutri-Score scanned')}.</p>

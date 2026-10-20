@@ -171,7 +171,7 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 
 - **I1:** Bar chart of scans per local day across **all history**, with brush-to-zoom.
 - **I2:** List of the **last 25 scans**: local date and time, location, and the product per R3. Each row links to its code page, keeping `?location`.
-- **I0:** A **period selector** at the top of the page, above the chart: a tab per period (R7). The chosen period is kept in `?period=` (default `last-30-days`; unknown values fall back to it). Top scans (I3) and the healthiest and least healthy products (I4) follow it and name it in their headings, e.g. "Top scans · Last 30 days". Latest scans (I2) doesn't follow it.
+- **I0:** A **period selector** at the top of the page, above the chart: a button per period (R7), the selected one shown pressed. The chosen period is kept in `?period=` (default `last-30-days`; unknown values fall back to it). Top scans (I3) and the healthiest and least healthy products (I4) follow it and name it in their headings, e.g. "Top scans · Last 30 days". Latest scans (I2) doesn't follow it.
 - **I3:** A **Top scans** panel (R7), below the chart, for the selected period (I0). An "Unknown only" toggle, kept in `?unknown=1`, switches to the unknown-products lists. Each row shows rank, the product per R3, count and share, and links to its code page. An empty period says so.
 
 - **I4:** A **Healthiest and least healthy products** panel (R8), below Top scans.

@@ -148,14 +148,14 @@ a {
   vertical-align: top;
 }
 
-.period-tabs {
+.period-selector {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   margin-bottom: 12px;
 }
 
-.period-tabs button {
+.period-selector button {
   font: inherit;
   font-size: 0.8125rem;
   padding: 4px 10px;
@@ -166,7 +166,7 @@ a {
   cursor: pointer;
 }
 
-.period-tabs button[aria-pressed='true'] {
+.period-selector button[aria-pressed='true'] {
   background: var(--text-primary);
   border-color: var(--text-primary);
   color: var(--surface-1);

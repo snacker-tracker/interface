@@ -1,4 +1,4 @@
-// The top-scans period lives in the browser URL as `?period=`, so a shared link opens on it.
+// The index page's period lives in the browser URL as `?period=`, so a shared link opens on it.
 import { useCallback } from 'react'
 import { useSearchParams } from 'react-router'
 
@@ -6,16 +6,16 @@ import { type Period, PERIODS } from './contract'
 
 export const DEFAULT_PERIOD: Period = 'last-30-days'
 
-/** Each period's tab, and what its lists say when they're empty. */
-export const PERIOD_LABELS: Record<Period, { tab: string; empty: string }> = {
-  today: { tab: 'Today', empty: 'No scans today' },
-  'this-work-week': { tab: 'This work week', empty: 'No scans this work week' },
-  'last-7-days': { tab: 'Last 7 days', empty: 'No scans in the last 7 days' },
-  'this-month': { tab: 'This month', empty: 'No scans this month' },
-  'last-30-days': { tab: 'Last 30 days', empty: 'No scans in the last 30 days' },
-  'this-year': { tab: 'This year', empty: 'No scans this year' },
-  'last-365-days': { tab: 'Last 365 days', empty: 'No scans in the last 365 days' },
-  'all-time': { tab: 'All time', empty: 'No scans yet' },
+/** Each period's label, and what its lists say when they're empty. */
+export const PERIOD_LABELS: Record<Period, { label: string; empty: string }> = {
+  today: { label: 'Today', empty: 'No scans today' },
+  'this-work-week': { label: 'This work week', empty: 'No scans this work week' },
+  'last-7-days': { label: 'Last 7 days', empty: 'No scans in the last 7 days' },
+  'this-month': { label: 'This month', empty: 'No scans this month' },
+  'last-30-days': { label: 'Last 30 days', empty: 'No scans in the last 30 days' },
+  'this-year': { label: 'This year', empty: 'No scans this year' },
+  'last-365-days': { label: 'Last 365 days', empty: 'No scans in the last 365 days' },
+  'all-time': { label: 'All time', empty: 'No scans yet' },
 }
 
 const PARAM = 'period'
