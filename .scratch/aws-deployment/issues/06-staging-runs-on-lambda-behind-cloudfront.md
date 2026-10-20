@@ -8,10 +8,14 @@
 
 Decisions from the design session (ADRs 0003–0006):
 
-- **The main configuration, applied by CI:** one configuration, with a state key and a variables file per environment, in the existing state bucket with native lockfile locking. Role ARNs come in as variables and are only passed on.
+- **The main configuration, applied by CI:** one configuration, with environments as Terraform workspaces (`staging`, `production`).
+  - **State:** in `snacker-tracker-aws-infra-tfstate` under its own key, so each workspace's state is at `env:/<workspace>/<main key>`, with native lockfile locking.
+  - **Names:** every resource name comes from `snacker-tracker-${terraform.workspace}-`.
+  - **Per-environment values** come from `<workspace>.tfvars`.
+  - **Role ARNs** come in as variables and are only passed on.
 - **The functions:** the build and extraction functions run the same image digest from the shared ECR repository (ADR 0006). The build is limited to a concurrency of 1.
 - **The schedule:** an EventBridge Scheduler job every 15 minutes, as a per-environment variable, using the scheduler role.
-- **The working bucket:** `snacker-tracker-<env>-*`, holding the products table and the Snacker archive.
+- **The working bucket:** `snacker-tracker-${terraform.workspace}-…`, holding the products table and the Snacker archive.
 - **CloudFront:**
   - The origin is the site bucket's website endpoint.
   - It serves `staging.khanom.xyz`, with an ACM certificate (us-east-1) validated through the `khanom.xyz` zone (`Z0781732PCOBWRVFR9YS`), and A/AAAA alias records.
@@ -20,7 +24,7 @@ Decisions from the design session (ADRs 0003–0006):
 - **Staging's data:** it reads production's raw events, read-only.
 - **No alerting** for now. A failing build shows in "Data built X ago" and the function's logs.
 
-- [ ] Applied by hand with the staging CI role's credentials, it creates everything without any IAM write.
+- [ ] Applied by hand in the `staging` workspace with the staging CI role's credentials, it creates everything without any IAM write, and every resource name carries `staging`.
 - [ ] Within 15 minutes of applying, `staging.khanom.xyz` serves the frontend and data built by the Lambda, and the scanners page's "Data built X ago" stays current.
 - [ ] A scanned code missing from the products table triggers an extraction, and a later build names the product.
 - [ ] `/codes/…` deep links load.

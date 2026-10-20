@@ -10,7 +10,7 @@ Decisions from the design session (ADRs 0003–0006):
 
 - **The production job:** it runs in a `production` GitHub environment with required reviewers, using the production CI role.
 - **What it promotes:** the image digest and frontend build that staging deployed for the same commit. Production never builds its own image.
-- **Its steps:** `terraform apply` for production, update the functions to the digest, invoke one build, then sync the frontend outside `data/`.
+- **Its steps:** `terraform apply` in the `production` workspace (with `production.tfvars`), update the functions to the digest, invoke one build, then sync the frontend outside `data/`.
 - **The production site bucket** already exists and is used as it is: its website endpoint is CloudFront's origin, and nothing changes its policy.
 - **Hostnames:** `khanom.xyz` (the apex) and `www.khanom.xyz` both serve the site from one distribution. One ACM certificate (us-east-1) covers both names and is validated through the `khanom.xyz` zone (`Z0781732PCOBWRVFR9YS`). Each name gets A/AAAA alias records.
 - **The cut-over:** the records move to the new distribution only once it serves correctly. Before switching, check it on its `cloudfront.net` address. If either name has records today, note them in this ticket's comments before changing them.
