@@ -17,7 +17,7 @@ from typing import Any
 
 import polars as pl
 
-from snacker.contract import NameSource, Product
+from snacker.contract import NameSource, Product, ProductFile
 
 PRODUCTS_SCHEMA = pl.Schema({
     "code": pl.String(),
@@ -187,18 +187,24 @@ def with_products(scans: pl.DataFrame, products_parquet: Path) -> pl.DataFrame:
     )
 
 
-def known_products(products_parquet: Path) -> dict[str, Product]:
-    """Each known product by code; unknown products are left out."""
+def product_files(products_parquet: Path) -> dict[str, ProductFile]:
+    """Each looked-up code's product file. The product is null when neither OpenFoodFacts
+    nor the Snacker archive has the code; codes scanned since the last extraction are left out."""
     products = pl.read_parquet(products_parquet, columns=PRODUCTS_SCHEMA.names())
     return {
-        row["code"]: Product(
-            name=row["name"],
-            brands=row["brands"],
-            quantity=row["quantity"],
-            categories=row["categories"] or [],
-            image_url=row["image_url"],
-            off_url=row["off_url"],
+        row["code"]: ProductFile(
+            code=row["code"],
+            known=row["known"],
+            product=Product(
+                name=row["name"],
+                name_source=row["name_source"],
+                brands=row["brands"],
+                quantity=row["quantity"],
+                categories=row["categories"] or [],
+                image_url=row["image_url"],
+                off_url=row["off_url"],
+            ) if row["known"] or row["name"] else None,
         )
-        for row in products.filter(pl.col("known")).iter_rows(named=True)
+        for row in products.iter_rows(named=True)
     }
 

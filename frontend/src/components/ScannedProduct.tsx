@@ -56,7 +56,7 @@ export function ArchiveTag({ nameSource }: { nameSource: NameSource }) {
   )
 }
 
-function OpenFoodFactsLink({ code, known }: { code: string; known: boolean }) {
+export function OpenFoodFactsLink({ code, known }: { code: string; known: boolean }) {
   if (!/^\d+$/.test(code)) return null // QR-code URLs and the like aren't on OpenFoodFacts
   const barcode = encodeURIComponent(code)
   return (

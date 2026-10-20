@@ -125,8 +125,9 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 
 ### R5: Product display
 
-- **Name:** the `main` entry of `product_name`, falling back to the first available entry.
+- **Name:** the `main` entry of `product_name`, falling back to the first available entry. Without one, the Snacker archive's name, tagged "Snacker archive" (R3).
 - **Shown fields:** name, `brands`, `quantity`, image, categories (as tags), and a link to the product's OpenFoodFacts page.
+- **Archive only:** a product only the Snacker archive has shows its tagged name and the code, then "Not on OpenFoodFacts" and "Add it to OpenFoodFacts" for a barcode. It has no image, brands, quantity or categories.
 
 ### R6: Scanner status
 
@@ -164,7 +165,7 @@ Page order: scans per day (I1), top scans (I3), latest scans (I2).
 
 ### 6.3 Code page: `/codes/:code`
 
-- **C1:** Product info per R5, or "Unknown product" and the raw code if there's no match.
+- **C1:** Product info per R5, or "Unknown product" and the raw code if neither OpenFoodFacts nor the Snacker archive has the code.
 - **C2:** Bar chart of scans per local day for this code.
 - **C3:** Bar chart of scans per local hour of day (0–23), always 24 bars.
 - **C4:** List of the last 25 scans of this code: local date and time, location.
@@ -204,7 +205,7 @@ These rules decide which files exist:
 - An index file and a scanners file are written for every entry in `locations.json`, including `all`.
 - `codes/{code}/by-location/{location}.json` is only written for locations where that code was scanned. If the file is missing, the frontend shows zero scans.
 - Every scanned code has a scans file for `all`.
-- `product.json` is written for **every** scanned code, with `"product": null` when there is no OpenFoodFacts match. Every code named in any file has one.
+- `product.json` is written for **every** scanned code, with `"product": null` when neither OpenFoodFacts nor the Snacker archive has the code, and `known` saying whether OpenFoodFacts has it. Every code named in any file has one.
 - Each file sits at the path its own `code` and `location` give, encoded as in §7.3.
 - No other files are written.
 

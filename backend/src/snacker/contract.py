@@ -88,16 +88,19 @@ PERIODS: tuple[Period, ...] = get_args(Period)
 
 
 class Product(TypedDict):
-    """What a code page shows about a product (PRD R5)."""
+    """What a code page shows about a product (PRD R5): OpenFoodFacts's details, or for a
+    product only the Snacker archive has, just its name."""
 
     name: str | None
+    name_source: NameSource | None
+    """Where the name came from; null exactly when the name is."""
     brands: str | None
     quantity: str | None
     categories: list[str]
     image_url: str | None
     """OpenFoodFacts's front image (docs/adr/0001)."""
-    off_url: str
-    """The product's page on OpenFoodFacts."""
+    off_url: str | None
+    """The product's page on OpenFoodFacts; null when OpenFoodFacts doesn't have it."""
 
 
 class LastScan(TypedDict):
@@ -182,8 +185,10 @@ class ProductFile(TypedDict):
     """A code's product; written for every scanned code, whatever the location."""
 
     code: str
+    known: bool
+    """Whether OpenFoodFacts has the product."""
     product: Product | None
-    """Null for an unknown product."""
+    """Null when neither OpenFoodFacts nor the Snacker archive has the code."""
 
 
 class CodeScansFile(TypedDict):

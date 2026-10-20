@@ -211,6 +211,12 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
             "index/by-location/all.json: top_unknown_scans/all-time/0: an OpenFoodFacts name for a product OpenFoodFacts doesn't have",
         ),
         (
+            lambda data: edit_json(
+                data, "codes/8851959132012/product.json", lambda content: content["product"].update(name_source=None)
+            ),
+            "codes/8851959132012/product.json: product: name_source is null but the name isn't",
+        ),
+        (
             lambda data: edit_json(data, "meta.json", lambda content: content.update(generated_at="2026-10-19T12:00:00+00:00")),
             "meta.json: generated_at: '2026-10-19T12:00:00+00:00' isn't a UTC time like 2026-10-19T12:00:00Z",
         ),
@@ -219,7 +225,7 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
         "missing index file", "missing product file", "stray file", "wrong encoding", "23-entry hourly",
         "unselectable location", "office time a different moment", "office time in another zone",
         "daily out of order", "recent out of order", "known product in unknown-only list", "shares over 1",
-        "name without a source", "OpenFoodFacts name for an unknown product", "generated_at not in UTC",
+        "name without a source", "OpenFoodFacts name for an unknown product", "product name without a source", "generated_at not in UTC",
     ],
 )
 def test_the_check_names_each_way_a_build_breaks_the_contract(

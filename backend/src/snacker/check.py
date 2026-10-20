@@ -176,6 +176,9 @@ class _Output:
                 yield Violation(path, "written for a location where the code wasn't scanned")
             if any(row["code"] != content["code"] for row in content["recent"]):
                 yield Violation(path, "recent lists scans of another code")
+        for path, content in self.of("ProductFile"):
+            if product := content["product"]:
+                yield from _name_source(path, "product", product["name"], {**product, "known": content["known"]})
         for path, content in self.of("ScannersFile"):
             names = [scanner["name"] for scanner in content["scanners"]]
             if names != sorted(names) or len(set(names)) != len(names):

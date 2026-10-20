@@ -148,10 +148,15 @@ export interface MetaFile {
   contract_version: 2
 }
 /**
- * What a code page shows about a product (PRD R5).
+ * What a code page shows about a product (PRD R5): OpenFoodFacts's details, or for a
+ * product only the Snacker archive has, just its name.
  */
 export interface Product {
   name: string | null
+  /**
+   * Where the name came from; null exactly when the name is.
+   */
+  name_source: ('openfoodfacts' | 'snacker-archive') | null
   brands: string | null
   quantity: string | null
   categories: string[]
@@ -160,9 +165,9 @@ export interface Product {
    */
   image_url: string | null
   /**
-   * The product's page on OpenFoodFacts.
+   * The product's page on OpenFoodFacts; null when OpenFoodFacts doesn't have it.
    */
-  off_url: string
+  off_url: string | null
 }
 /**
  * A code's product; written for every scanned code, whatever the location.
@@ -170,7 +175,11 @@ export interface Product {
 export interface ProductFile {
   code: string
   /**
-   * Null for an unknown product.
+   * Whether OpenFoodFacts has the product.
+   */
+  known: boolean
+  /**
+   * Null when neither OpenFoodFacts nor the Snacker archive has the code.
    */
   product: Product | null
 }

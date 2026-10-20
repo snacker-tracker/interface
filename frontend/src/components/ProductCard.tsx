@@ -1,15 +1,20 @@
 import { useState } from 'react'
 
-import type { Product } from '../contract'
+import type { ProductFile } from '../contract'
+import { ArchiveTag, OpenFoodFactsLink } from './ScannedProduct'
 
-/** A code's product: image, name, brands, quantity, category tags and a link to OpenFoodFacts. */
-export function ProductCard({ code, product, headingId }: { code: string; product: Product | null; headingId: string }) {
+/**
+ * A code's product: image, name, brands, quantity, category tags and a link to OpenFoodFacts.
+ * A product only the Snacker archive has shows just its tagged name, and a link to add it to OpenFoodFacts.
+ */
+export function ProductCard({ file: { code, known, product }, headingId }: { file: ProductFile; headingId: string }) {
   return (
     <div className="product-card">
       <ProductImage url={product?.image_url ?? null} name={product?.name ?? null} />
       <div className="product-details">
         <h2 id={headingId} className={product?.name ? 'product-name' : 'product-name unknown'}>
           {product?.name ?? 'Unknown product'}
+          {product && <ArchiveTag nameSource={product.name_source} />}
         </h2>
         {product?.brands && <p className="brands">{product.brands}</p>}
         {product?.quantity && <p className="quantity">{product.quantity}</p>}
@@ -21,10 +26,15 @@ export function ProductCard({ code, product, headingId }: { code: string; produc
           </ul>
         )}
         <p className="code">{code}</p>
-        {product && (
+        {product?.off_url && (
           <a href={product.off_url} target="_blank" rel="noreferrer">
             View on OpenFoodFacts
           </a>
+        )}
+        {product && !known && (
+          <p className="not-on-off">
+            Not on OpenFoodFacts. <OpenFoodFactsLink code={code} known={false} />
+          </p>
         )}
       </div>
     </div>

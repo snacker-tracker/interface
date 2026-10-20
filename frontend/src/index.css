@@ -257,8 +257,20 @@ a {
   white-space: nowrap;
 }
 
-td.product .archive-tag {
+td.product .archive-tag,
+.product-name .archive-tag {
   margin-left: 6px;
+}
+
+.product-name .archive-tag {
+  vertical-align: middle;
+  font-weight: normal;
+}
+
+.not-on-off {
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
 }
 
 .app-main {

@@ -35,7 +35,7 @@ export function CodePage() {
   return (
     <>
       <section className="panel product-panel" aria-labelledby="product-heading">
-        <ProductCard code={code} product={product.data.product} headingId="product-heading" />
+        <ProductCard file={product.data} headingId="product-heading" />
         <p className="panel-hint">
           {total} {total === 1 ? 'scan' : 'scans'} {where}
         </p>

@@ -234,8 +234,10 @@ def test_every_scanned_code_gets_a_product_file(raw_dir: Path, out_dir: Path) ->
 
     assert read_json(out_dir, "data/codes/8851959132012/product.json") == {
         "code": "8851959132012",
+        "known": True,
         "product": {
             "name": "Coca Cola",
+            "name_source": "openfoodfacts",
             "brands": "Coke, coca cola",
             "quantity": "325 ml",
             "categories": ["Carbonated drinks", "Sodas"],
@@ -245,11 +247,12 @@ def test_every_scanned_code_gets_a_product_file(raw_dir: Path, out_dir: Path) ->
     }
     assert read_json(out_dir, "data/codes/http:%2F%2Foishidrink.com%2Fm%2F/product.json") == {
         "code": "http://oishidrink.com/m/",
+        "known": False,
         "product": None,
     }
     url_code_scans = read_json(out_dir, "data/codes/http:%2F%2Foishidrink.com%2Fm%2F/by-location/all.json")
     assert url_code_scans["code"] == "http://oishidrink.com/m/"
-    assert read_json(out_dir, "data/codes/005/product.json") == {"code": "005", "product": None}
+    assert read_json(out_dir, "data/codes/005/product.json") == {"code": "005", "known": False, "product": None}
 
 
 def test_a_code_gets_a_scans_file_for_each_location_it_was_scanned_in(
@@ -486,3 +489,47 @@ def test_scan_lists_say_where_each_product_name_came_from(raw_dir: Path, out_dir
     assert [row["code"] for row in index["top_unknown_scans"]["today"]] == ["220000", "005"]
     last_scan = read_json(out_dir, "data/scanners/by-location/all.json")["scanners"][0]["last_scan"]
     assert (last_scan["product_name"], last_scan["name_source"]) == ("Singha soda 325 ml", "snacker-archive")
+
+
+def test_a_product_file_has_a_product_whenever_either_source_describes_the_code(raw_dir: Path, out_dir: Path) -> None:
+    write_events(raw_dir, "scans/2026/10/19/delivery", [
+        live_scan("220000", time="2026-10-19T08:00:00Z"),
+        live_scan("8850999220000", time="2026-10-19T07:00:00Z"),
+        live_scan("005", time="2026-10-19T06:00:00Z"),
+    ])
+    # OpenFoodFacts has 8850999220000 but without a name; only the archive has 220000; nobody has 005.
+    write_products(
+        raw_dir,
+        {"220000": (None, None), "8850999220000": (None, "Singha"), "005": (None, None)},
+        archive_names={"220000": "Singha soda 325 ml", "8850999220000": "Singha soda water"},
+    )
+
+    run_build(raw_dir, out_dir)
+
+    assert read_json(out_dir, "data/codes/220000/product.json") == {
+        "code": "220000",
+        "known": False,
+        "product": {
+            "name": "Singha soda 325 ml",
+            "name_source": "snacker-archive",
+            "brands": None,
+            "quantity": None,
+            "categories": [],
+            "image_url": None,
+            "off_url": None,
+        },
+    }
+    assert read_json(out_dir, "data/codes/8850999220000/product.json") == {
+        "code": "8850999220000",
+        "known": True,
+        "product": {
+            "name": "Singha soda water",
+            "name_source": "snacker-archive",
+            "brands": "Singha",
+            "quantity": None,
+            "categories": [],
+            "image_url": None,
+            "off_url": "https://world.openfoodfacts.org/product/8850999220000",
+        },
+    }
+    assert read_json(out_dir, "data/codes/005/product.json") == {"code": "005", "known": False, "product": None}

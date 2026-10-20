@@ -210,7 +210,7 @@
     },
     "Product": {
       "additionalProperties": false,
-      "description": "What a code page shows about a product (PRD R5).",
+      "description": "What a code page shows about a product (PRD R5): OpenFoodFacts's details, or for a\nproduct only the Snacker archive has, just its name.",
       "properties": {
         "name": {
           "anyOf": [
@@ -221,6 +221,21 @@
               "type": "null"
             }
           ]
+        },
+        "name_source": {
+          "anyOf": [
+            {
+              "enum": [
+                "openfoodfacts",
+                "snacker-archive"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where the name came from; null exactly when the name is."
         },
         "brands": {
           "anyOf": [
@@ -260,12 +275,20 @@
           "description": "OpenFoodFacts's front image (docs/adr/0001)."
         },
         "off_url": {
-          "description": "The product's page on OpenFoodFacts.",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The product's page on OpenFoodFacts; null when OpenFoodFacts doesn't have it."
         }
       },
       "required": [
         "name",
+        "name_source",
         "brands",
         "quantity",
         "categories",
@@ -282,6 +305,10 @@
         "code": {
           "type": "string"
         },
+        "known": {
+          "description": "Whether OpenFoodFacts has the product.",
+          "type": "boolean"
+        },
         "product": {
           "anyOf": [
             {
@@ -291,11 +318,12 @@
               "type": "null"
             }
           ],
-          "description": "Null for an unknown product."
+          "description": "Null when neither OpenFoodFacts nor the Snacker archive has the code."
         }
       },
       "required": [
         "code",
+        "known",
         "product"
       ],
       "title": "ProductFile",

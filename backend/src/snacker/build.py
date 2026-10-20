@@ -17,7 +17,6 @@ from snacker.contract import (
     IndexFile,
     LocationsFile,
     MetaFile,
-    Product,
     ProductFile,
     ScannersFile,
     SelectableLocation,
@@ -30,7 +29,7 @@ from snacker.contract import (
 )
 from snacker.heartbeats import normalise_heartbeats, scanner_statuses
 from snacker.locations import Locations
-from snacker.products import known_products, with_products
+from snacker.products import product_files, with_products
 from snacker.scan_summary import summarise, top_scans
 from snacker.scans import normalise_scans
 from snacker.timestamps import UTC_TIMESTAMP_FORMAT
@@ -134,22 +133,22 @@ def write_data(
             ),
         )
 
-    products = known_products(products_parquet)
+    products = product_files(products_parquet)
     for (code,), code_scans in described_scans.group_by("code"):
-        write_code_files(data_dir, code, products.get(code), code_scans, locations, recent_limit)
+        product = products.get(code, ProductFile(code=code, known=False, product=None))
+        write_code_files(data_dir, product, code_scans, locations, recent_limit)
 
 
 def write_code_files(
     data_dir: Path,
-    code: str,
-    product: Product | None,
+    product: ProductFile,
     code_scans: pl.DataFrame,
     locations: Locations,
     recent_limit: int,
 ) -> None:
-    """A code's product file (product null when unknown), plus a scans file for each
-    location the code was scanned in."""
-    write_json(data_dir / product_path(code), ProductFile(code=code, product=product))
+    """A code's product file, plus a scans file for each location the code was scanned in."""
+    code = product["code"]
+    write_json(data_dir / product_path(code), product)
 
     for location in locations.selectable():
         scans_within = locations.within(code_scans, location)
