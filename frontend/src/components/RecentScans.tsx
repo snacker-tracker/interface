@@ -1,7 +1,5 @@
-import { Link, useLocation } from 'react-router'
-
 import type { ScanRow } from '../contract'
-import { codePagePath } from '../routes'
+import { ScannedProduct } from './ScannedProduct'
 
 // One formatter per office time zone; a list rarely spans more than a few.
 const formatters = new Map<string, Intl.DateTimeFormat>()
@@ -24,10 +22,8 @@ function officeTime(scan: ScanRow): string {
   return format.format(new Date(scan.scanned_at))
 }
 
-/** The latest scans. On a code page (`forOneCode`) every row is the same code, so product and code are left out. */
+/** The latest scans. On a code page (`forOneCode`) every row is the same code, so the product is left out. */
 export function RecentScans({ scans, forOneCode = false }: { scans: ScanRow[]; forOneCode?: boolean }) {
-  // Keeps ?location= when following a row to its code page.
-  const { search } = useLocation()
   if (scans.length === 0) return <p className="status">No scans yet.</p>
 
   return (
@@ -38,7 +34,6 @@ export function RecentScans({ scans, forOneCode = false }: { scans: ScanRow[]; f
             <th>When (office time)</th>
             {!forOneCode && <th>Product</th>}
             <th>Location</th>
-            {!forOneCode && <th>Code</th>}
           </tr>
         </thead>
         <tbody>
@@ -51,18 +46,11 @@ export function RecentScans({ scans, forOneCode = false }: { scans: ScanRow[]; f
               </td>
               {!forOneCode && (
                 <td className="product">
-                  <Link to={{ pathname: codePagePath(scan.code), search }} className={scan.name ? undefined : 'unknown'}>
-                    {scan.name ?? 'Unknown product'}
-                  </Link>
-                  {scan.brands && <span className="brands">{scan.brands}</span>}
+                  {/* Scan rows don't say whether a product is known, so a nameless one reads as unknown (§10). */}
+                  <ScannedProduct code={scan.code} name={scan.name} brands={scan.brands} known={scan.name !== null} />
                 </td>
               )}
               <td>{scan.location}</td>
-              {!forOneCode && (
-                <td className="code">
-                  <Link to={{ pathname: codePagePath(scan.code), search }}>{scan.code}</Link>
-                </td>
-              )}
             </tr>
           ))}
         </tbody>

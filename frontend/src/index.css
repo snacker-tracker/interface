@@ -230,14 +230,9 @@ a {
 }
 
 .top-scan-product .brands,
-.top-scan-product .code,
 .top-scan-count .share {
   color: var(--text-secondary);
   font-size: 0.8125rem;
-}
-
-.top-scan-product .code {
-  word-break: break-all;
 }
 
 .top-scan-count {
@@ -249,7 +244,7 @@ a {
   white-space: nowrap;
 }
 
-.add-to-off {
+.off-link {
   font-size: 0.8125rem;
 }
 
@@ -326,7 +321,8 @@ td.product {
   min-width: 12rem;
 }
 
-td.product .brands {
+td.product .brands,
+td.product .off-link {
   display: block;
   color: var(--text-secondary);
   font-size: 0.8125rem;

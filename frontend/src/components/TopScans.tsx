@@ -1,8 +1,6 @@
-import { Link, useLocation } from 'react-router'
-
 import { type Period, PERIODS, type TopScan } from '../contract'
-import { codePagePath } from '../routes'
 import { useSelectedPeriod, useUnknownOnly } from '../selectedPeriod'
+import { ScannedProduct } from './ScannedProduct'
 
 const LABELS: Record<Period, { tab: string; empty: string }> = {
   today: { tab: 'Today', empty: 'No scans today' },
@@ -78,18 +76,11 @@ export function TopScans({
 }
 
 function TopScanRow({ row }: { row: TopScan }) {
-  // Keeps ?location= (and ?period=) when following a row to its code page.
-  const { search } = useLocation()
   return (
     <li>
       <div className="top-scan-row">
         <div className="top-scan-product">
-          <Link to={{ pathname: codePagePath(row.code), search }} className={row.known ? undefined : 'unknown'}>
-            {productLabel(row)}
-          </Link>
-          {row.brands && <span className="brands">{row.brands}</span>}
-          <span className="code">{row.code}</span>
-          {!row.known && <AddToOpenFoodFacts code={row.code} />}
+          <ScannedProduct code={row.code} name={row.name} brands={row.brands} known={row.known} />
         </div>
         <div className="top-scan-count">
           <strong>{row.count}</strong> {row.count === 1 ? 'scan' : 'scans'}
@@ -97,26 +88,5 @@ function TopScanRow({ row }: { row: TopScan }) {
         </div>
       </div>
     </li>
-  )
-}
-
-/** The product's name; OpenFoodFacts may know a product without having its name. */
-function productLabel(row: TopScan): string {
-  if (row.name) return row.name
-  return row.known ? 'Unnamed product' : 'Unknown product'
-}
-
-/** For an unknown product with a barcode: adding it to OpenFoodFacts gives it a name. */
-function AddToOpenFoodFacts({ code }: { code: string }) {
-  if (!/^\d+$/.test(code)) return null // QR-code URLs and the like can't be added
-  return (
-    <a
-      className="add-to-off"
-      href={`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code=${encodeURIComponent(code)}`}
-      target="_blank"
-      rel="noreferrer"
-    >
-      Add it to OpenFoodFacts
-    </a>
   )
 }

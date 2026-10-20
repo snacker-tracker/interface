@@ -101,8 +101,9 @@ Duplicate `event_id`s are dropped.
 
 Every scan counts in every chart and list, whether or not the code is a barcode or has product info.
 
-- A code OpenFoodFacts doesn't have is an **unknown product** (GLOSSARY.md). It displays as **"Unknown product"** with the raw code.
-- A code OpenFoodFacts has but without a name displays as **"Unnamed product"** in Top scans. The recent-scan lists and the code page still show "Unknown product" for it; see §10.
+- A code OpenFoodFacts doesn't have is an **unknown product** (GLOSSARY.md).
+- In the scan lists (Top scans and the latest scans), a product with a name shows its name and brands, never its code. A product without a name shows its raw code instead, with a link to OpenFoodFacts if the code is a barcode: "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`) for an unknown product, "On OpenFoodFacts" (`https://world.openfoodfacts.org/product/{code}`) for a known one without a name. Recent-scan rows don't say whether a product is known, so there a nameless product is treated as unknown; see §10.
+- The code page shows "Unknown product" and the raw code for a product without a name.
 
 ### R4: Office time
 
@@ -146,8 +147,8 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 ### 6.2 Index page: `/`
 
 - **I1:** Bar chart of scans per local day across **all history**, with brush-to-zoom.
-- **I2:** List of the **last 25 scans**: local date and time, location, product name and brands (or "Unknown product" and the code). Each row links to its code page, keeping `?location`.
-- **I3:** A **Top scans** panel (R7), below the chart. It has a tab per period, and the chosen period is kept in `?period=` (default `last-30-days`; unknown values fall back to it). An "Unknown only" toggle, kept in `?unknown=1`, switches to the unknown-products lists. Each row shows rank, product, code, count and share, and links to its code page. An unknown product with a barcode also links to "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`). An empty period says so, and its tab stays.
+- **I2:** List of the **last 25 scans**: local date and time, location, and the product per R3. Each row links to its code page, keeping `?location`.
+- **I3:** A **Top scans** panel (R7), below the chart. It has a tab per period, and the chosen period is kept in `?period=` (default `last-30-days`; unknown values fall back to it). An "Unknown only" toggle, kept in `?unknown=1`, switches to the unknown-products lists. Each row shows rank, the product per R3, count and share, and links to its code page. An empty period says so, and its tab stays.
 
 Page order: scans per day (I1), top scans (I3), latest scans (I2).
 
@@ -324,7 +325,7 @@ Frontend tests are out of scope for this phase.
 
 ## 10. Future / open
 
-- **Label inconsistency:** known products without a name read "Unnamed product" in Top scans, but "Unknown product" in recent-scan lists and on the code page. Scan rows don't carry `known` yet.
+- **Nameless known products in recent scans:** scan rows don't carry `known` yet, so a known product without a name gets "Add it to OpenFoodFacts" in the latest-scans list rather than "On OpenFoodFacts" as in Top scans.
 - Range toggle or weekly/monthly roll-ups on the index chart, if the all-history daily chart proves hard to read.
 - Telemetry (wifi RSSI, uptime, free memory, reset cause) on the scanners page.
 - The scanner name in the scan payload (a firmware change), which would replace the API-key link (docs/adr/0002).
