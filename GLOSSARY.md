@@ -25,6 +25,20 @@ _Avoid_: legacy data, historical data, old codes
 **Unknown product**:
 A code OpenFoodFacts doesn't have, whether or not the Snacker archive does; worth adding to OpenFoodFacts. Its scans still count.
 
+**Grade**:
+A product's rating on one of OpenFoodFacts's scales: its Nutri-Score, NOVA group or Green-Score. Only OpenFoodFacts grades products; a product without a grade on a scale simply has none there.
+_Avoid_: score (for the letter or group shown), rating
+
+**Nutri-Score**:
+Nutritional quality, graded A (best) to E (worst).
+
+**NOVA group**:
+How processed a food is, from 1 (unprocessed or minimally processed) to 4 (ultra-processed).
+
+**Green-Score**:
+Environmental impact, graded A (lowest) to F (highest). OpenFoodFacts's former Eco-Score.
+_Avoid_: Eco-Score, environmental score
+
 **Scan summary**:
 What a set of scans amounts to: how many fell on each day and in each hour of the day in their office time zone, and which were the most recent.
 _Avoid_: stats, aggregates, report
