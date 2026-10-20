@@ -38,3 +38,4 @@ Decisions from the design session:
     - No product is both graded and nameless, so that case was only rendered from made-up props.
     - A server-side render of the list cell showed all four cases.
     - Not checked in a browser.
+- 2026-10-20: The contract was bumped to version 3 for the grades (see 21), rather than staying at 2.

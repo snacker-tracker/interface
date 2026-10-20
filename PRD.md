@@ -128,7 +128,7 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 
 - **Name:** the `main` entry of `product_name`, falling back to the first available entry. Without one, the Snacker archive's name, tagged "Snacker archive" (R3).
 - **Shown fields:** name, `brands`, `quantity`, grades, image, categories (as tags), and a link to the product's OpenFoodFacts page.
-- **Grades** (GLOSSARY.md): the Nutri-Score (A–E), NOVA group (1–4) and Green-Score (A–F) from OpenFoodFacts's `nutriscore_grade`, `nova_group` and `environmental_score_grade`. Each is a text badge on its grade's colour, e.g. "Nutri-Score B", with a tooltip saying what the grade means. A grade OpenFoodFacts lacks, or gives as "unknown" or "not-applicable", is left out. Raw scores aren't shown.
+- **Grades** (GLOSSARY.md): the Nutri-Score (A–E), NOVA group (1–4) and Green-Score (A+–F) from OpenFoodFacts's `nutriscore_grade`, `nova_group` and `environmental_score_grade`. Each is a text badge on its grade's colour, e.g. "Nutri-Score B", with a tooltip saying what the grade means. A grade OpenFoodFacts lacks, or gives as "unknown" or "not-applicable", is left out. Raw scores aren't shown.
 - **Archive only:** a product only the Snacker archive has shows its tagged name and the code, then "Not on OpenFoodFacts" and "Add it to OpenFoodFacts" for a barcode. It has no image, brands, quantity, grades or categories.
 
 ### R6: Scanner status
@@ -227,7 +227,7 @@ The shapes are defined by the JSON Schema at `contract/static-json.schema.json`.
 - **Generated, not hand-edited:** the schema comes from the backend's contract module (`snacker schema`), and a test fails when the committed copy is out of date.
 - **Frontend types:** the frontend's types for these files (`frontend/src/contract.ts`) are generated from the schema by `npm run contract`. The frontend build and lint fail when they're out of date.
 - **Strict:** every field is required, even one that may be null, and fields the schema doesn't list are rejected.
-- **Versioned:** `meta.json` carries `contract_version`, a single integer (now 2). Bump it on any breaking change: removing, renaming or retyping a field, a field becoming nullable, a file moving, adding a field, or changing a rule in §7.1 or §7.4. Adding a field counts because the schema rejects fields it doesn't list; only a whole new file doesn't. The frontend reads `meta.json` before any other file. When the version differs from the one it was built for, every page says the data and interface are out of step instead of rendering.
+- **Versioned:** `meta.json` carries `contract_version`, a single integer (now 3: version 2 added where names come from, version 3 the grades). Bump it on any breaking change: removing, renaming or retyping a field, a field becoming nullable, a file moving, adding a field, or changing a rule in §7.1 or §7.4. Adding a field counts because the schema rejects fields it doesn't list; only a whole new file doesn't. The frontend reads `meta.json` before any other file. When the version differs from the one it was built for, every page says the data and interface are out of step instead of rendering.
 - **What the schema can't express:** which files exist (§7.1) and the rules that hold across fields and files (§7.4).
 
 ### 7.3 Encoding

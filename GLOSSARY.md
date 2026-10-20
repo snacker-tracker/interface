@@ -36,7 +36,7 @@ Nutritional quality, graded A (best) to E (worst).
 How processed a food is, from 1 (unprocessed or minimally processed) to 4 (ultra-processed).
 
 **Green-Score**:
-Environmental impact, graded A (lowest) to F (highest). OpenFoodFacts's former Eco-Score.
+Environmental impact, graded A+ (lowest) to F (highest). OpenFoodFacts's former Eco-Score.
 _Avoid_: Eco-Score, environmental score
 
 **Scan summary**:

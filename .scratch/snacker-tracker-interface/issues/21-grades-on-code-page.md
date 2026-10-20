@@ -1,6 +1,6 @@
 # 21: Grades on the code page
 
-**What to build:** a code page's product card shows the product's grades (GLOSSARY.md) from OpenFoodFacts: its Nutri-Score (A–E), NOVA group (1–4) and Green-Score (A–F). Office-goers can see at a glance how healthy, how processed and how green a snack is. Requested 2026-10-20.
+**What to build:** a code page's product card shows the product's grades (GLOSSARY.md) from OpenFoodFacts: its Nutri-Score (A–E), NOVA group (1–4) and Green-Score (A+–F). Office-goers can see at a glance how healthy, how processed and how green a snack is. Requested 2026-10-20.
 
 **Blocked by:** None (can start immediately).
 
@@ -38,3 +38,7 @@ Decisions from the design session:
     - A server-side render showed all three grades on 3046920028004, none on a known product without grades, and none on the archive-only 220000.
     - Not checked in a browser.
   - **Contract:** still version 2. Deploy it with the frontend, as for 18–20.
+- 2026-10-20: Follow-ups from the review.
+  - The Green-Score scale gains A+ (OpenFoodFacts's `a-plus`), above A.
+  - The NOVA group and Green-Score fields have their own descriptions.
+  - The contract is bumped to version 3 for the grades (tickets 21–22), rather than staying at 2.

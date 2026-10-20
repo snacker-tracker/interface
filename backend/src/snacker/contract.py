@@ -20,8 +20,8 @@ NutriScore = Literal["A", "B", "C", "D", "E"]
 NovaGroup = Literal[1, 2, 3, 4]
 """How processed a food is, 1 (unprocessed) to 4 (ultra-processed)."""
 
-GreenScore = Literal["A", "B", "C", "D", "E", "F"]
-"""Environmental impact, A (lowest) to F (highest); OpenFoodFacts's former Eco-Score."""
+GreenScore = Literal["A+", "A", "B", "C", "D", "E", "F"]
+"""Environmental impact, A+ (lowest) to F (highest); OpenFoodFacts's former Eco-Score."""
 
 
 class DailyCount(TypedDict):
@@ -115,9 +115,11 @@ class Product(TypedDict):
     off_url: str | None
     """The product's page on OpenFoodFacts; null when OpenFoodFacts doesn't have it."""
     nutri_score: NutriScore | None
-    """The product's grades; null where OpenFoodFacts has none, and always for a product it doesn't have."""
+    """The product's Nutri-Score; null when OpenFoodFacts has none, and always for a product it doesn't have."""
     nova_group: NovaGroup | None
+    """The product's NOVA group; null when OpenFoodFacts has none, and always for a product it doesn't have."""
     green_score: GreenScore | None
+    """The product's Green-Score; null when OpenFoodFacts has none, and always for a product it doesn't have."""
 
 
 GRADES = ("nutri_score", "nova_group", "green_score")
@@ -158,8 +160,8 @@ class SelectableLocation(TypedDict):
 
 # --- Files ---
 
-ContractVersion = Literal[2]
-CONTRACT_VERSION: ContractVersion = 2
+ContractVersion = Literal[3]
+CONTRACT_VERSION: ContractVersion = 3
 """The version of this contract, written to meta.json so the frontend can tell when the data
 it was built for and the data it is served are out of step.
 

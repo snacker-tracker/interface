@@ -24,12 +24,13 @@ const MEANINGS: Record<Scale, Record<string, string>> = {
     4: 'Ultra-processed food',
   },
   'green-score': {
-    A: 'Lowest environmental impact (Green-Score runs from A to F)',
-    B: 'Low environmental impact (Green-Score runs from A to F)',
-    C: 'Moderate environmental impact (Green-Score runs from A to F)',
-    D: 'High environmental impact (Green-Score runs from A to F)',
-    E: 'Very high environmental impact (Green-Score runs from A to F)',
-    F: 'Highest environmental impact (Green-Score runs from A to F)',
+    'A+': 'Lowest environmental impact (Green-Score runs from A+ to F)',
+    A: 'Very low environmental impact (Green-Score runs from A+ to F)',
+    B: 'Low environmental impact (Green-Score runs from A+ to F)',
+    C: 'Moderate environmental impact (Green-Score runs from A+ to F)',
+    D: 'High environmental impact (Green-Score runs from A+ to F)',
+    E: 'Very high environmental impact (Green-Score runs from A+ to F)',
+    F: 'Highest environmental impact (Green-Score runs from A+ to F)',
   },
 }
 

@@ -157,7 +157,7 @@ export interface MetaFile {
   /**
    * The version of this contract the data was built to (CONTRACT_VERSION).
    */
-  contract_version: 2
+  contract_version: 3
 }
 /**
  * What a code page shows about a product (PRD R5): OpenFoodFacts's details, or for a
@@ -181,11 +181,17 @@ export interface Product {
    */
   off_url: string | null
   /**
-   * The product's grades; null where OpenFoodFacts has none, and always for a product it doesn't have.
+   * The product's Nutri-Score; null when OpenFoodFacts has none, and always for a product it doesn't have.
    */
   nutri_score: ('A' | 'B' | 'C' | 'D' | 'E') | null
+  /**
+   * The product's NOVA group; null when OpenFoodFacts has none, and always for a product it doesn't have.
+   */
   nova_group: (1 | 2 | 3 | 4) | null
-  green_score: ('A' | 'B' | 'C' | 'D' | 'E' | 'F') | null
+  /**
+   * The product's Green-Score; null when OpenFoodFacts has none, and always for a product it doesn't have.
+   */
+  green_score: ('A+' | 'A' | 'B' | 'C' | 'D' | 'E' | 'F') | null
 }
 /**
  * A code's product; written for every scanned code, whatever the location.
@@ -245,4 +251,4 @@ export const PERIODS = [
 export type Period = (typeof PERIODS)[number]
 
 /** The contract version this frontend was built for; meta.json names the one the data was built to. */
-export const CONTRACT_VERSION = 2
+export const CONTRACT_VERSION = 3

@@ -122,8 +122,9 @@ def describe(food_row: dict[str, Any]) -> dict[str, Any]:
 
 
 def grade[G: (str, int)](value: str | int | None, scale: tuple[G, ...]) -> G | None:
-    """`"b"` -> `"B"` on its scale; anything off the scale ("unknown", "not-applicable") is no grade."""
-    value = value.upper() if isinstance(value, str) else value
+    """`"b"` -> `"B"` and `"a-plus"` -> `"A+"` on its scale; anything off the scale ("unknown",
+    "not-applicable") is no grade."""
+    value = value.upper().replace("-PLUS", "+") if isinstance(value, str) else value
     return next((step for step in scale if step == value), None)
 
 

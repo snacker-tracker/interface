@@ -326,3 +326,12 @@ def test_a_products_table_from_before_the_grades_is_extracted_again(tmp_path: Pa
 
     assert update_products(food, ["8850999220000"], products) is True
     assert pl.read_parquet(products)["nutri_score"].to_list() == ["C"]
+
+
+def test_the_best_green_score_is_a_plus(tmp_path: Path) -> None:
+    food = write_food_parquet(
+        tmp_path / "food.parquet",
+        food_product("8850999220000", names={"main": "Water"}, environmental_score_grade="a-plus"),
+    )
+
+    assert product_card(food, "8850999220000")["green_score"] == "A+"

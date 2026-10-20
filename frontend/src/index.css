@@ -509,6 +509,10 @@ details .table-scroll {
   background: #e63e11;
 }
 
+.green-score[data-grade='A+'] {
+  background: #0d6b3a;
+}
+
 .green-score[data-grade='A'] {
   background: #1e8f4e;
 }

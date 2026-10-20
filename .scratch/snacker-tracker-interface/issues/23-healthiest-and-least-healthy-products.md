@@ -26,7 +26,7 @@ Decisions from the design session:
   - With only one, Least healthy says "Nothing else to compare."
 - **Naming:** the UI says "products", not "snacks", following the glossary.
 - **On the real data, for all time:** Healthiest starts with the A products (20 products, 140 scans in all). Least healthy starts with Crispy Pork Rinds (E, 253 scans).
-- **Contract:** it stays at version 2 if version 2 still hasn't been deployed when this lands. Otherwise it's bumped to 3.
+- **Contract:** the grades are version 3. This adds fields, so it's bumped to 4 if version 3 has been deployed when this lands; otherwise it stays at 3.
 
 - [ ] Index files carry, for every period, the healthiest and least healthy lists and the coverage counts, meaning the graded scans and all scans in the period. The schema, the generated frontend types and the check cover them.
 - [ ] The check enforces the rules:

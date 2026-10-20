@@ -215,7 +215,7 @@
           "type": "string"
         },
         "contract_version": {
-          "const": 2,
+          "const": 3,
           "description": "The version of this contract the data was built to (CONTRACT_VERSION).",
           "type": "integer"
         }
@@ -320,7 +320,7 @@
               "type": "null"
             }
           ],
-          "description": "The product's grades; null where OpenFoodFacts has none, and always for a product it doesn't have."
+          "description": "The product's Nutri-Score; null when OpenFoodFacts has none, and always for a product it doesn't have."
         },
         "nova_group": {
           "anyOf": [
@@ -336,12 +336,14 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "The product's NOVA group; null when OpenFoodFacts has none, and always for a product it doesn't have."
         },
         "green_score": {
           "anyOf": [
             {
               "enum": [
+                "A+",
                 "A",
                 "B",
                 "C",
@@ -354,7 +356,8 @@
             {
               "type": "null"
             }
-          ]
+          ],
+          "description": "The product's Green-Score; null when OpenFoodFacts has none, and always for a product it doesn't have."
         }
       },
       "required": [
