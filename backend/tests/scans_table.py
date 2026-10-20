@@ -5,6 +5,8 @@ from datetime import datetime
 
 import polars as pl
 
+from snacker.products import SCANNED_PRODUCT
+
 
 def scan(
     code: str,
@@ -24,12 +26,15 @@ def scan(
         "location": location,
         "scanned_at": datetime.fromisoformat(scanned_at),
         "office_time_zone": office_time_zone,
-        "product_name": product_name,
-        # A fixture name is OpenFoodFacts's unless it says otherwise.
-        "product_name_source": product_name_source or ("openfoodfacts" if product_name else None),
-        "product_brands": product_brands,
-        "product_known": product_known,
-        "product_nutri_score": product_nutri_score,
+        "product": {
+            "code": code,
+            "name": product_name,
+            # A fixture name is OpenFoodFacts's unless it says otherwise.
+            "name_source": product_name_source or ("openfoodfacts" if product_name else None),
+            "brands": product_brands,
+            "known": product_known,
+            "nutri_score": product_nutri_score,
+        },
     }
 
 
@@ -42,10 +47,6 @@ def scans_table(*scans: dict[str, object]) -> pl.DataFrame:
             "location": pl.String(),
             "scanned_at": pl.Datetime("us", "UTC"),
             "office_time_zone": pl.String(),
-            "product_name": pl.String(),
-            "product_name_source": pl.String(),
-            "product_brands": pl.String(),
-            "product_known": pl.Boolean(),
-            "product_nutri_score": pl.String(),
+            "product": SCANNED_PRODUCT,
         },
     )

@@ -2,7 +2,7 @@
 
 Days are counted in each scan's office time zone, so the scans table must carry an
 `office_time_zone` column (see Locations.with_office_time_zones) alongside `scanned_at` in UTC,
-plus `product_name`, `product_name_source`, `product_brands`, `product_known` and `product_nutri_score` columns (see products.with_products).
+plus each scan's scanned product as a `product` column (see products.with_products).
 """
 
 from dataclasses import dataclass
@@ -98,31 +98,23 @@ def _with_office_moments(scans: pl.DataFrame) -> pl.DataFrame:
             pl.col("office_moment").dt.hour().alias("office_hour"),
         ).drop("office_moment")
         for (time_zone,), group in scans.group_by("office_time_zone")
-    ])
+    ]).rechunk()  # One chunk per zone otherwise; see products.scanned_product.
 
 
 def _recent_scans(scans: pl.DataFrame, limit: int) -> list[ScanRow]:
     rows = (
         scans.sort(["scanned_at", "event_id"], descending=True)
         .head(limit)
-        .select(
-            "code", "product_name", "product_name_source", "product_brands", "product_known", "product_nutri_score",
-            "location", "scanned_at", "office_time_zone",
-        )
+        .select("product", "location", "scanned_at", "office_time_zone")
     )
     return [
-        ScanRow(
-            code=row["code"],
-            name=row["product_name"],
-            name_source=row["product_name_source"],
-            brands=row["product_brands"],
-            known=row["product_known"],
-            nutri_score=row["product_nutri_score"],
-            location=row["location"],
-            scanned_at=row["scanned_at"].strftime(UTC_TIMESTAMP_FORMAT),
-            office_time=in_office_time_zone(row["scanned_at"], row["office_time_zone"]),
-            office_time_zone=row["office_time_zone"],
-        )
+        cast(ScanRow, {
+            **row["product"],
+            "location": row["location"],
+            "scanned_at": row["scanned_at"].strftime(UTC_TIMESTAMP_FORMAT),
+            "office_time": in_office_time_zone(row["scanned_at"], row["office_time_zone"]),
+            "office_time_zone": row["office_time_zone"],
+        })
         for row in rows.to_dicts()
     ]
 
@@ -143,7 +135,7 @@ def top_scans(
     Kept apart from `summarise` because only index files show top scans, and code files are many.
     """
     flagged = _with_period_flags(scans, now)
-    ranked = flagged.filter(~pl.col("product_known")) if unknown_only else flagged
+    ranked = flagged.filter(~pl.col("product").struct.field("known")) if unknown_only else flagged
     return cast(TopScansByPeriod, {
         period: _rank(ranked.filter(pl.col(period)), limit, total=flagged.filter(pl.col(period)).height)
         for period in PERIODS
@@ -237,8 +229,9 @@ def _split_by_health(scans: pl.DataFrame, limit: int) -> HealthiestAndLeastHealt
     """The graded products ranked best first and split in halves, each cut to `limit`: the
     better half is the healthiest, and an odd count's extra product goes to it. The least
     healthy are the worst of the rest, so a big period lists its 10 best and 10 worst."""
-    graded = _per_code(scans.filter(pl.col("product_nutri_score").is_not_null())).with_columns(
-        pl.col("product_nutri_score").cast(pl.Enum(get_args(NutriScore))).to_physical().alias("grade")
+    nutri_score = pl.col("product").struct.field("nutri_score")
+    graded = _per_code(scans.filter(nutri_score.is_not_null())).with_columns(
+        nutri_score.cast(pl.Enum(get_args(NutriScore))).to_physical().alias("grade")
     )
     healthiest_count = min(limit, (graded.height + 1) // 2)
     least_healthy_count = min(limit, graded.height // 2)
@@ -259,26 +252,13 @@ def _split_by_health(scans: pl.DataFrame, limit: int) -> HealthiestAndLeastHealt
 
 
 def _per_code(scans: pl.DataFrame) -> pl.DataFrame:
-    """One row per code in `scans`: its count, when it was last scanned, and its product."""
+    """One row per code in `scans`: its count, when it was last scanned, and its scanned product."""
     return scans.group_by("code").agg(
         pl.len().alias("count"),
         pl.col("scanned_at").max().alias("last_scanned_at"),
-        pl.col("product_name").first(),
-        pl.col("product_name_source").first(),
-        pl.col("product_brands").first(),
-        pl.col("product_known").first(),
-        pl.col("product_nutri_score").first(),
+        pl.col("product").first(),
     )
 
 
 def _top_scan(row: dict[str, Any], total: int) -> TopScan:
-    return TopScan(
-        code=row["code"],
-        name=row["product_name"],
-        name_source=row["product_name_source"],
-        brands=row["product_brands"],
-        known=bool(row["product_known"]),
-        nutri_score=row["product_nutri_score"],
-        count=row["count"],
-        share=round(row["count"] / total, 4),
-    )
+    return cast(TopScan, {**row["product"], "count": row["count"], "share": round(row["count"] / total, 4)})

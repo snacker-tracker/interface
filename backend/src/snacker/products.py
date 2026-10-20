@@ -184,23 +184,45 @@ def update_products(
     return True
 
 
+SCANNED_PRODUCT = pl.Struct({
+    "code": pl.String(),
+    "name": pl.String(),
+    "name_source": pl.String(),
+    "brands": pl.String(),
+    "known": pl.Boolean(),
+    "nutri_score": pl.String(),
+})
+"""A scan's `product` column: its scanned product (GLOSSARY.md), as the scan lists show it."""
+
+
 def with_products(scans: pl.DataFrame, products_parquet: Path) -> pl.DataFrame:
-    """Attach each scan's product as `product_name`, `product_name_source`, `product_brands`,
-    `product_known` and `product_nutri_score` columns.
+    """Attach each scan's scanned product as a `product` column (SCANNED_PRODUCT).
 
     Brands are null, and known is false, for unknown products, including codes scanned
     since the last extraction; the name is null unless the Snacker archive gives one.
     """
     products = pl.read_parquet(products_parquet, columns=PRODUCTS_SCHEMA.names()).select(
-        "code",
-        pl.col("name").alias("product_name"),
-        pl.col("name_source").cast(pl.String()).alias("product_name_source"),
-        pl.col("brands").alias("product_brands"),
-        pl.col("known").alias("product_known"),
-        pl.col("nutri_score").cast(pl.String()).alias("product_nutri_score"),
+        "code", "name", "name_source", "brands", "known", "nutri_score"
     )
-    return scans.join(products, on="code", how="left", maintain_order="left").with_columns(
-        pl.col("product_known").fill_null(False)
+    joined = scans.join(products, on="code", how="left", maintain_order="left")
+    return joined.with_columns(scanned_product(
+        code=pl.col("code"),
+        name=pl.col("name"),
+        name_source=pl.col("name_source").cast(pl.String()),
+        brands=pl.col("brands"),
+        known=pl.col("known").fill_null(False),
+        nutri_score=pl.col("nutri_score").cast(pl.String()),
+    )).drop("name", "name_source", "brands", "known", "nutri_score")
+
+
+def scanned_product(**fields: pl.Expr) -> pl.Expr:
+    """The `product` column from one expression per SCANNED_PRODUCT field.
+
+    Built from plain columns, once any nulls are filled: Polars can panic on `when/then`
+    over a field of a struct made of several chunks (see polars_multichunk_struct_when_panic.py).
+    """
+    return pl.struct([fields[name].cast(dtype).alias(name) for name, dtype in SCANNED_PRODUCT.to_schema().items()]).alias(
+        "product"
     )
 
 
