@@ -38,8 +38,8 @@ def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) 
                 "last-30-days", "this-year", "last-365-days",
             )},
             "all-time": [
-                {"code": "8851959132012", "name": None, "brands": None, "known": False, "count": 1, "share": 0.5},
-                {"code": "8850999220000", "name": None, "brands": None, "known": False, "count": 1, "share": 0.5},
+                {"code": "8851959132012", "name": None, "name_source": None, "brands": None, "known": False, "count": 1, "share": 0.5},
+                {"code": "8850999220000", "name": None, "name_source": None, "brands": None, "known": False, "count": 1, "share": 0.5},
             ],
         },
         "top_unknown_scans": {
@@ -48,8 +48,8 @@ def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) 
                 "last-30-days", "this-year", "last-365-days",
             )},
             "all-time": [
-                {"code": "8851959132012", "name": None, "brands": None, "known": False, "count": 1, "share": 0.5},
-                {"code": "8850999220000", "name": None, "brands": None, "known": False, "count": 1, "share": 0.5},
+                {"code": "8851959132012", "name": None, "name_source": None, "brands": None, "known": False, "count": 1, "share": 0.5},
+                {"code": "8850999220000", "name": None, "name_source": None, "brands": None, "known": False, "count": 1, "share": 0.5},
             ],
         },
         "daily": [{"date": "2023-01-08", "count": 2}],
@@ -57,6 +57,7 @@ def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) 
             {
                 "code": "8851959132012",
                 "name": None,
+                "name_source": None,
                 "brands": None,
                 "known": False,
                 "location": "thailand:bangkok",
@@ -67,6 +68,7 @@ def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) 
             {
                 "code": "8850999220000",
                 "name": None,
+                "name_source": None,
                 "brands": None,
                 "known": False,
                 "location": "thailand:bangkok",
@@ -296,7 +298,7 @@ def test_a_scanner_is_listed_from_its_latest_heartbeat_in_any_shape(raw_dir: Pat
             "location": "thailand:bangkok:main-kitchen",
             "app_version": "v0.1.42",
             "last_seen": "2026-10-19T09:45:47Z",
-            "last_scan": {"scanned_at": "2026-09-23T06:00:00Z", "code": "8850999220000", "product_name": None, "known": False},
+            "last_scan": {"scanned_at": "2026-09-23T06:00:00Z", "code": "8850999220000", "product_name": None, "name_source": None, "known": False},
         }],
     }
 
@@ -366,14 +368,14 @@ def test_index_files_list_top_scans_for_every_period(raw_dir: Path, out_dir: Pat
         "last-30-days", "this-year", "last-365-days", "all-time",
     ]
     assert top_scans["today"] == [
-        {"code": "8851959132012", "name": "Coca Cola", "brands": "Coke", "known": True, "count": 2, "share": 0.6667},
-        {"code": "005", "name": None, "brands": None, "known": False, "count": 1, "share": 0.3333},
+        {"code": "8851959132012", "name": "Coca Cola", "name_source": "openfoodfacts", "brands": "Coke", "known": True, "count": 2, "share": 0.6667},
+        {"code": "005", "name": None, "name_source": None, "brands": None, "known": False, "count": 1, "share": 0.3333},
     ]
     assert [row["code"] for row in top_scans["all-time"]] == ["8851959132012", "005", "8850999220000"]
     top_unknown = read_json(out_dir, "data/index/by-location/all.json")["top_unknown_scans"]
     assert list(top_unknown) == list(top_scans)
     assert top_unknown["today"] == [
-        {"code": "005", "name": None, "brands": None, "known": False, "count": 1, "share": 0.3333},
+        {"code": "005", "name": None, "name_source": None, "brands": None, "known": False, "count": 1, "share": 0.3333},
     ]
     kitchen = read_json(out_dir, "data/index/by-location/thailand:bangkok:main-kitchen.json")
     assert [row["code"] for row in kitchen["top_scans"]["all-time"]] == ["8851959132012", "005"]
@@ -400,8 +402,8 @@ def test_each_scanner_shows_the_last_scan_sent_with_its_api_key(raw_dir: Path, o
 
     scanners = read_json(out_dir, "data/scanners/by-location/all.json")["scanners"]
     assert {scanner["name"]: scanner["last_scan"] for scanner in scanners} == {
-        "kitchen": {"scanned_at": "2026-10-19T08:00:00Z", "code": "8851959132012", "product_name": "Coca Cola", "known": True},
-        "lobby": {"scanned_at": "2026-10-19T08:30:00Z", "code": "005", "product_name": None, "known": False},
+        "kitchen": {"scanned_at": "2026-10-19T08:00:00Z", "code": "8851959132012", "product_name": "Coca Cola", "name_source": "openfoodfacts", "known": True},
+        "lobby": {"scanned_at": "2026-10-19T08:30:00Z", "code": "005", "product_name": None, "name_source": None, "known": False},
         "spare": None,
     }
 
@@ -433,8 +435,8 @@ def test_scan_rows_and_last_scans_say_whether_openfoodfacts_has_the_product(raw_
     ]
     scanners = read_json(out_dir, "data/scanners/by-location/all.json")["scanners"]
     assert {scanner["name"]: scanner["last_scan"] for scanner in scanners} == {
-        "kitchen": {"scanned_at": "2026-10-19T08:00:00Z", "code": "8851959132012", "product_name": "Coca Cola", "known": True},
-        "lobby": {"scanned_at": "2026-10-19T06:00:00Z", "code": "005", "product_name": None, "known": False},
+        "kitchen": {"scanned_at": "2026-10-19T08:00:00Z", "code": "8851959132012", "product_name": "Coca Cola", "name_source": "openfoodfacts", "known": True},
+        "lobby": {"scanned_at": "2026-10-19T06:00:00Z", "code": "005", "product_name": None, "name_source": None, "known": False},
     }
 
 
@@ -451,3 +453,36 @@ def test_a_scanner_whose_heartbeats_have_no_api_key_has_no_last_scan(raw_dir: Pa
 
     scanners = read_json(out_dir, "data/scanners/by-location/all.json")["scanners"]
     assert [(scanner["name"], scanner["last_scan"]) for scanner in scanners] == [("keyless", None)]
+
+
+def test_scan_lists_say_where_each_product_name_came_from(raw_dir: Path, out_dir: Path) -> None:
+    write_events(raw_dir, "heartbeats/2026/10/19/delivery", [
+        heartbeat_v2(time="2026-10-19T09:00:00Z", device_name="kitchen", api_key="key-kitchen"),
+    ])
+    write_events(raw_dir, "scans/2026/10/19/delivery", [
+        live_scan("8851959132012", time="2026-10-19T08:00:00Z"),
+        live_scan("220000", time="2026-10-19T07:00:00Z", api_key="key-kitchen"),
+        live_scan("005", time="2026-10-19T06:00:00Z"),
+    ])
+    # OpenFoodFacts names 8851959132012; only the Snacker archive names 220000; nobody names 005.
+    write_products(
+        raw_dir,
+        {"8851959132012": ("Coca Cola", "Coke"), "220000": (None, None), "005": (None, None)},
+        archive_names={"220000": "Singha soda 325 ml"},
+    )
+
+    run_build(raw_dir, out_dir)
+
+    index = read_json(out_dir, "data/index/by-location/all.json")
+    expected = [
+        ("8851959132012", "Coca Cola", "openfoodfacts", True),
+        ("220000", "Singha soda 325 ml", "snacker-archive", False),
+        ("005", None, None, False),
+    ]
+    assert [(row["code"], row["name"], row["name_source"], row["known"]) for row in index["recent"]] == expected
+    assert [
+        (row["code"], row["name"], row["name_source"], row["known"]) for row in index["top_scans"]["today"]
+    ] == expected
+    assert [row["code"] for row in index["top_unknown_scans"]["today"]] == ["220000", "005"]
+    last_scan = read_json(out_dir, "data/scanners/by-location/all.json")["scanners"][0]["last_scan"]
+    assert (last_scan["product_name"], last_scan["name_source"]) == ("Singha soda 325 ml", "snacker-archive")

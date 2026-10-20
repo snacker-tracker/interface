@@ -46,7 +46,13 @@ export function RecentScans({ scans, forOneCode = false }: { scans: ScanRow[]; f
               </td>
               {!forOneCode && (
                 <td className="product">
-                  <ScannedProduct code={scan.code} name={scan.name} brands={scan.brands} known={scan.known} />
+                  <ScannedProduct
+                    code={scan.code}
+                    name={scan.name}
+                    nameSource={scan.name_source}
+                    brands={scan.brands}
+                    known={scan.known}
+                  />
                 </td>
               )}
               <td>{scan.location}</td>

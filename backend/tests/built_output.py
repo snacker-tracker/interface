@@ -21,16 +21,24 @@ def write_products(
     raw_dir: Path,
     products: dict[str, tuple[str | None, str | None]],
     details: dict[str, dict[str, Any]] | None = None,
+    archive_names: dict[str, str] | None = None,
 ) -> None:
-    """The extracted products table: code -> (name, brands), plus optional details by code.
+    """The extracted products table: code -> (name, brands), plus optional details by code,
+    and names the Snacker archive gives codes OpenFoodFacts can't name.
 
     A code whose name and brands are both None, and that has no details, is an unknown product.
     """
     def row(code: str, name: str | None, brands: str | None) -> dict[str, Any]:
         if name is None and brands is None and code not in (details or {}):
-            return {"code": code, "known": False}
-        known = {"known": True, "off_url": OPENFOODFACTS_PRODUCT_PAGE.format(code=code), "categories": []}
-        return {"code": code, "name": name, "brands": brands, **known, **(details or {}).get(code, {})}
+            product: dict[str, Any] = {"code": code, "known": False}
+        else:
+            known = {"known": True, "off_url": OPENFOODFACTS_PRODUCT_PAGE.format(code=code), "categories": []}
+            product = {"code": code, "name": name, "brands": brands, **known, **(details or {}).get(code, {})}
+        if product.get("name"):
+            return {**product, "name_source": "openfoodfacts"}
+        if code in (archive_names or {}):
+            return {**product, "name": (archive_names or {})[code], "name_source": "snacker-archive"}
+        return product
 
     pl.DataFrame(
         [row(code, name, brands) for code, (name, brands) in products.items()],

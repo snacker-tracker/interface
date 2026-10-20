@@ -139,7 +139,22 @@
               "type": "null"
             }
           ],
-          "description": "Null for an unknown product."
+          "description": "Null when neither OpenFoodFacts nor the Snacker archive names the product."
+        },
+        "name_source": {
+          "anyOf": [
+            {
+              "enum": [
+                "openfoodfacts",
+                "snacker-archive"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where the name came from; null exactly when the name is."
         },
         "known": {
           "description": "Whether OpenFoodFacts has the product.",
@@ -150,6 +165,7 @@
         "scanned_at",
         "code",
         "product_name",
+        "name_source",
         "known"
       ],
       "title": "LastScan",
@@ -300,7 +316,22 @@
               "type": "null"
             }
           ],
-          "description": "The product's name; null for an unknown product."
+          "description": "The product's name; null when neither OpenFoodFacts nor the Snacker archive names it."
+        },
+        "name_source": {
+          "anyOf": [
+            {
+              "enum": [
+                "openfoodfacts",
+                "snacker-archive"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where the name came from; null exactly when the name is."
         },
         "brands": {
           "anyOf": [
@@ -335,6 +366,7 @@
       "required": [
         "code",
         "name",
+        "name_source",
         "brands",
         "known",
         "location",
@@ -437,6 +469,21 @@
             }
           ]
         },
+        "name_source": {
+          "anyOf": [
+            {
+              "enum": [
+                "openfoodfacts",
+                "snacker-archive"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "Where the name came from; null exactly when the name is."
+        },
         "brands": {
           "anyOf": [
             {
@@ -462,6 +509,7 @@
       "required": [
         "code",
         "name",
+        "name_source",
         "brands",
         "known",
         "count",

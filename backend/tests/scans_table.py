@@ -13,6 +13,7 @@ def scan(
     location: str = "thailand:bangkok",
     office_time_zone: str = "UTC",
     product_name: str | None = None,
+    product_name_source: str | None = None,
     product_brands: str | None = None,
     product_known: bool = False,
 ) -> dict[str, object]:
@@ -23,6 +24,8 @@ def scan(
         "scanned_at": datetime.fromisoformat(scanned_at),
         "office_time_zone": office_time_zone,
         "product_name": product_name,
+        # A fixture name is OpenFoodFacts's unless it says otherwise.
+        "product_name_source": product_name_source or ("openfoodfacts" if product_name else None),
         "product_brands": product_brands,
         "product_known": product_known,
     }
@@ -38,6 +41,7 @@ def scans_table(*scans: dict[str, object]) -> pl.DataFrame:
             "scanned_at": pl.Datetime("us", "UTC"),
             "office_time_zone": pl.String(),
             "product_name": pl.String(),
+            "product_name_source": pl.String(),
             "product_brands": pl.String(),
             "product_known": pl.Boolean(),
         },

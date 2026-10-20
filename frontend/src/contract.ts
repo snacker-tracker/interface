@@ -36,9 +36,13 @@ export interface HourlyCount {
 export interface ScanRow {
   code: string
   /**
-   * The product's name; null for an unknown product.
+   * The product's name; null when neither OpenFoodFacts nor the Snacker archive names it.
    */
   name: string | null
+  /**
+   * Where the name came from; null exactly when the name is.
+   */
+  name_source: ('openfoodfacts' | 'snacker-archive') | null
   brands: string | null
   /**
    * Whether OpenFoodFacts has the product; it may have it without a name.
@@ -87,6 +91,10 @@ export interface TopScansByPeriod {
 export interface TopScan {
   code: string
   name: string | null
+  /**
+   * Where the name came from; null exactly when the name is.
+   */
+  name_source: ('openfoodfacts' | 'snacker-archive') | null
   brands: string | null
   /**
    * Whether OpenFoodFacts has the product; unknown products are flagged in the UI.
@@ -105,9 +113,13 @@ export interface LastScan {
   scanned_at: string
   code: string
   /**
-   * Null for an unknown product.
+   * Null when neither OpenFoodFacts nor the Snacker archive names the product.
    */
   product_name: string | null
+  /**
+   * Where the name came from; null exactly when the name is.
+   */
+  name_source: ('openfoodfacts' | 'snacker-archive') | null
   /**
    * Whether OpenFoodFacts has the product.
    */

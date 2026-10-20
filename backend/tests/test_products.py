@@ -5,7 +5,7 @@ from pathlib import Path
 import polars as pl
 
 from food_parquet import food_product, image, write_food_parquet
-from snacker.products import extract_products, update_products
+from snacker.products import extract_products, read_archive, update_products
 
 
 def products_by_code(food: Path, codes: list[str]) -> dict[str, dict[str, str | None]]:
@@ -204,3 +204,80 @@ def test_a_front_image_without_a_revision_is_skipped(tmp_path: Path) -> None:
     )
 
     assert str(product_card(food, "8850999220000")["image_url"]).endswith("/front_en.6.400.jpg")
+
+
+# --- The Snacker archive: names for products OpenFoodFacts can't name ---
+
+
+def write_archive(path: Path, *rows: tuple[str, str]) -> Path:
+    """A Snacker archive CSV with the real columns; only `code` and `name` matter."""
+    lines = ["code,name,created_at,updated_at,url,categories"]
+    lines += [f'{code},"{name}",2019-10-31 09:34:37.713+00,2019-10-31 09:34:37.713+00,,' for code, name in rows]
+    path.write_text("\n".join(lines) + "\n")
+    return path
+
+
+def names_by_code(food: Path, codes: list[str], archive: Path | None) -> dict[str, tuple[str | None, str | None]]:
+    """code -> (name, name_source)."""
+    products = extract_products(food, codes, archive=read_archive(archive) if archive else None)
+    return {row["code"]: (row["name"], row["name_source"]) for row in products.to_dicts()}
+
+
+def test_the_archive_names_a_code_openfoodfacts_does_not_know(tmp_path: Path) -> None:
+    food = write_food_parquet(tmp_path / "food.parquet", food_product("8850999220000", names={"main": "Soda water"}))
+    archive = write_archive(tmp_path / "codes.csv", ("220000", "Singha soda 325 ml"))
+
+    assert names_by_code(food, ["220000", "8850999220000"], archive) == {
+        "220000": ("Singha soda 325 ml", "snacker-archive"),
+        "8850999220000": ("Soda water", "openfoodfacts"),
+    }
+
+
+def test_an_openfoodfacts_name_beats_the_archive(tmp_path: Path) -> None:
+    # Some archive names were scraped against the wrong barcode.
+    food = write_food_parquet(tmp_path / "food.parquet", food_product("8886467100017", names={"main": "Pringles original"}))
+    archive = write_archive(tmp_path / "codes.csv", ("8886467100017", "Fashion Vintage Ladies Hot Pants"))
+
+    assert names_by_code(food, ["8886467100017"], archive) == {"8886467100017": ("Pringles original", "openfoodfacts")}
+
+
+def test_the_archive_names_a_product_openfoodfacts_has_without_a_name(tmp_path: Path) -> None:
+    food = write_food_parquet(tmp_path / "food.parquet", food_product("8850999220000", names=None, brands="Singha"))
+    archive = write_archive(tmp_path / "codes.csv", ("8850999220000", "  Singha soda water "))
+
+    products = extract_products(food, ["8850999220000"], archive=read_archive(archive)).to_dicts()
+
+    assert [(row["name"], row["name_source"], row["known"], row["brands"]) for row in products] == [
+        ("Singha soda water", "snacker-archive", True, "Singha"),
+    ]
+
+
+def test_a_code_the_archive_records_twice_gets_no_archive_name(tmp_path: Path) -> None:
+    food = write_food_parquet(tmp_path / "food.parquet", food_product("8850999220000", names={"main": "Soda water"}))
+    archive = write_archive(
+        tmp_path / "codes.csv",
+        ("5", "Ratatouille à la provençale"), ("5", "Otto coffee maker"), ("78", "Isan sausage"), ("78", "Taro fish snack"),
+        ("152", "Curry paste"),
+    )
+
+    assert read_archive(archive).duplicated == ["5", "78"]
+    assert names_by_code(food, ["5", "152"], archive) == {"152": ("Curry paste", "snacker-archive"), "5": (None, None)}
+
+
+def test_without_the_archive_names_come_from_openfoodfacts_only(tmp_path: Path) -> None:
+    food = write_food_parquet(tmp_path / "food.parquet", food_product("8850999220000", names={"main": "Soda water"}))
+
+    assert names_by_code(food, ["220000", "8850999220000"], archive=None) == {
+        "220000": (None, None),
+        "8850999220000": ("Soda water", "openfoodfacts"),
+    }
+
+
+def test_archive_names_are_kept_when_the_food_file_is_not_read_again(tmp_path: Path) -> None:
+    food = write_food_parquet(tmp_path / "food.parquet", food_product("8850999220000", names={"main": "Soda water"}))
+    archive = read_archive(write_archive(tmp_path / "codes.csv", ("220000", "Singha soda 325 ml")))
+    products = tmp_path / "products.parquet"
+    update_products(food, ["220000", "8850999220000"], products, archive=archive)
+
+    assert update_products(tmp_path / "gone.parquet", ["220000"], products, archive=archive) is False
+    assert pl.read_parquet(products)["name"].to_list() == ["Singha soda 325 ml", "Soda water"]

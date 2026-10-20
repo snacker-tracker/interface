@@ -1,19 +1,25 @@
 import { Link, useLocation } from 'react-router'
 
+import type { ScanRow } from '../contract'
 import { codePagePath } from '../routes'
+
+type NameSource = ScanRow['name_source']
 
 /**
  * A scanned product in a list, linking to its code page: its name and brands, or, without a name,
- * its code and a link to OpenFoodFacts (R3). An unknown product's link adds it to OpenFoodFacts.
+ * its code (R3). A name from the Snacker archive is tagged. An unknown product links to adding it
+ * to OpenFoodFacts, and a known one without a name to its OpenFoodFacts page.
  */
 export function ScannedProduct({
   code,
   name,
+  nameSource,
   brands,
   known,
 }: {
   code: string
   name: string | null
+  nameSource: NameSource
   brands: string | null
   known: boolean
 }) {
@@ -24,7 +30,9 @@ export function ScannedProduct({
     return (
       <>
         <Link to={codePage}>{name}</Link>
+        <ArchiveTag nameSource={nameSource} />
         {brands && <span className="brands">{brands}</span>}
+        {!known && <OpenFoodFactsLink code={code} known={known} />}
       </>
     )
   }
@@ -35,6 +43,16 @@ export function ScannedProduct({
       </Link>
       <OpenFoodFactsLink code={code} known={known} />
     </>
+  )
+}
+
+/** Marks a name taken from the Snacker archive; OpenFoodFacts names go unmarked. */
+export function ArchiveTag({ nameSource }: { nameSource: NameSource }) {
+  if (nameSource !== 'snacker-archive') return null
+  return (
+    <span className="archive-tag" title="Named by the previous Snacker Tracker, not by OpenFoodFacts">
+      Snacker archive
+    </span>
   )
 }
 

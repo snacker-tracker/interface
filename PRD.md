@@ -72,6 +72,15 @@ Known anomaly: one v2 event reports a negative `telemetry.uptime`, which looks l
 - There is no `brand` column. Use `brands`.
 - `product_name` is a list of `{lang, text}` entries.
 
+### 4.4 Snacker archive (`data/codes.csv`)
+
+- The previous Snacker Tracker's product records (GLOSSARY.md), pulled from shop websites or entered by hand. Frozen: nothing is added or corrected.
+- 494 rows with `code,name,created_at,updated_at,url,categories`. Only `name` is used; it is trimmed.
+- Codes match scanned codes exactly, odd ones like `8 858985 300118` and `ub` included.
+- Codes `5` and `78` are recorded twice with different products. A code recorded more than once gets no archive name.
+- Some names are wrong for their barcode (8886467100017 is "Pringles original" on OpenFoodFacts but ladies' hot pants in the archive), so an OpenFoodFacts name always wins.
+- On the current data it names 97 unknown products and 10 known products OpenFoodFacts has no name for.
+
 ## 5. Domain rules
 
 ### R1: One scan model
@@ -101,8 +110,9 @@ Duplicate `event_id`s are dropped.
 
 Every scan counts in every chart and list, whether or not the code is a barcode or has product info.
 
-- A code OpenFoodFacts doesn't have is an **unknown product** (GLOSSARY.md).
-- In the scan lists (Top scans and the latest scans), a product with a name shows its name and brands, never its code. A product without a name shows its raw code instead, with a link to OpenFoodFacts if the code is a barcode: "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`) for an unknown product, "On OpenFoodFacts" (`https://world.openfoodfacts.org/product/{code}`) for a known one without a name.
+- A code OpenFoodFacts doesn't have is an **unknown product** (GLOSSARY.md), even when the Snacker archive names it.
+- A product's name comes from OpenFoodFacts when it has one, otherwise from the Snacker archive (§4.4). An archive name is always tagged "Snacker archive"; OpenFoodFacts names aren't tagged.
+- In the scan lists (Top scans, the latest scans and a scanner's last scan), a product with a name shows its name and brands, never its code. An unknown product with an archive name also links to "Add it to OpenFoodFacts". A product without a name shows its raw code instead, with a link to OpenFoodFacts if the code is a barcode: "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`) for an unknown product, "On OpenFoodFacts" (`https://world.openfoodfacts.org/product/{code}`) for a known one without a name.
 - The code page shows "Unknown product" and the raw code for a product without a name.
 
 ### R4: Office time
@@ -169,7 +179,7 @@ Page order: scans per day (I1), top scans (I3), latest scans (I2).
   - name,
   - location,
   - last heartbeat ("X ago" with the exact time),
-  - last scan ("X ago" with the product or code linking to its code page, or "Never"),
+  - last scan ("X ago" with the product's name, tagged when it's from the Snacker archive, or its code, linking to its code page; or "Never"),
   - app version.
 - **S3:** It shows when the data was built. A location with no scanners says so; a missing or failed file says scanner status is unavailable.
 
@@ -247,6 +257,7 @@ These hold in every build, alongside the schema (§7.2) and the file rules (§7.
   - Each share is in (0, 1], and a list's shares add up to at most 1, allowing for rounding.
   - `top_unknown_scans` lists only unknown products.
 - **Scanners:** unique, ordered by name.
+- **Names:** on scan rows, top scans and last scans, `name_source` is null exactly when the name is, and `openfoodfacts` only for a known product.
 - **Times:**
   - `generated_at`, `scanned_at`, `last_seen` and a last scan's `scanned_at` are UTC, written like `2026-10-19T12:00:00Z`.
   - A scan row's `office_time` is the same moment as its `scanned_at`, written with the UTC offset its `office_time_zone` (an IANA name) had then.
@@ -259,7 +270,7 @@ The backend's `check` module tests a built output against all of §7, and names 
 
 The backend is a CLI with no running server and these commands:
 
-- `snacker extract-products --raw … --food … --products … [--force]`
+- `snacker extract-products --raw … --food … --products … [--archive …] [--force]`: `--archive` is the Snacker archive CSV. It is merged whenever the products table is written; without it, names come from OpenFoodFacts only. Codes the archive records twice are reported.
 - `snacker build --raw … --products … --out …`: it publishes only output that passes the contract check (§7.4). Otherwise it lists the violations and leaves the previous data in place.
 - `snacker check --out …`: runs the contract check on its own.
 - `snacker schema --out …`: regenerates `contract/static-json.schema.json`.
@@ -268,7 +279,7 @@ Inside, each step is a named function with explicit inputs and outputs, so it ca
 
 | Step (module) | Input | Output |
 |---|---|---|
-| Product extraction (`products`) | `food.parquet`, scanned codes | `products.parquet`: one row per scanned code, with `known` false for unknown products |
+| Product extraction (`products`) | `food.parquet`, scanned codes, Snacker archive (optional) | `products.parquet`: one row per scanned code, with `known` false for unknown products and `name_source` naming where each name came from |
 | Scan normalisation (`scans`) | raw scan files | scans table (R1) |
 | Heartbeat normalisation (`heartbeats`) | raw heartbeat files | heartbeats table, then scanner statuses (R6) |
 | Locations (`locations`) | scans, time zone map | selectable locations, scans within a location, office time zones |

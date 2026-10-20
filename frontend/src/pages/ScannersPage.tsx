@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router'
 
 import { Ago } from '../components/Ago'
+import { ArchiveTag } from '../components/ScannedProduct'
 import { ScannerStateLabel } from '../components/ScannerStateLabel'
 import type { MetaFile, ScannersFile, ScannerStatus } from '../contract'
 import { metaDataPath, scannersDataPath, useJson } from '../data'
@@ -80,6 +81,7 @@ function ScannersTable({ scanners, now }: { scanners: ScannerStatus[]; now: numb
                       <Link className="last-scan-product" to={{ pathname: codePagePath(scanner.last_scan.code), search }}>
                         {scanner.last_scan.product_name ?? scanner.last_scan.code}
                       </Link>
+                      <ArchiveTag nameSource={scanner.last_scan.name_source} />
                     </>
                   ) : (
                     'Never'

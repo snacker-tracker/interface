@@ -71,6 +71,7 @@ def test_lists_the_most_recent_scans_newest_first() -> None:
     assert recent[0] == {
         "code": "8850000000026",
         "name": None,
+        "name_source": None,
         "brands": None,
         "known": False,
         "location": "thailand:bangkok:main-kitchen",

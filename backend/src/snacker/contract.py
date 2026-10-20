@@ -11,6 +11,9 @@ from urllib.parse import quote
 
 # --- Rows shared between files ---
 
+NameSource = Literal["openfoodfacts", "snacker-archive"]
+"""Where a product's name came from: OpenFoodFacts, or the Snacker archive (GLOSSARY.md)."""
+
 
 class DailyCount(TypedDict):
     date: str
@@ -27,7 +30,9 @@ class HourlyCount(TypedDict):
 class ScanRow(TypedDict):
     code: str
     name: str | None
-    """The product's name; null for an unknown product."""
+    """The product's name; null when neither OpenFoodFacts nor the Snacker archive names it."""
+    name_source: NameSource | None
+    """Where the name came from; null exactly when the name is."""
     brands: str | None
     known: bool
     """Whether OpenFoodFacts has the product; it may have it without a name."""
@@ -43,6 +48,8 @@ class ScanRow(TypedDict):
 class TopScan(TypedDict):
     code: str
     name: str | None
+    name_source: NameSource | None
+    """Where the name came from; null exactly when the name is."""
     brands: str | None
     known: bool
     """Whether OpenFoodFacts has the product; unknown products are flagged in the UI."""
@@ -98,7 +105,9 @@ class LastScan(TypedDict):
     """UTC, e.g. "2026-10-16T10:33:45Z"."""
     code: str
     product_name: str | None
-    """Null for an unknown product."""
+    """Null when neither OpenFoodFacts nor the Snacker archive names the product."""
+    name_source: NameSource | None
+    """Where the name came from; null exactly when the name is."""
     known: bool
     """Whether OpenFoodFacts has the product."""
 

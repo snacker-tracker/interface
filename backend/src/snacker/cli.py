@@ -1,6 +1,6 @@
 """Command line entry point.
 
-    snacker extract-products --raw <scanner dir> --food <food.parquet> --products <products.parquet>
+    snacker extract-products --raw <scanner dir> --food <food.parquet> --products <products.parquet> [--archive <codes.csv>]
     snacker build --raw <scanner dir> --products <products.parquet> --out <output dir>
     snacker check --out <output dir>
     snacker schema --out <schema file>
@@ -15,7 +15,7 @@ import polars as pl
 
 from snacker.build import ContractBroken, build
 from snacker.check import Violation, contract_violations
-from snacker.products import update_products
+from snacker.products import read_archive, update_products
 from snacker.schema import schema_json
 from snacker.scans import normalise_scans
 
@@ -35,6 +35,11 @@ def main() -> None:
     extract_command.add_argument("--raw", type=Path, required=True, help=RAW_HELP)
     extract_command.add_argument("--food", type=Path, required=True, help="OpenFoodFacts food.parquet.")
     extract_command.add_argument("--products", type=Path, required=True, help=PRODUCTS_HELP)
+    extract_command.add_argument(
+        "--archive", type=Path,
+        help="The Snacker archive CSV (codes.csv): names for products OpenFoodFacts can't name. "
+        "Without it, names come from OpenFoodFacts only.",
+    )
     extract_command.add_argument(
         "--force", action="store_true", help="Extract even if every scanned code was already looked up."
     )
@@ -66,9 +71,16 @@ def main() -> None:
         print(f"Wrote {args.out}")
     elif args.command == "extract-products":
         codes = normalise_scans(args.raw)["code"].unique().to_list()
-        if update_products(args.food, codes, args.products, force=args.force):
-            named = pl.read_parquet(args.products)["name"].is_not_null().sum()
-            print(f"Looked up {len(codes)} scanned codes; {named} have a product name. Wrote {args.products}")
+        archive = read_archive(args.archive) if args.archive else None
+        if archive and archive.duplicated:
+            print(f"The archive records these codes more than once, so they get no archive name: {', '.join(archive.duplicated)}")
+        if update_products(args.food, codes, args.products, archive=archive, force=args.force):
+            sources = pl.read_parquet(args.products)["name_source"].value_counts()
+            named = dict(zip(sources["name_source"].to_list(), sources["count"].to_list()))
+            print(
+                f"Looked up {len(codes)} scanned codes; {named.get('openfoodfacts', 0)} named by OpenFoodFacts, "
+                f"{named.get('snacker-archive', 0)} by the Snacker archive. Wrote {args.products}"
+            )
         else:
             print(f"Every scanned code is already in {args.products}; nothing to do (use --force to redo)")
     elif args.command == "check":

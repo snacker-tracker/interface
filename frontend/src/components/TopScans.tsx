@@ -80,7 +80,13 @@ function TopScanRow({ row }: { row: TopScan }) {
     <li>
       <div className="top-scan-row">
         <div className="top-scan-product">
-          <ScannedProduct code={row.code} name={row.name} brands={row.brands} known={row.known} />
+          <ScannedProduct
+            code={row.code}
+            name={row.name}
+            nameSource={row.name_source}
+            brands={row.brands}
+            known={row.known}
+          />
         </div>
         <div className="top-scan-count">
           <strong>{row.count}</strong> {row.count === 1 ? 'scan' : 'scans'}

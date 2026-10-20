@@ -7,13 +7,18 @@ committed JSON Schema (a test fails until you do).
 
 ```sh
 uv run snacker extract-products --raw ../data/raw/data/scanner \
-  --food ../data/openfoodfacts__product-database/food.parquet --products ../data/products.parquet
+  --food ../data/openfoodfacts__product-database/food.parquet --products ../data/products.parquet \
+  --archive ../data/codes.csv
 uv run snacker build --raw ../data/raw/data/scanner --products ../data/products.parquet --out ../public-data
 uv run snacker check --out ../public-data     # build already does this
 uv run snacker schema --out ../contract/static-json.schema.json
 uv run pytest
 uv run mypy
 ```
+
+`--archive` is the Snacker archive, the previous Snacker Tracker's product names. It is
+merged only when the products table is written, so an extraction run without it leaves
+archive names out until the next one (`--force` redoes it).
 
 Office time zones live in `src/snacker/config.py`: a map from location prefix to IANA
 time zone, where the longest prefix wins. A scanned location with no match stops the

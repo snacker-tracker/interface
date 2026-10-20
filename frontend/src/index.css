@@ -248,6 +248,19 @@ a {
   font-size: 0.8125rem;
 }
 
+.archive-tag {
+  font-size: 0.75rem;
+  padding: 0 6px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+td.product .archive-tag {
+  margin-left: 6px;
+}
+
 .app-main {
   max-width: 1100px;
   margin: 0 auto;

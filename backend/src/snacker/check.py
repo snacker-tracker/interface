@@ -184,8 +184,10 @@ class _Output:
                 if not _within(scanner["location"], content["location"]):
                     yield Violation(path, f"scanner {scanner['name']!r} is at {scanner['location']!r}, outside this location")
                 yield from _utc(path, f"{scanner['name']} last_seen", scanner["last_seen"])
-                if scanner["last_scan"]:
-                    yield from _utc(path, f"{scanner['name']} last_scan", scanner["last_scan"]["scanned_at"])
+                if last_scan := scanner["last_scan"]:
+                    where = f"{scanner['name']} last_scan"
+                    yield from _utc(path, where, last_scan["scanned_at"])
+                    yield from _name_source(path, where, last_scan["product_name"], last_scan)
 
     def _daily(self, path: PurePosixPath, daily: list[Any]) -> Iterator[Violation]:
         try:
@@ -209,6 +211,7 @@ class _Output:
             where = f"recent/{index}"
             yield from _utc(path, f"{where}/scanned_at", row["scanned_at"])
             yield from _office_time(path, where, row)
+            yield from _name_source(path, where, row["name"], row)
             if not _within(row["location"], location):
                 yield Violation(path, f"{where}: scanned at {row['location']!r}, outside this location")
             if row["location"] not in self.selectable:
@@ -240,11 +243,23 @@ class _Output:
                 yield Violation(path, f"{where}: shares add up to more than 1")
             if unknown_only and any(row["known"] for row in rows):
                 yield Violation(path, f"{where}: lists a known product")
+            for index, row in enumerate(rows):
+                yield from _name_source(path, f"{where}/{index}", row["name"], row)
 
 
 def _within(location: str, selected: str) -> bool:
     """Whether `location` is `selected` or beneath it, on whole segments."""
     return selected == "all" or location == selected or location.startswith(selected + ":")
+
+
+def _name_source(path: PurePosixPath, where: str, name: str | None, row: dict[str, Any]) -> Iterator[Violation]:
+    """A name has a source exactly when there is a name, and only a known product has an OpenFoodFacts name."""
+    if name is None and row["name_source"] is not None:
+        yield Violation(path, f"{where}: name_source is set but there's no name")
+    if name is not None and row["name_source"] is None:
+        yield Violation(path, f"{where}: name_source is null but the name isn't")
+    if row["name_source"] == "openfoodfacts" and not row["known"]:
+        yield Violation(path, f"{where}: an OpenFoodFacts name for a product OpenFoodFacts doesn't have")
 
 
 def _utc(path: PurePosixPath, field: str, value: str) -> Iterator[Violation]:
