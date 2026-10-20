@@ -12,7 +12,7 @@ Decisions from the design session (ADRs 0004–0006):
   - **CI role:** trusted only for GitHub OIDC from this repo's matching GitHub environment, plus pull requests for plans.
     - It can manage Lambda, Scheduler and the working bucket within its prefix.
     - It can only create CloudFront distributions and ACM certificates with the project tag, and only change or delete ones that carry it.
-    - In Route 53 it can only change records in the one hosted zone.
+    - In Route 53 it can only change records in the `khanom.xyz` zone (`Z0781732PCOBWRVFR9YS`), and only its own environment's names and their ACM validation records (`_*.<name>`), using the normalised-record-names condition. Staging owns `staging.khanom.xyz`; production owns `khanom.xyz` and `www.khanom.xyz`.
     - It can read and write only its own key and lockfile in the existing state bucket.
     - In its site bucket it can put and delete objects anywhere except `data/*`, which is an explicit deny.
     - **IAM:** only `GetRole`, and `PassRole` for its environment's three roles to `lambda.amazonaws.com` and `scheduler.amazonaws.com`.
@@ -21,7 +21,7 @@ Decisions from the design session (ADRs 0004–0006):
   - **Extraction role:** read the Snacker archive and write the products table in its working bucket, and write its own logs.
   - **Scheduler role:** invoke its build function only.
 - **The staging site bucket:** a website bucket with a public-read policy and default S3 encryption (SSE-S3, ADR 0004). The production site bucket and the raw bucket already exist and aren't touched.
-- **Variables and outputs:** inputs are the existing bucket names, the hosted zone, the ECR repository ARN, the state bucket and the GitHub repo. The role ARNs are outputs.
+- **Variables and outputs:** inputs are the existing bucket names, the hosted zone (`khanom.xyz`, `Z0781732PCOBWRVFR9YS`), each environment's hostnames, the ECR repository ARN, the state bucket and the GitHub repo. The role ARNs are outputs.
 - **Out of scope:** alerting.
 
 - [ ] The admin configuration plans and applies cleanly in the account, and outputs the role ARNs for both environments.

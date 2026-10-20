@@ -1,6 +1,6 @@
 # 06: Staging runs on Lambda behind CloudFront
 
-**What to build:** a working staging environment. Every 15 minutes a Lambda builds the data from production's raw events, and the staging site serves it with the frontend through CloudFront on `staging.<domain>`.
+**What to build:** a working staging environment. Every 15 minutes a Lambda builds the data from production's raw events, and the staging site serves it with the frontend through CloudFront on `staging.khanom.xyz`.
 
 **Blocked by:** 04 (One container image), 05 (Admin Terraform).
 
@@ -14,14 +14,14 @@ Decisions from the design session (ADRs 0003–0006):
 - **The working bucket:** `snacker-tracker-<env>-*`, holding the products table and the Snacker archive.
 - **CloudFront:**
   - The origin is the site bucket's website endpoint.
-  - It serves `staging.<domain>`, with an ACM certificate (us-east-1) validated through the Route 53 zone, and an alias record.
+  - It serves `staging.khanom.xyz`, with an ACM certificate (us-east-1) validated through the `khanom.xyz` zone (`Z0781732PCOBWRVFR9YS`), and A/AAAA alias records.
   - It respects each object's `Cache-Control`.
   - Deep links fall back to `index.html`. The frontend already treats an HTML reply for a data file as missing.
 - **Staging's data:** it reads production's raw events, read-only.
 - **No alerting** for now. A failing build shows in "Data built X ago" and the function's logs.
 
 - [ ] Applied by hand with the staging CI role's credentials, it creates everything without any IAM write.
-- [ ] Within 15 minutes of applying, `staging.<domain>` serves the frontend and data built by the Lambda, and the scanners page's "Data built X ago" stays current.
+- [ ] Within 15 minutes of applying, `staging.khanom.xyz` serves the frontend and data built by the Lambda, and the scanners page's "Data built X ago" stays current.
 - [ ] A scanned code missing from the products table triggers an extraction, and a later build names the product.
 - [ ] `/codes/…` deep links load.
 
