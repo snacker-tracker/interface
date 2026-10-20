@@ -9,9 +9,15 @@ import { type ChartTokens, chartConfig } from '../theme'
  * days already bucketed by the backend, so they're handled as UTC to avoid browser
  * timezone shifts.
  *
- * With `zoom`, the brush starts on those days, so the detail chart opens zoomed to them.
+ * With `zoom`, the brush starts on those days, so the detail chart opens zoomed to them. With
+ * `until` (the build's office day), the overview runs to it even when the last scan came earlier,
+ * so a zoom to a quiet day still lands on the overview.
  */
-export function dailyScansSpec(daily: DailyCount[], tokens: ChartTokens, zoom: PeriodDays | null = null): VisualizationSpec {
+export function dailyScansSpec(
+  daily: DailyCount[],
+  tokens: ChartTokens,
+  { zoom = null, until = null }: { zoom?: PeriodDays | null; until?: string | null } = {},
+): VisualizationSpec {
   const x = {
     field: 'date',
     timeUnit: 'utcyearmonthdate',
@@ -71,7 +77,7 @@ export function dailyScansSpec(daily: DailyCount[], tokens: ChartTokens, zoom: P
           },
         ],
         encoding: {
-          x,
+          x: until && daily.length > 0 ? { ...x, scale: { domain: [utcDay(daily[0].date), utcDay(until, 1)] } } : x,
           y: { field: 'count', type: 'quantitative', title: null, axis: { tickCount: 2, grid: false } },
         },
       },

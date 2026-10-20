@@ -661,3 +661,13 @@ def test_without_scans_the_periods_have_no_days(raw_dir: Path, out_dir: Path) ->
 
     days = read_json(out_dir, "data/index/by-location/all.json")["period_days"]
     assert set(map(str, days.values())) == {str({"first_day": None, "last_day": None})}
+
+
+def test_scans_after_the_build_fall_in_no_period_yet_the_build_passes_its_check(raw_dir: Path, out_dir: Path) -> None:
+    # GENERATED_AT is 2026-10-19 12:00 UTC; this scan comes a day later.
+    write_events(raw_dir, "scans/2026/10/20/delivery", [live_scan("8851959132012", time="2026-10-20T12:00:00Z")])
+
+    run_build(raw_dir, out_dir)
+
+    days = read_json(out_dir, "data/index/by-location/all.json")["period_days"]
+    assert days["all-time"] == {"first_day": "2026-10-19", "last_day": "2026-10-19"}

@@ -171,7 +171,7 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 
 - **I1:** Bar chart of scans per local day across **all history**, with brush-to-zoom.
   - It opens zoomed to the selected period (I0): the office days the period touches, from its first day to the build's day. A rolling period's partial first day counts, so "Last 7 days" shows 8 bars. All time isn't zoomed.
-  - The overview's brush is placed on those days. Brushing by hand still works but doesn't change `?period=`.
+  - The overview runs to the build's day, so its brush can be placed on those days even when the last scan came earlier. Brushing by hand still works but doesn't change `?period=`. Choosing a period, even the selected one, zooms back to it.
   - The heading stays "Scans per day", and the hint reads "Zoomed to the period; drag across the lower chart to look elsewhere."
 - **I2:** List of the **last 25 scans**: local date and time, location, and the product per R3. Each row links to its code page, keeping `?location`.
 - **I0:** A **period selector** at the top of the page, above the chart: a button per period (R7), the selected one shown pressed. The chosen period is kept in `?period=` (default `last-30-days`; unknown values fall back to it). Top scans (I3) and the healthiest and least healthy products (I4) follow it and name it in their headings, e.g. "Top scans · Last 30 days". Latest scans (I2) doesn't follow it.
@@ -247,7 +247,7 @@ The shapes are defined by the JSON Schema at `contract/static-json.schema.json`.
 - **Generated, not hand-edited:** the schema comes from the backend's contract module (`snacker schema`), and a test fails when the committed copy is out of date.
 - **Frontend types:** the frontend's types for these files (`frontend/src/contract.ts`) are generated from the schema by `npm run contract`. The frontend build and lint fail when they're out of date.
 - **Strict:** every field is required, even one that may be null, and fields the schema doesn't list are rejected.
-- **Versioned:** `meta.json` carries `contract_version`, a single integer (now 3: version 2 added where names come from, version 3 the grades). Bump it on any breaking change: removing, renaming or retyping a field, a field becoming nullable, a file moving, adding a field, or changing a rule in §7.1 or §7.4. Adding a field counts because the schema rejects fields it doesn't list; only a whole new file doesn't. The frontend reads `meta.json` before any other file. When the version differs from the one it was built for, every page says the data and interface are out of step instead of rendering.
+- **Versioned:** `meta.json` carries `contract_version`, a single integer (now 3: version 2 added where names come from; version 3 the grades, the healthiest and least healthy products, and period days, all shipped together). Bump it on any breaking change: removing, renaming or retyping a field, a field becoming nullable, a file moving, adding a field, or changing a rule in §7.1 or §7.4. Adding a field counts because the schema rejects fields it doesn't list; only a whole new file doesn't. The frontend reads `meta.json` before any other file. When the version differs from the one it was built for, every page says the data and interface are out of step instead of rendering.
 - **What the schema can't express:** which files exist (§7.1) and the rules that hold across fields and files (§7.4).
 
 ### 7.3 Encoding
@@ -313,7 +313,7 @@ Inside, each step is a named function with explicit inputs and outputs, so it ca
 | Scan normalisation (`scans`) | raw scan files | scans table (R1) |
 | Heartbeat normalisation (`heartbeats`) | raw heartbeat files | heartbeats table, then scanner statuses (R6) |
 | Locations (`locations`) | scans, time zone map | selectable locations, scans within a location, office time zones |
-| Scan summary (`scan_summary`) | scans with office time zones and products | daily, hourly and recent (`summarise`); top scans (`top_scans`, R7) |
+| Scan summary (`scan_summary`) | scans with office time zones and products | daily, hourly and recent (`summarise`); top scans (`top_scans`, R7); healthiest and least healthy products (`healthiest_and_least_healthy`, R8); period days (`period_days`, I1) |
 | Build (`build`) | raw files, products table, config, build time | JSON files (§7) |
 
 - `extract-products` reruns only when there are unseen codes, when the table predates a column change, or with `--force`. This keeps normal builds off the 8 GB file.
@@ -335,12 +335,14 @@ Inside, each step is a named function with explicit inputs and outputs, so it ca
 
 ## 9. Testing
 
-Backend tests run against small fixture files, never the real data. They sit at five seams:
+Backend tests run against small fixture files, never the real data. They sit at seven seams:
 
 - the end-to-end build (fixture raw files → the JSON tree)
 - product extraction (a fixture food parquet → the products table)
 - Scan summary (`summarise`)
 - top scans (`top_scans`)
+- healthiest and least healthy products (`healthiest_and_least_healthy`)
+- the output contract check (`contract_violations`)
 - Locations
 
 They cover:
@@ -357,6 +359,8 @@ They cover:
   - Last-N ordering.
   - Product name selection, including no match.
   - Top scans: each period's boundaries (including zones that disagree about the day), ties, the size limit and share.
+  - Healthiest and least healthy products: grade before scans, the halves split (odd counts, a single product, more than fit), products without a Nutri-Score left out but counted for coverage, and empty periods.
+  - Period days: calendar and rolling periods (a partial first day counts), all time, a location quiet in a period, scans after the build, and a build without scans. Tested through the end-to-end build.
   - A scanner's last scan by API key.
 - **Output contract**
   - A fixture build writes the expected paths, including URL-encoded codes and locations.

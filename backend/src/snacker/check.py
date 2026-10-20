@@ -299,9 +299,13 @@ class _Output:
                 yield Violation(path, f"period_days/{period}: days are null though there are scans")
             elif days["first_day"] and days["last_day"] and days["first_day"] > days["last_day"]:
                 yield Violation(path, f"period_days/{period}: first_day is after last_day")
-        if daily and by_period["all-time"]["first_day"] != daily[0]["date"]:
-            yield Violation(path, "period_days/all-time: doesn't start on the first scanned day")
         last_days = {days["last_day"] for days in by_period.values()} - {None}
+        if daily and len(last_days) == 1:
+            # Scans after the build fall in no period; with none before it, all time starts on the build day.
+            (last_day,) = last_days
+            first_scanned = next((day["date"] for day in daily if day["date"] <= last_day), last_day)
+            if by_period["all-time"]["first_day"] != first_scanned:
+                yield Violation(path, "period_days/all-time: doesn't start on the first scanned day")
         if len(last_days) > 1:
             yield Violation(path, "period_days: the periods end on different days")
         built = self._built_at()

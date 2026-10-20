@@ -7,11 +7,20 @@ import { dailyScansSpec } from './dailyScansSpec'
 
 /**
  * Scans per day, with brush-to-zoom (see `dailyScansSpec`) and a table view of the same data.
- * With `zoom`, it opens zoomed to those days; brushing by hand still moves it.
+ * With `zoom`, it opens zoomed to those days; brushing by hand still moves it. `until` is the
+ * build's office day, which the overview runs to.
  */
-export function DailyScansChart({ daily, zoom = null }: { daily: DailyCount[]; zoom?: PeriodDays | null }) {
+export function DailyScansChart({
+  daily,
+  zoom = null,
+  until = null,
+}: {
+  daily: DailyCount[]
+  zoom?: PeriodDays | null
+  until?: string | null
+}) {
   const tokens = useChartTokens()
-  const spec = useMemo(() => dailyScansSpec(daily, tokens, zoom), [daily, tokens, zoom])
+  const spec = useMemo(() => dailyScansSpec(daily, tokens, { zoom, until }), [daily, tokens, zoom, until])
 
   if (daily.length === 0) return <p className="status">No scans yet.</p>
 

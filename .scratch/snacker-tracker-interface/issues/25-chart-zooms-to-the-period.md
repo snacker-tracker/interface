@@ -54,3 +54,10 @@ Decisions from the design session:
     - The real data builds and passes the check.
     - Compiling the spec headless with Vega gave detail domains of one day for Today, 8 days for Last 7 days, and the 1st onwards for This month. All time was the whole history.
     - Not checked in a browser.
+- 2026-10-20: Fixes from the review.
+  - **Overview:** it now runs to the build's office day. Before, it ended on the last scanned day (16 Oct in the real data, against a build day of 21 Oct), so Today's brush fell outside it.
+  - **Re-zooming:** choosing a period, even the selected one, now zooms the chart back to it.
+  - **Check:** all time must start on the first day scanned on or before the build day, or on the build day itself, matching the build. Before, a build whose scans all came after it failed the check. A new build test covers that case.
+  - **PRD:** §7.2 says what version 3 holds, and §8.1 and §9 list the new steps and seams.
+  - **Checked:** headless, every period's brush now falls within the overview (2019-10-29 to 2026-10-22).
+
