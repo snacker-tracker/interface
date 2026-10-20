@@ -47,6 +47,10 @@ _Avoid_: stats, aggregates, report
 The codes scanned most often within a period, most first, unknown products included. It ranks codes, not individual scans.
 _Avoid_: most scanned, popular, top items, best sellers, favourites
 
+**Healthiest and least healthy products**:
+The products with a Nutri-Score scanned within a period, split into two lists that never share a product: the healthiest are best grade first, and the least healthy are worst grade first. Within a grade, the most scanned come first.
+_Avoid_: healthiest snacks, health ranking
+
 **Period**:
 A span of time ending when the data was built: calendar-aligned in each scan's office time zone (today, this work week from Monday, this month, this year), rolling (the last 7, 30 or 365 days), or all time.
 _Avoid_: range, window (for this concept)
