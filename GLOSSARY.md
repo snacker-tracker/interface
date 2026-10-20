@@ -53,7 +53,7 @@ _Avoid_: healthiest snacks, health ranking
 
 **Period**:
 A span of time ending when the data was built: calendar-aligned in each scan's office time zone (today, this work week from Monday, this month, this year), rolling (the last 7, 30 or 365 days), or all time.
-_Avoid_: range, window (for this concept)
+_Avoid_: range, window, time-line (for this concept)
 
 ### Places and time
 
