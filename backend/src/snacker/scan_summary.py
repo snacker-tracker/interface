@@ -98,7 +98,7 @@ def _with_office_moments(scans: pl.DataFrame) -> pl.DataFrame:
             pl.col("office_moment").dt.hour().alias("office_hour"),
         ).drop("office_moment")
         for (time_zone,), group in scans.group_by("office_time_zone")
-    ]).rechunk()  # One chunk per zone otherwise; see products.scanned_product.
+    ]).rechunk()  # One chunk per zone otherwise, which the product struct must not be (see products.with_products).
 
 
 def _recent_scans(scans: pl.DataFrame, limit: int) -> list[ScanRow]:

@@ -200,30 +200,19 @@ def with_products(scans: pl.DataFrame, products_parquet: Path) -> pl.DataFrame:
 
     Brands are null, and known is false, for unknown products, including codes scanned
     since the last extraction; the name is null unless the Snacker archive gives one.
+    The scan's own `code` column stays, for joining and grouping, and goes into the struct too.
     """
-    products = pl.read_parquet(products_parquet, columns=PRODUCTS_SCHEMA.names()).select(
-        "code", "name", "name_source", "brands", "known", "nutri_score"
-    )
+    # Every field but the code comes from the products table, by the same name.
+    looked_up = [name for name in SCANNED_PRODUCT.to_schema() if name != "code"]
+    products = pl.read_parquet(products_parquet, columns=["code", *looked_up])
     joined = scans.join(products, on="code", how="left", maintain_order="left")
-    return joined.with_columns(scanned_product(
-        code=pl.col("code"),
-        name=pl.col("name"),
-        name_source=pl.col("name_source").cast(pl.String()),
-        brands=pl.col("brands"),
-        known=pl.col("known").fill_null(False),
-        nutri_score=pl.col("nutri_score").cast(pl.String()),
-    )).drop("name", "name_source", "brands", "known", "nutri_score")
-
-
-def scanned_product(**fields: pl.Expr) -> pl.Expr:
-    """The `product` column from one expression per SCANNED_PRODUCT field.
-
-    Built from plain columns, once any nulls are filled: Polars can panic on `when/then`
-    over a field of a struct made of several chunks (see polars_multichunk_struct_when_panic.py).
-    """
-    return pl.struct([fields[name].cast(dtype).alias(name) for name, dtype in SCANNED_PRODUCT.to_schema().items()]).alias(
-        "product"
-    )
+    # Built last, from plain columns: Polars can panic on `when/then` over a field of a
+    # struct made of several chunks (see polars_multichunk_struct_when_panic.py).
+    filled = {"known": pl.col("known").fill_null(False)}
+    product = pl.struct([
+        filled.get(name, pl.col(name)).cast(dtype).alias(name) for name, dtype in SCANNED_PRODUCT.to_schema().items()
+    ])
+    return joined.with_columns(product.alias("product")).drop(looked_up)
 
 
 def product_files(products_parquet: Path) -> dict[str, ProductFile]:
