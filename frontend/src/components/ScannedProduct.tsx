@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router'
 
-import type { ScannedProduct as Scanned, ScanRow } from '../contract'
+import type { ScannedProduct as Scanned } from '../contract'
 import { codePagePath } from '../routes'
 import { NutriScoreBadge } from './Grades'
 
-type NameSource = ScanRow['product']['name_source']
+type NameSource = Scanned['name_source']
 
 /**
  * A scanned product in a list, linking to its code page: its name and brands, or, without a name,

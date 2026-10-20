@@ -199,25 +199,25 @@ a {
   color: var(--surface-1);
 }
 
-.top-scans {
+.scanned-product-rows {
   margin: 0;
   padding-left: 2rem;
 }
 
-.top-scans li {
+.scanned-product-rows li {
   padding: 8px 0;
   border-bottom: 1px solid var(--border);
 }
 
 /* Product on the left, count on the right; the count wraps under on narrow screens. */
-.top-scans li > .top-scan-row {
+.scanned-product-rows li > .scanned-product-row {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 4px 16px;
 }
 
-.top-scan-product {
+.scanned-product-row-product {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -225,13 +225,13 @@ a {
   min-width: 0;
 }
 
-.top-scan-product .brands,
-.top-scan-count .share {
+.scanned-product-row-product .brands,
+.scanned-product-row-count .share {
   color: var(--text-secondary);
   font-size: 0.8125rem;
 }
 
-.top-scan-count {
+.scanned-product-row-count {
   display: flex;
   gap: 8px;
   align-items: baseline;

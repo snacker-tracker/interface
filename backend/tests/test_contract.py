@@ -260,6 +260,10 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
             "scanners/by-location/all.json: rpi-pico-w-01 last_scan: name_source is null but the name isn't",
         ),
         (
+            edit_all_time_health(lambda lists: lists.update(healthiest=[graded(lists, "water", "E")])),
+            "index/by-location/all.json: code 'water' has no product file",
+        ),
+        (
             edit_all_time_health(lambda lists: lists["least_healthy"].append(lists["healthiest"][0])),
             "index/by-location/all.json: healthiest_and_least_healthy/all-time: a product is in both lists",
         ),
@@ -343,7 +347,7 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
         "daily out of order", "recent out of order", "known product in unknown-only list", "shares over 1",
         "name without a source", "OpenFoodFacts name for an unknown product", "product name without a source",
         "grades for an unknown product",
-        "Nutri-Score for an unknown product in a list", "last scan name without a source", "product in both health lists", "ungraded product in a health list",
+        "Nutri-Score for an unknown product in a list", "last scan name without a source", "health-list code without a product file", "product in both health lists", "ungraded product in a health list",
         "health lists not split in halves", "least healthy out of order", "health lists overlap in grade",
         "health list over the limit", "more graded scans than scans",
         "period starts after it ends", "all time not from the first scan", "periods end on different days",

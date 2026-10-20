@@ -38,7 +38,7 @@ export function TopScans({
       {rows.length === 0 ? (
         <p className="status">{empty}.</p>
       ) : (
-        <ol className="top-scans">
+        <ol className="scanned-product-rows">
           {rows.map((row) => (
             <ScannedProductRow key={row.product.code} product={row.product} count={row.count}>
               <span className="share">{percent.format(row.share)}</span>

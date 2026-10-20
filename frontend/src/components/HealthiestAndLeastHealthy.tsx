@@ -34,7 +34,7 @@ function HealthList({ heading, rows }: { heading: string; rows: ScannedProductCo
       {rows.length === 0 ? (
         <p className="status">Nothing else to compare.</p>
       ) : (
-        <ol className="top-scans">
+        <ol className="scanned-product-rows">
           {rows.map((row) => (
             <ScannedProductRow key={row.product.code} product={row.product} count={row.count} />
           ))}

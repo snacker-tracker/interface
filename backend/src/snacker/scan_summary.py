@@ -245,8 +245,8 @@ def _split_by_health(scans: pl.DataFrame, limit: int) -> HealthiestAndLeastHealt
         .head(least_healthy_count)
     )
     return HealthiestAndLeastHealthy(
-        healthiest=[_counted(row) for row in healthiest.iter_rows(named=True)],
-        least_healthy=[_counted(row) for row in least_healthy.iter_rows(named=True)],
+        healthiest=[_scanned_product_count(row) for row in healthiest.iter_rows(named=True)],
+        least_healthy=[_scanned_product_count(row) for row in least_healthy.iter_rows(named=True)],
         graded_scans=int(graded["count"].sum()),
         scans=scans.height,
     )
@@ -266,6 +266,6 @@ def _top_scan(row: dict[str, Any], total: int) -> TopScan:
     return TopScan(product=row["product"], count=row["count"], share=round(row["count"] / total, 4))
 
 
-def _counted(row: dict[str, Any]) -> ScannedProductCount:
+def _scanned_product_count(row: dict[str, Any]) -> ScannedProductCount:
     """A `_per_code` row as a scanned product and its count."""
     return ScannedProductCount(product=row["product"], count=row["count"])

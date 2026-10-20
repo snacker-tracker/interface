@@ -112,7 +112,7 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 
 - A code OpenFoodFacts doesn't have is an **unknown product** (GLOSSARY.md), even when the Snacker archive names it.
 - A product's name comes from OpenFoodFacts when it has one, otherwise from the Snacker archive (§4.4). An archive name is always tagged "Snacker archive"; OpenFoodFacts names aren't tagged.
-- In the scan lists (Top scans, the latest scans and a scanner's last scan), a product with a name shows its name and brands, with its code only as the name's tooltip. An unknown product with an archive name also links to "Add it to OpenFoodFacts". A product without a name shows its raw code instead, with a link to OpenFoodFacts if the code is a barcode: "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`) for an unknown product, "On OpenFoodFacts" (`https://world.openfoodfacts.org/product/{code}`) for a known one without a name.
+- In the scan lists (Top scans, the healthiest and least healthy products, the latest scans and a scanner's last scan), each row shows its **scanned product** (GLOSSARY.md) the same way: a product with a name shows its name and brands, with its code only as the name's tooltip. An unknown product with an archive name also links to "Add it to OpenFoodFacts". A product without a name shows its raw code instead, with a link to OpenFoodFacts if the code is a barcode: "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`) for an unknown product, "On OpenFoodFacts" (`https://world.openfoodfacts.org/product/{code}`) for a known one without a name.
 - In the same lists, a product with a Nutri-Score shows it last, as a compact form of the code page's badge with the same tooltip (R5), whether or not it has a name. The NOVA group and Green-Score are shown only on the code page.
 - The code page shows "Unknown product" and the raw code for a product without a name.
 
@@ -227,7 +227,7 @@ These rules decide which files exist:
 - An index file and a scanners file are written for every entry in `locations.json`, including `all`.
 - `codes/{code}/by-location/{location}.json` is only written for locations where that code was scanned. If the file is missing, the frontend shows zero scans.
 - Every scanned code has a scans file for `all`.
-- `product.json` is written for **every** scanned code, with `"product": null` when neither OpenFoodFacts nor the Snacker archive has the code, and `known` saying whether OpenFoodFacts has it. Every code named in any file has one.
+- `product.json` is written for **every** scanned code, with `"product": null` when neither OpenFoodFacts nor the Snacker archive has the code, and `known` saying whether OpenFoodFacts has it. Every code named in any file has one, including the codes in the latest scans, both top-scan lists, the healthiest and least healthy products, and last scans.
 - Each file sits at the path its own `code` and `location` give, encoded as in §7.3.
 - No other files are written.
 
@@ -247,7 +247,7 @@ The shapes are defined by the JSON Schema at `contract/static-json.schema.json`.
 - **Generated, not hand-edited:** the schema comes from the backend's contract module (`snacker schema`), and a test fails when the committed copy is out of date.
 - **Frontend types:** the frontend's types for these files (`frontend/src/contract.ts`) are generated from the schema by `npm run contract`. The frontend build and lint fail when they're out of date.
 - **Strict:** every field is required, even one that may be null, and fields the schema doesn't list are rejected.
-- **Versioned:** `meta.json` carries `contract_version`, a single integer (now 3: version 2 added where names come from; version 3 the grades, the healthiest and least healthy products, and period days, all shipped together). Bump it on any breaking change: removing, renaming or retyping a field, a field becoming nullable, a file moving, adding a field, or changing a rule in §7.1 or §7.4. Adding a field counts because the schema rejects fields it doesn't list; only a whole new file doesn't. The frontend reads `meta.json` before any other file. When the version differs from the one it was built for, every page says the data and interface are out of step instead of rendering.
+- **Versioned:** `meta.json` carries `contract_version`, a single integer (now 3: version 2 added where names come from; version 3 the grades, the healthiest and least healthy products, period days, and rows nesting their scanned product, all shipped together). Bump it on any breaking change: removing, renaming or retyping a field, a field becoming nullable, a file moving, adding a field, or changing a rule in §7.1 or §7.4. Adding a field counts because the schema rejects fields it doesn't list; only a whole new file doesn't. The frontend reads `meta.json` before any other file. When the version differs from the one it was built for, every page says the data and interface are out of step instead of rendering.
 - **What the schema can't express:** which files exist (§7.1) and the rules that hold across fields and files (§7.4).
 
 ### 7.3 Encoding

@@ -7,11 +7,11 @@ import { ScannedProduct } from './ScannedProduct'
 export function ScannedProductRow({ product, count, children }: { product: Scanned; count: number; children?: ReactNode }) {
   return (
     <li>
-      <div className="top-scan-row">
-        <div className="top-scan-product">
+      <div className="scanned-product-row">
+        <div className="scanned-product-row-product">
           <ScannedProduct product={product} />
         </div>
-        <div className="top-scan-count">
+        <div className="scanned-product-row-count">
           <strong>{count}</strong> {count === 1 ? 'scan' : 'scans'}
           {children}
         </div>
