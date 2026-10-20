@@ -146,7 +146,7 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 - Every period ends at the build time. Scans after the build time fall in no period.
 - Calendar periods (today, this work week from Monday 00:00 with weekends included, this month, this year) start at midnight in each scan's own office time zone.
 - Rolling periods are exact durations back from the build time, and a scan exactly at the cutoff counts.
-- Each list holds at most N codes (N = 10, in config), with ties going to the most recently scanned. Each row has the code, name, brands, whether the product is known, the count, and its share of the period's scans.
+- Each list holds at most N codes (N = 10, in config), with ties going to the most recently scanned. Each row has the code, name and where the name came from, brands, whether the product is known, its Nutri-Score, the count, and its share of the period's scans.
 - A second set of lists ranks **unknown products only** (ticket 11): every unknown code is ranked, not just those in the overall top N, and shares are still of all scans in the period. Unnamed products OpenFoodFacts has aren't included.
 
 ## 6. Functional requirements
@@ -182,7 +182,7 @@ Page order: scans per day (I1), top scans (I3), latest scans (I2).
   - name,
   - location,
   - last heartbeat ("X ago" with the exact time),
-  - last scan ("X ago" with the product's name, tagged when it's from the Snacker archive, or its code, linking to its code page; or "Never"),
+  - last scan ("X ago" with the product's name, tagged when it's from the Snacker archive, or its code, linking to its code page, then its Nutri-Score badge when it has one (R3); or "Never"),
   - app version.
 - **S3:** It shows when the data was built. A location with no scanners says so; a missing or failed file says scanner status is unavailable.
 
@@ -283,7 +283,7 @@ Inside, each step is a named function with explicit inputs and outputs, so it ca
 
 | Step (module) | Input | Output |
 |---|---|---|
-| Product extraction (`products`) | `food.parquet`, scanned codes, Snacker archive (optional) | `products.parquet`: one row per scanned code, with `known` false for unknown products and `name_source` naming where each name came from |
+| Product extraction (`products`) | `food.parquet`, scanned codes, Snacker archive (optional) | `products.parquet`: one row per scanned code, with `known` false for unknown products, `name_source` naming where each name came from, and the product's grades |
 | Scan normalisation (`scans`) | raw scan files | scans table (R1) |
 | Heartbeat normalisation (`heartbeats`) | raw heartbeat files | heartbeats table, then scanner statuses (R6) |
 | Locations (`locations`) | scans, time zone map | selectable locations, scans within a location, office time zones |
