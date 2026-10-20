@@ -4,7 +4,7 @@
 
 **Blocked by:** 26 (Scans carry one scanned product).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Decisions from the design session. The type shape was agreed in that session:
 
@@ -28,11 +28,33 @@ ProductFile     unchanged
 - **Contract:** still version 3 if version 3 hasn't been deployed. Otherwise it's bumped to 4.
 - **Scope:** the code page's product file is a different concept (the full card) and doesn't change.
 
-- [ ] The schema has one `ScannedProduct` definition. Scan rows, top scans, last scans and health-list rows nest it, and the generated frontend types follow.
-- [ ] The check applies the scanned-product rules once per row, wherever the row appears.
-- [ ] Every scan list renders the scanned product with the one component. The scanners page's own copy and the `withShare` flag are gone.
-- [ ] The build and contract tests expect the nested shape. Behaviour tests keep their seams.
-- [ ] The real data builds, the check passes, and a server-side render shows a scanned product in each list.
-- [ ] The PRD (§7, R3, S2) describes the nested rows.
+- [x] The schema has one `ScannedProduct` definition. Scan rows, top scans, last scans and health-list rows nest it, and the generated frontend types follow.
+- [x] The check applies the scanned-product rules once per row, wherever the row appears.
+- [x] Every scan list renders the scanned product with the one component. The scanners page's own copy and the `withShare` flag are gone.
+- [x] The build and contract tests expect the nested shape. Behaviour tests keep their seams.
+- [x] The real data builds, the check passes, and a server-side render shows a scanned product in each list.
+- [x] The PRD (§7, R3, S2) describes the nested rows.
 
 ## Comments
+
+- 2026-10-20: Implemented.
+  - **Contract:**
+    - `ScannedProduct` is one schema definition. `ScanRow`, `TopScan` and `LastScan` nest it as `product`, and health-list rows are `ScannedProductCount` (`{product, count}`).
+    - The last scan gains brands, and `product_name` is now `name`. Still version 3.
+  - **Backend:** rows take the scan's `product` struct as it is. The casts and the scanner-status field mapping from ticket 26 are gone.
+  - **Check:**
+    - `_scanned_product` runs the name-source and Nutri-Score rules once per row, in recent scans, both top-scan lists, the health lists and last scans.
+    - Every code mentioned is read from `product.code`, and the health lists now count among the codes mentioned.
+  - **Frontend:**
+    - `ScannedProduct` takes one `product`.
+    - The new `ScannedProductRow` (product and count, plus whatever the list adds) serves Top scans, which adds the share, and the health lists. `TopScanRow` and `withShare` are gone.
+    - The scanners page's last scan renders `ScannedProduct` in a product cell.
+  - **Tests:**
+    - A new build test covers the nested shape in every list.
+    - A new check breakage covers a last scan's name without a source.
+    - The exact-shape expectations in the build, contract, scan-summary, top-scans and health-list tests moved to the nested form.
+  - **Checked:**
+    - 139 tests pass, and mypy, tsc, lint and the build are clean.
+    - The real data builds and passes the check.
+    - A server-side render showed the scanned product in Top scans, the health lists, the latest scans and a last scan. The last scan now shows "Add it to OpenFoodFacts".
+    - Not checked in a browser.

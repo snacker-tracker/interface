@@ -38,7 +38,7 @@ export function RecentScans({ scans, forOneCode = false }: { scans: ScanRow[]; f
         </thead>
         <tbody>
           {scans.map((scan, i) => (
-            <tr key={`${scan.scanned_at}-${scan.code}-${i}`}>
+            <tr key={`${scan.scanned_at}-${scan.product.code}-${i}`}>
               <td>
                 <time dateTime={scan.office_time} title={`${scan.scanned_at} (UTC) · ${scan.office_time_zone}`}>
                   {officeTime(scan)}
@@ -46,14 +46,7 @@ export function RecentScans({ scans, forOneCode = false }: { scans: ScanRow[]; f
               </td>
               {!forOneCode && (
                 <td className="product">
-                  <ScannedProduct
-                    code={scan.code}
-                    name={scan.name}
-                    nameSource={scan.name_source}
-                    brands={scan.brands}
-                    known={scan.known}
-                    nutriScore={scan.nutri_score}
-                  />
+                  <ScannedProduct product={scan.product} />
                 </td>
               )}
               <td>{scan.location}</td>

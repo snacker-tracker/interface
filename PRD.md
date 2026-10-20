@@ -146,7 +146,7 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 - Every period ends at the build time. Scans after the build time fall in no period.
 - Calendar periods (today, this work week from Monday 00:00 with weekends included, this month, this year) start at midnight in each scan's own office time zone.
 - Rolling periods are exact durations back from the build time, and a scan exactly at the cutoff counts.
-- Each list holds at most N codes (N = 10, in config), with ties going to the most recently scanned. Each row has the code, name and where the name came from, brands, whether the product is known, its Nutri-Score, the count, and its share of the period's scans.
+- Each list holds at most N codes (N = 10, in config), with ties going to the most recently scanned. Each row has the code's **scanned product** (GLOSSARY.md: the code, name and where the name came from, brands, whether the product is known, and its Nutri-Score), the count, and its share of the period's scans.
 - A second set of lists ranks **unknown products only** (ticket 11): every unknown code is ranked, not just those in the overall top N, and shares are still of all scans in the period. Unnamed products OpenFoodFacts has aren't included.
 
 ### R8: Healthiest and least healthy products
@@ -202,7 +202,7 @@ Page order: period selector (I0), scans per day (I1), top scans (I3), healthiest
   - name,
   - location,
   - last heartbeat ("X ago" with the exact time),
-  - last scan ("X ago" with the product's name, tagged when it's from the Snacker archive, or its code, linking to its code page, then its Nutri-Score badge when it has one (R3); or "Never"),
+  - last scan ("X ago", then its scanned product shown as in the other scan lists (R3): name and brands or the code, linking to its code page, the Snacker archive tag, the OpenFoodFacts link and the Nutri-Score badge; or "Never"),
   - app version.
 - **S3:** It shows when the data was built. A location with no scanners says so; a missing or failed file says scanner status is unavailable.
 
@@ -286,8 +286,8 @@ These hold in every build, alongside the schema (§7.2) and the file rules (§7.
   - the healthiest are best grade first and the least healthy worst grade first, the most scanned first within a grade, and no least healthy product is graded better than a healthiest one;
   - graded scans don't exceed the period's scans, and the listed counts don't exceed the graded scans.
 - **Scanners:** unique, ordered by name.
-- **Names:** on scan rows, top scans and last scans, `name_source` is null exactly when the name is, and `openfoodfacts` only for a known product. The same holds for a product file's product.
-- **Grades:** only a known product's product file has grades, and only a known product's scan rows, top scans and last scans have a Nutri-Score.
+- **Scanned products:** scan rows, top scans, last scans and the healthiest and least healthy products' rows each nest one `product` (`ScannedProduct`). Wherever it's listed, its `name_source` is null exactly when its name is, `openfoodfacts` only for a known product, and it has a Nutri-Score only when it's known. A product file's product follows the same name rule.
+- **Grades:** only a known product's product file has grades.
 - **Times:**
   - `generated_at`, `scanned_at`, `last_seen` and a last scan's `scanned_at` are UTC, written like `2026-10-19T12:00:00Z`.
   - A scan row's `office_time` is the same moment as its `scanned_at`, written with the UTC offset its `office_time_zone` (an IANA name) had then.

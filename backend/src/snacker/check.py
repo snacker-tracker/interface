@@ -145,15 +145,18 @@ class _Output:
     def _codes_mentioned(self) -> Iterator[tuple[PurePosixPath, str]]:
         for path, content in self.of("IndexFile"):
             for row in content["recent"]:
-                yield path, row["code"]
+                yield path, row["product"]["code"]
             for lists in (content["top_scans"], content["top_unknown_scans"]):
                 for rows in lists.values():
                     for row in rows:
-                        yield path, row["code"]
+                        yield path, row["product"]["code"]
+            for health in content["healthiest_and_least_healthy"].values():
+                for row in health["healthiest"] + health["least_healthy"]:
+                    yield path, row["product"]["code"]
         for path, content in self.of("ScannersFile"):
             for scanner in content["scanners"]:
                 if scanner["last_scan"]:
-                    yield path, scanner["last_scan"]["code"]
+                    yield path, scanner["last_scan"]["product"]["code"]
 
     # --- Invariants ---
 
@@ -178,11 +181,11 @@ class _Output:
                 yield Violation(path, "hourly and daily counts add up to different totals")
             if total == 0:
                 yield Violation(path, "written for a location where the code wasn't scanned")
-            if any(row["code"] != content["code"] for row in content["recent"]):
+            if any(row["product"]["code"] != content["code"] for row in content["recent"]):
                 yield Violation(path, "recent lists scans of another code")
         for path, content in self.of("ProductFile"):
             if product := content["product"]:
-                yield from _name_source(path, "product", product["name"], {**product, "known": content["known"]})
+                yield from _name_source(path, "product", {**product, "known": content["known"]})
                 if not content["known"] and any(product[grade] is not None for grade in GRADES):
                     yield Violation(path, "product: grades for a product OpenFoodFacts doesn't have")
         for path, content in self.of("ScannersFile"):
@@ -196,8 +199,7 @@ class _Output:
                 if last_scan := scanner["last_scan"]:
                     where = f"{scanner['name']} last_scan"
                     yield from _utc(path, where, last_scan["scanned_at"])
-                    yield from _name_source(path, where, last_scan["product_name"], last_scan)
-                    yield from _nutri_score(path, where, last_scan)
+                    yield from _scanned_product(path, where, last_scan["product"])
 
     def _daily(self, path: PurePosixPath, daily: list[Any]) -> Iterator[Violation]:
         try:
@@ -221,8 +223,7 @@ class _Output:
             where = f"recent/{index}"
             yield from _utc(path, f"{where}/scanned_at", row["scanned_at"])
             yield from _office_time(path, where, row)
-            yield from _name_source(path, where, row["name"], row)
-            yield from _nutri_score(path, where, row)
+            yield from _scanned_product(path, where, row["product"])
             if not _within(row["location"], location):
                 yield Violation(path, f"{where}: scanned at {row['location']!r}, outside this location")
             if row["location"] not in self.selectable:
@@ -246,17 +247,16 @@ class _Output:
                 yield Violation(path, f"{where}: {len(rows)} codes, more than {self.top_limit}")
             if counts != sorted(counts, reverse=True) or any(count <= 0 for count in counts):
                 yield Violation(path, f"{where}: counts aren't positive and most first")
-            if len({row["code"] for row in rows}) != len(rows):
+            if len({row["product"]["code"] for row in rows}) != len(rows):
                 yield Violation(path, f"{where}: a code is listed twice")
             if any(not 0 < row["share"] <= 1 for row in rows):
                 yield Violation(path, f"{where}: a share outside (0, 1]")
             if sum(row["share"] for row in rows) > 1 + SHARE_ROUNDING * len(rows):
                 yield Violation(path, f"{where}: shares add up to more than 1")
-            if unknown_only and any(row["known"] for row in rows):
+            if unknown_only and any(row["product"]["known"] for row in rows):
                 yield Violation(path, f"{where}: lists a known product")
             for index, row in enumerate(rows):
-                yield from _name_source(path, f"{where}/{index}", row["name"], row)
-                yield from _nutri_score(path, f"{where}/{index}", row)
+                yield from _scanned_product(path, f"{where}/{index}", row["product"])
 
     def _healthiest_and_least_healthy(self, path: PurePosixPath, by_period: dict[str, Any]) -> Iterator[Violation]:
         for period, lists in by_period.items():
@@ -268,12 +268,11 @@ class _Output:
                 if any(row["count"] <= 0 for row in rows):
                     yield Violation(path, f"{where}: {name} has a count that isn't positive")
                 for index, row in enumerate(rows):
-                    yield from _name_source(path, f"{where}/{name}/{index}", row["name"], row)
-                    yield from _nutri_score(path, f"{where}/{name}/{index}", row)
-            if any(row["nutri_score"] is None for row in healthiest + least_healthy):
+                    yield from _scanned_product(path, f"{where}/{name}/{index}", row["product"])
+            if any(row["product"]["nutri_score"] is None for row in healthiest + least_healthy):
                 yield Violation(path, f"{where}: lists a product without a Nutri-Score")
                 continue
-            if {row["code"] for row in healthiest} & {row["code"] for row in least_healthy}:
+            if {row["product"]["code"] for row in healthiest} & {row["product"]["code"] for row in least_healthy}:
                 yield Violation(path, f"{where}: a product is in both lists")
             # The better half takes an odd count's extra product, and a big period fills both lists.
             if not len(least_healthy) <= len(healthiest) <= len(least_healthy) + 1:
@@ -321,7 +320,7 @@ class _Output:
 
 def _grade(row: dict[str, Any]) -> int:
     """A row's Nutri-Score as a rank, 0 for A (best)."""
-    return get_args(NutriScore).index(row["nutri_score"])
+    return get_args(NutriScore).index(row["product"]["nutri_score"])
 
 
 def _health_order(row: dict[str, Any], *, worst_first: bool = False) -> tuple[int, int]:
@@ -334,20 +333,22 @@ def _within(location: str, selected: str) -> bool:
     return selected == "all" or location == selected or location.startswith(selected + ":")
 
 
-def _name_source(path: PurePosixPath, where: str, name: str | None, row: dict[str, Any]) -> Iterator[Violation]:
-    """A name has a source exactly when there is a name, and only a known product has an OpenFoodFacts name."""
-    if name is None and row["name_source"] is not None:
-        yield Violation(path, f"{where}: name_source is set but there's no name")
-    if name is not None and row["name_source"] is None:
-        yield Violation(path, f"{where}: name_source is null but the name isn't")
-    if row["name_source"] == "openfoodfacts" and not row["known"]:
-        yield Violation(path, f"{where}: an OpenFoodFacts name for a product OpenFoodFacts doesn't have")
-
-
-def _nutri_score(path: PurePosixPath, where: str, row: dict[str, Any]) -> Iterator[Violation]:
-    """Only OpenFoodFacts grades products, so only a known product's row has a Nutri-Score."""
-    if row["nutri_score"] is not None and not row["known"]:
+def _scanned_product(path: PurePosixPath, where: str, product: dict[str, Any]) -> Iterator[Violation]:
+    """A scanned product's rules, wherever it's listed: its name's source, and a Nutri-Score
+    only for a product OpenFoodFacts has, since only OpenFoodFacts grades products."""
+    yield from _name_source(path, where, product)
+    if product["nutri_score"] is not None and not product["known"]:
         yield Violation(path, f"{where}: a Nutri-Score for a product OpenFoodFacts doesn't have")
+
+
+def _name_source(path: PurePosixPath, where: str, product: dict[str, Any]) -> Iterator[Violation]:
+    """A name has a source exactly when there is a name, and only a known product has an OpenFoodFacts name."""
+    if product["name"] is None and product["name_source"] is not None:
+        yield Violation(path, f"{where}: name_source is set but there's no name")
+    if product["name"] is not None and product["name_source"] is None:
+        yield Violation(path, f"{where}: name_source is null but the name isn't")
+    if product["name_source"] == "openfoodfacts" and not product["known"]:
+        yield Violation(path, f"{where}: an OpenFoodFacts name for a product OpenFoodFacts doesn't have")
 
 
 def _utc(path: PurePosixPath, field: str, value: str) -> Iterator[Violation]:

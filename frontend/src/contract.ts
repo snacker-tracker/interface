@@ -34,6 +34,25 @@ export interface HourlyCount {
   count: number
 }
 export interface ScanRow {
+  product: ScannedProduct
+  location: string
+  /**
+   * UTC, e.g. "2026-09-23T06:26:00Z".
+   */
+  scanned_at: string
+  /**
+   * The same moment in the office time zone, e.g. "2026-09-23T13:26:00+07:00".
+   */
+  office_time: string
+  /**
+   * IANA name, e.g. "Asia/Bangkok".
+   */
+  office_time_zone: string
+}
+/**
+ * A scanned code and what the scan lists show of its product (GLOSSARY.md).
+ */
+export interface ScannedProduct {
   code: string
   /**
    * The product's name; null when neither OpenFoodFacts nor the Snacker archive names it.
@@ -52,19 +71,6 @@ export interface ScanRow {
    * The product's Nutri-Score; null when OpenFoodFacts has none.
    */
   nutri_score: ('A' | 'B' | 'C' | 'D' | 'E') | null
-  location: string
-  /**
-   * UTC, e.g. "2026-09-23T06:26:00Z".
-   */
-  scanned_at: string
-  /**
-   * The same moment in the office time zone, e.g. "2026-09-23T13:26:00+07:00".
-   */
-  office_time: string
-  /**
-   * IANA name, e.g. "Asia/Bangkok".
-   */
-  office_time_zone: string
 }
 /**
  * The products with a Nutri-Score scanned within a period (GLOSSARY.md), split in two
@@ -72,8 +78,8 @@ export interface ScanRow {
  * worst grade first; the most scanned first within a grade.
  */
 export interface HealthiestAndLeastHealthy {
-  healthiest: TopScan[]
-  least_healthy: TopScan[]
+  healthiest: ScannedProductCount[]
+  least_healthy: ScannedProductCount[]
   /**
    * Scans in the period of products with a Nutri-Score.
    */
@@ -83,27 +89,12 @@ export interface HealthiestAndLeastHealthy {
    */
   scans: number
 }
-export interface TopScan {
-  code: string
-  name: string | null
-  /**
-   * Where the name came from; null exactly when the name is.
-   */
-  name_source: ('openfoodfacts' | 'snacker-archive') | null
-  brands: string | null
-  /**
-   * Whether OpenFoodFacts has the product; unknown products are flagged in the UI.
-   */
-  known: boolean
-  /**
-   * The product's Nutri-Score; null when OpenFoodFacts has none.
-   */
-  nutri_score: ('A' | 'B' | 'C' | 'D' | 'E') | null
+/**
+ * A scanned product and how often it was scanned in a period.
+ */
+export interface ScannedProductCount {
+  product: ScannedProduct
   count: number
-  /**
-   * This code's fraction of all scans in the period, e.g. 0.25.
-   */
-  share: number
 }
 export interface HealthiestAndLeastHealthyByPeriod {
   today: HealthiestAndLeastHealthy
@@ -143,6 +134,14 @@ export interface TopScansByPeriod {
   'last-365-days': TopScan[]
   'all-time': TopScan[]
 }
+export interface TopScan {
+  product: ScannedProduct
+  count: number
+  /**
+   * This code's fraction of all scans in the period, e.g. 0.25.
+   */
+  share: number
+}
 export interface PeriodDaysByPeriod {
   today: PeriodDays
   'this-work-week': PeriodDays
@@ -170,27 +169,11 @@ export interface PeriodDays {
   last_day: string | null
 }
 export interface LastScan {
+  product: ScannedProduct
   /**
    * UTC, e.g. "2026-10-16T10:33:45Z".
    */
   scanned_at: string
-  code: string
-  /**
-   * Null when neither OpenFoodFacts nor the Snacker archive names the product.
-   */
-  product_name: string | null
-  /**
-   * Where the name came from; null exactly when the name is.
-   */
-  name_source: ('openfoodfacts' | 'snacker-archive') | null
-  /**
-   * Whether OpenFoodFacts has the product.
-   */
-  known: boolean
-  /**
-   * The product's Nutri-Score; null when OpenFoodFacts has none.
-   */
-  nutri_score: ('A' | 'B' | 'C' | 'D' | 'E') | null
 }
 export interface LocationsFile {
   /**

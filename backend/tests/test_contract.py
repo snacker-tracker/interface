@@ -73,12 +73,7 @@ def test_every_built_file_matches_its_schema(raw_dir: Path, out_dir: Path) -> No
 
 def valid_scan_row() -> dict[str, Any]:
     return {
-        "code": "005",
-        "name": None,
-        "name_source": None,
-        "brands": None,
-        "known": False,
-        "nutri_score": None,
+        "product": {"code": "005", "name": None, "name_source": None, "brands": None, "known": False, "nutri_score": None},
         "location": "thailand:test",
         "scanned_at": "2026-10-19T04:00:00Z",
         "office_time": "2026-10-19T11:00:00+07:00",
@@ -99,7 +94,10 @@ def test_a_valid_document_has_no_schema_errors() -> None:
     ("document", "expected_error"),
     [
         # A field may be null only where the contract says so.
-        (code_scans_file(code=None), "recent/0/code: None is not of type 'string'"),
+        (
+            code_scans_file(product={**valid_scan_row()["product"], "code": None}),
+            "recent/0/product/code: None is not of type 'string'",
+        ),
         # Fields the contract doesn't describe are rejected, so additions are deliberate.
         (code_scans_file(scanned_by="someone"), "recent/0: Additional properties are not allowed ('scanned_by' was unexpected)"),
     ],
@@ -110,10 +108,10 @@ def test_the_schema_rejects_documents_that_break_the_contract(document: dict[str
 
 def test_every_field_is_required_even_when_it_may_be_null() -> None:
     row = valid_scan_row()
-    del row["name"]
+    del row["product"]["name"]
 
     assert schema_errors("CodeScansFile", {**code_scans_file(), "recent": [row]}) == [
-        "recent/0: 'name' is a required property"
+        "recent/0/product: 'name' is a required property"
     ]
 
 
@@ -145,7 +143,8 @@ def edit_all_time_health(edit: Callable[[Any], None]) -> Callable[[Path], None]:
 
 
 def graded(lists: Any, code: str, nutri_score: str) -> dict[str, Any]:
-    return {**lists["healthiest"][0], "code": code, "nutri_score": nutri_score}
+    row = lists["healthiest"][0]
+    return {**row, "product": {**row["product"], "code": code, "nutri_score": nutri_score}}
 
 
 def edit_json(data_dir: Path, relative_path: str, edit: Callable[[Any], None]) -> None:
@@ -210,7 +209,7 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
         ),
         (
             lambda data: edit_json(
-                data, "index/by-location/all.json", lambda content: content["top_unknown_scans"]["all-time"][0].update(known=True)
+                data, "index/by-location/all.json", lambda content: content["top_unknown_scans"]["all-time"][0]["product"].update(known=True)
             ),
             "index/by-location/all.json: top_unknown_scans/all-time: lists a known product",
         ),
@@ -221,14 +220,14 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
             "index/by-location/all.json: top_scans/all-time: shares add up to more than 1",
         ),
         (
-            lambda data: edit_json(data, KITCHEN_CODE_SCANS, lambda content: content["recent"][0].update(name_source=None)),
+            lambda data: edit_json(data, KITCHEN_CODE_SCANS, lambda content: content["recent"][0]["product"].update(name_source=None)),
             f"{KITCHEN_CODE_SCANS}: recent/0: name_source is null but the name isn't",
         ),
         (
             lambda data: edit_json(
                 data,
                 "index/by-location/all.json",
-                lambda content: content["top_unknown_scans"]["all-time"][0].update(name="Soda", name_source="openfoodfacts"),
+                lambda content: content["top_unknown_scans"]["all-time"][0]["product"].update(name="Soda", name_source="openfoodfacts"),
             ),
             "index/by-location/all.json: top_unknown_scans/all-time/0: an OpenFoodFacts name for a product OpenFoodFacts doesn't have",
         ),
@@ -249,16 +248,23 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
             lambda data: edit_json(
                 data,
                 "index/by-location/all.json",
-                lambda content: content["top_unknown_scans"]["all-time"][0].update(nutri_score="A"),
+                lambda content: content["top_unknown_scans"]["all-time"][0]["product"].update(nutri_score="A"),
             ),
             "index/by-location/all.json: top_unknown_scans/all-time/0: a Nutri-Score for a product OpenFoodFacts doesn't have",
+        ),
+        (
+            lambda data: edit_json(
+                data, "scanners/by-location/all.json",
+                lambda content: next(s for s in content["scanners"] if s["last_scan"])["last_scan"]["product"].update(name="Soda", name_source=None),
+            ),
+            "scanners/by-location/all.json: rpi-pico-w-01 last_scan: name_source is null but the name isn't",
         ),
         (
             edit_all_time_health(lambda lists: lists["least_healthy"].append(lists["healthiest"][0])),
             "index/by-location/all.json: healthiest_and_least_healthy/all-time: a product is in both lists",
         ),
         (
-            edit_all_time_health(lambda lists: lists["healthiest"][0].update(nutri_score=None)),
+            edit_all_time_health(lambda lists: lists["healthiest"][0]["product"].update(nutri_score=None)),
             "index/by-location/all.json: healthiest_and_least_healthy/all-time: lists a product without a Nutri-Score",
         ),
         (
@@ -337,7 +343,7 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
         "daily out of order", "recent out of order", "known product in unknown-only list", "shares over 1",
         "name without a source", "OpenFoodFacts name for an unknown product", "product name without a source",
         "grades for an unknown product",
-        "Nutri-Score for an unknown product in a list", "product in both health lists", "ungraded product in a health list",
+        "Nutri-Score for an unknown product in a list", "last scan name without a source", "product in both health lists", "ungraded product in a health list",
         "health lists not split in halves", "least healthy out of order", "health lists overlap in grade",
         "health list over the limit", "more graded scans than scans",
         "period starts after it ends", "all time not from the first scan", "periods end on different days",

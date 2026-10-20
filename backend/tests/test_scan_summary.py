@@ -69,12 +69,7 @@ def test_lists_the_most_recent_scans_newest_first() -> None:
 
     assert len(recent) == 25
     assert recent[0] == {
-        "code": "8850000000026",
-        "name": None,
-        "name_source": None,
-        "brands": None,
-        "known": False,
-        "nutri_score": None,
+        "product": {"code": "8850000000026", "name": None, "name_source": None, "brands": None, "known": False, "nutri_score": None},
         "location": "thailand:bangkok:main-kitchen",
         "scanned_at": "2026-09-23T06:26:00Z",
         "office_time": "2026-09-23T13:26:00+07:00",
@@ -97,7 +92,7 @@ def test_scan_rows_name_the_product_or_leave_it_empty_when_unknown() -> None:
 
     recent = summarise(scans, recent_limit=25).recent
 
-    assert [(row["code"], row["name"], row["brands"]) for row in recent] == [
+    assert [(row["product"]["code"], row["product"]["name"], row["product"]["brands"]) for row in recent] == [
         ("8851959132012", "Coca Cola", "Coke"),
         ("http://oishidrink.com/m/", None, None),
     ]

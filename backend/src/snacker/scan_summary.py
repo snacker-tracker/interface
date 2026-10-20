@@ -22,6 +22,7 @@ from snacker.contract import (
     NutriScore,
     PeriodDays,
     PeriodDaysByPeriod,
+    ScannedProductCount,
     ScanRow,
     TopScan,
     TopScansByPeriod,
@@ -108,13 +109,13 @@ def _recent_scans(scans: pl.DataFrame, limit: int) -> list[ScanRow]:
         .select("product", "location", "scanned_at", "office_time_zone")
     )
     return [
-        cast(ScanRow, {
-            **row["product"],
-            "location": row["location"],
-            "scanned_at": row["scanned_at"].strftime(UTC_TIMESTAMP_FORMAT),
-            "office_time": in_office_time_zone(row["scanned_at"], row["office_time_zone"]),
-            "office_time_zone": row["office_time_zone"],
-        })
+        ScanRow(
+            product=row["product"],
+            location=row["location"],
+            scanned_at=row["scanned_at"].strftime(UTC_TIMESTAMP_FORMAT),
+            office_time=in_office_time_zone(row["scanned_at"], row["office_time_zone"]),
+            office_time_zone=row["office_time_zone"],
+        )
         for row in rows.to_dicts()
     ]
 
@@ -244,8 +245,8 @@ def _split_by_health(scans: pl.DataFrame, limit: int) -> HealthiestAndLeastHealt
         .head(least_healthy_count)
     )
     return HealthiestAndLeastHealthy(
-        healthiest=[_top_scan(row, scans.height) for row in healthiest.iter_rows(named=True)],
-        least_healthy=[_top_scan(row, scans.height) for row in least_healthy.iter_rows(named=True)],
+        healthiest=[_counted(row) for row in healthiest.iter_rows(named=True)],
+        least_healthy=[_counted(row) for row in least_healthy.iter_rows(named=True)],
         graded_scans=int(graded["count"].sum()),
         scans=scans.height,
     )
@@ -261,4 +262,10 @@ def _per_code(scans: pl.DataFrame) -> pl.DataFrame:
 
 
 def _top_scan(row: dict[str, Any], total: int) -> TopScan:
-    return cast(TopScan, {**row["product"], "count": row["count"], "share": round(row["count"] / total, 4)})
+    """A `_per_code` row as a top scan, with its share of `total` scans."""
+    return TopScan(product=row["product"], count=row["count"], share=round(row["count"] / total, 4))
+
+
+def _counted(row: dict[str, Any]) -> ScannedProductCount:
+    """A `_per_code` row as a scanned product and its count."""
+    return ScannedProductCount(product=row["product"], count=row["count"])

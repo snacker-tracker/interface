@@ -22,7 +22,7 @@ def scans_of(code: str, nutri_score: str | None, times: int, *, day: int = 1) ->
 def ranked(*products: list[dict[str, object]], limit: int = 10) -> tuple[list[str], list[str]]:
     lists = healthiest_and_least_healthy(scans_table(*(row for scans in products for row in scans)), limit=limit, now=NOW)
     all_time = lists["all-time"]
-    return [row["code"] for row in all_time["healthiest"]], [row["code"] for row in all_time["least_healthy"]]
+    return [row["product"]["code"] for row in all_time["healthiest"]], [row["product"]["code"] for row in all_time["least_healthy"]]
 
 
 def test_products_are_ranked_by_grade_then_by_scans() -> None:
@@ -67,7 +67,7 @@ def test_products_without_a_nutri_score_are_left_out_but_their_scans_count_towar
         scans_table(*scans_of("water", "A", 2), *scans_of("beer", None, 3)), limit=10, now=NOW
     )["all-time"]
 
-    assert [row["code"] for row in lists["healthiest"] + lists["least_healthy"]] == ["water"]
+    assert [row["product"]["code"] for row in lists["healthiest"] + lists["least_healthy"]] == ["water"]
     assert (lists["graded_scans"], lists["scans"]) == (2, 5)
 
 

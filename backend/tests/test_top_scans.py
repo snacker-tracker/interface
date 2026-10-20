@@ -14,7 +14,7 @@ BANGKOK = "Asia/Bangkok"
 
 
 def top_codes(scans: list[dict[str, object]], period: Period, *, top_limit: int = 10) -> list[str]:
-    return [row["code"] for row in top_scans(scans_table(*scans), limit=top_limit, now=NOW)[period]]
+    return [row["product"]["code"] for row in top_scans(scans_table(*scans), limit=top_limit, now=NOW)[period]]
 
 
 def test_codes_are_ranked_by_scans_with_ties_going_to_the_most_recently_scanned() -> None:
@@ -51,10 +51,10 @@ def test_a_row_names_the_product_counts_its_scans_and_gives_its_share_of_the_per
     rows = top_scans(scans, limit=10, now=NOW)["last-7-days"]
 
     assert rows == [
-        {"code": "8851959132012", "name": "Coca Cola", "name_source": "openfoodfacts", "brands": "Coke", "known": True, "nutri_score": None,
+        {"product": {"code": "8851959132012", "name": "Coca Cola", "name_source": "openfoodfacts", "brands": "Coke", "known": True, "nutri_score": None},
          "count": 2, "share": 0.5},
-        {"code": "8858702410304", "name": None, "name_source": None, "brands": None, "known": True, "nutri_score": None, "count": 1, "share": 0.25},
-        {"code": "005", "name": None, "name_source": None, "brands": None, "known": False, "nutri_score": None, "count": 1, "share": 0.25},
+        {"product": {"code": "8858702410304", "name": None, "name_source": None, "brands": None, "known": True, "nutri_score": None}, "count": 1, "share": 0.25},
+        {"product": {"code": "005", "name": None, "name_source": None, "brands": None, "known": False, "nutri_score": None}, "count": 1, "share": 0.25},
     ]
 
 
@@ -112,7 +112,7 @@ def test_the_work_week_starts_on_each_offices_own_monday() -> None:
 
     rows = top_scans(scans, limit=10, now=sunday_evening_in_london)["this-work-week"]
 
-    assert sorted(row["code"] for row in rows) == ["bangkok-this-week", "london-this-week"]
+    assert sorted(row["product"]["code"] for row in rows) == ["bangkok-this-week", "london-this-week"]
 
 
 def test_scans_after_the_build_are_not_counted() -> None:
@@ -133,7 +133,7 @@ def test_unknown_only_ranks_unknown_products_even_below_the_overall_top() -> Non
 
     rows = top_scans(scans, limit=2, now=NOW, unknown_only=True)["last-7-days"]
 
-    assert [(row["code"], row["known"]) for row in rows] == [("qr-code", False), ("8858998581234", False)]
+    assert [(row["product"]["code"], row["product"]["known"]) for row in rows] == [("qr-code", False), ("8858998581234", False)]
     # Share is of all 11 scans in the period, not just the unknown ones.
     assert [row["share"] for row in rows] == [0.1818, 0.0909]
 

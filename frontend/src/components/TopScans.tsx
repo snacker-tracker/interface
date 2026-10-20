@@ -1,6 +1,6 @@
 import type { Period, TopScan } from '../contract'
 import { PERIOD_LABELS, useUnknownOnly } from '../selectedPeriod'
-import { ScannedProduct } from './ScannedProduct'
+import { ScannedProductRow } from './ScannedProductRow'
 
 const percent = new Intl.NumberFormat('en', { style: 'percent', maximumFractionDigits: 1 })
 
@@ -40,34 +40,12 @@ export function TopScans({
       ) : (
         <ol className="top-scans">
           {rows.map((row) => (
-            <TopScanRow key={row.code} row={row} />
+            <ScannedProductRow key={row.product.code} product={row.product} count={row.count}>
+              <span className="share">{percent.format(row.share)}</span>
+            </ScannedProductRow>
           ))}
         </ol>
       )}
     </>
-  )
-}
-
-/** A ranked code: its product, its count and, unless left out, its share of the period's scans. */
-export function TopScanRow({ row, withShare = true }: { row: TopScan; withShare?: boolean }) {
-  return (
-    <li>
-      <div className="top-scan-row">
-        <div className="top-scan-product">
-          <ScannedProduct
-            code={row.code}
-            name={row.name}
-            nameSource={row.name_source}
-            brands={row.brands}
-            known={row.known}
-            nutriScore={row.nutri_score}
-          />
-        </div>
-        <div className="top-scan-count">
-          <strong>{row.count}</strong> {row.count === 1 ? 'scan' : 'scans'}
-          {withShare && <span className="share">{percent.format(row.share)}</span>}
-        </div>
-      </div>
-    </li>
   )
 }

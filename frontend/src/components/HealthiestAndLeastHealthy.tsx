@@ -1,6 +1,6 @@
-import type { HealthiestAndLeastHealthy as Lists, Period, TopScan } from '../contract'
+import type { HealthiestAndLeastHealthy as Lists, Period, ScannedProductCount } from '../contract'
 import { PERIOD_LABELS } from '../selectedPeriod'
-import { TopScanRow } from './TopScans'
+import { ScannedProductRow } from './ScannedProductRow'
 
 const count = new Intl.NumberFormat('en')
 
@@ -27,7 +27,7 @@ export function HealthiestAndLeastHealthy({ period, byPeriod }: { period: Period
   )
 }
 
-function HealthList({ heading, rows }: { heading: string; rows: TopScan[] }) {
+function HealthList({ heading, rows }: { heading: string; rows: ScannedProductCount[] }) {
   return (
     <div>
       <h3>{heading}</h3>
@@ -36,7 +36,7 @@ function HealthList({ heading, rows }: { heading: string; rows: TopScan[] }) {
       ) : (
         <ol className="top-scans">
           {rows.map((row) => (
-            <TopScanRow key={row.code} row={row} withShare={false} />
+            <ScannedProductRow key={row.product.code} product={row.product} count={row.count} />
           ))}
         </ol>
       )}

@@ -1,10 +1,10 @@
 import { Link, useLocation } from 'react-router'
 
-import type { ScanRow } from '../contract'
+import type { ScannedProduct as Scanned, ScanRow } from '../contract'
 import { codePagePath } from '../routes'
 import { NutriScoreBadge } from './Grades'
 
-type NameSource = ScanRow['name_source']
+type NameSource = ScanRow['product']['name_source']
 
 /**
  * A scanned product in a list, linking to its code page: its name and brands, or, without a name,
@@ -13,19 +13,9 @@ type NameSource = ScanRow['name_source']
  * it has one, comes last.
  */
 export function ScannedProduct({
-  code,
-  name,
-  nameSource,
-  brands,
-  known,
-  nutriScore,
+  product: { code, name, name_source: nameSource, brands, known, nutri_score: nutriScore },
 }: {
-  code: string
-  name: string | null
-  nameSource: NameSource
-  brands: string | null
-  known: boolean
-  nutriScore: ScanRow['nutri_score']
+  product: Scanned
 }) {
   // Keeps ?location= (and ?period=) when following the link to the code page.
   const { search } = useLocation()

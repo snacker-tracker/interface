@@ -36,7 +36,9 @@ class HourlyCount(TypedDict):
     count: int
 
 
-class ScanRow(TypedDict):
+class ScannedProduct(TypedDict):
+    """A scanned code and what the scan lists show of its product (GLOSSARY.md)."""
+
     code: str
     name: str | None
     """The product's name; null when neither OpenFoodFacts nor the Snacker archive names it."""
@@ -47,6 +49,10 @@ class ScanRow(TypedDict):
     """Whether OpenFoodFacts has the product; it may have it without a name."""
     nutri_score: NutriScore | None
     """The product's Nutri-Score; null when OpenFoodFacts has none."""
+
+
+class ScanRow(TypedDict):
+    product: ScannedProduct
     location: str
     scanned_at: str
     """UTC, e.g. "2026-09-23T06:26:00Z"."""
@@ -57,18 +63,17 @@ class ScanRow(TypedDict):
 
 
 class TopScan(TypedDict):
-    code: str
-    name: str | None
-    name_source: NameSource | None
-    """Where the name came from; null exactly when the name is."""
-    brands: str | None
-    known: bool
-    """Whether OpenFoodFacts has the product; unknown products are flagged in the UI."""
-    nutri_score: NutriScore | None
-    """The product's Nutri-Score; null when OpenFoodFacts has none."""
+    product: ScannedProduct
     count: int
     share: float
     """This code's fraction of all scans in the period, e.g. 0.25."""
+
+
+class ScannedProductCount(TypedDict):
+    """A scanned product and how often it was scanned in a period."""
+
+    product: ScannedProduct
+    count: int
 
 
 # Period IDs contain hyphens, so this TypedDict uses the functional form.
@@ -90,8 +95,8 @@ class HealthiestAndLeastHealthy(TypedDict):
     lists that never share a product: the better half, best grade first, and the worse half,
     worst grade first; the most scanned first within a grade."""
 
-    healthiest: list[TopScan]
-    least_healthy: list[TopScan]
+    healthiest: list[ScannedProductCount]
+    least_healthy: list[ScannedProductCount]
     graded_scans: int
     """Scans in the period of products with a Nutri-Score."""
     scans: int
@@ -178,17 +183,9 @@ GRADES = ("nutri_score", "nova_group", "green_score")
 
 
 class LastScan(TypedDict):
+    product: ScannedProduct
     scanned_at: str
     """UTC, e.g. "2026-10-16T10:33:45Z"."""
-    code: str
-    product_name: str | None
-    """Null when neither OpenFoodFacts nor the Snacker archive names the product."""
-    name_source: NameSource | None
-    """Where the name came from; null exactly when the name is."""
-    known: bool
-    """Whether OpenFoodFacts has the product."""
-    nutri_score: NutriScore | None
-    """The product's Nutri-Score; null when OpenFoodFacts has none."""
 
 
 class ScannerStatus(TypedDict):

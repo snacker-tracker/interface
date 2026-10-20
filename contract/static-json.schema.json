@@ -69,13 +69,13 @@
       "properties": {
         "healthiest": {
           "items": {
-            "$ref": "#/$defs/TopScan"
+            "$ref": "#/$defs/ScannedProductCount"
           },
           "type": "array"
         },
         "least_healthy": {
           "items": {
-            "$ref": "#/$defs/TopScan"
+            "$ref": "#/$defs/ScannedProductCount"
           },
           "type": "array"
         },
@@ -206,69 +206,17 @@
     "LastScan": {
       "additionalProperties": false,
       "properties": {
+        "product": {
+          "$ref": "#/$defs/ScannedProduct"
+        },
         "scanned_at": {
           "description": "UTC, e.g. \"2026-10-16T10:33:45Z\".",
           "type": "string"
-        },
-        "code": {
-          "type": "string"
-        },
-        "product_name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Null when neither OpenFoodFacts nor the Snacker archive names the product."
-        },
-        "name_source": {
-          "anyOf": [
-            {
-              "enum": [
-                "openfoodfacts",
-                "snacker-archive"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Where the name came from; null exactly when the name is."
-        },
-        "known": {
-          "description": "Whether OpenFoodFacts has the product.",
-          "type": "boolean"
-        },
-        "nutri_score": {
-          "anyOf": [
-            {
-              "enum": [
-                "A",
-                "B",
-                "C",
-                "D",
-                "E"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "The product's Nutri-Score; null when OpenFoodFacts has none."
         }
       },
       "required": [
-        "scanned_at",
-        "code",
-        "product_name",
-        "name_source",
-        "known",
-        "nutri_score"
+        "product",
+        "scanned_at"
       ],
       "title": "LastScan",
       "type": "object"
@@ -567,6 +515,39 @@
     "ScanRow": {
       "additionalProperties": false,
       "properties": {
+        "product": {
+          "$ref": "#/$defs/ScannedProduct"
+        },
+        "location": {
+          "type": "string"
+        },
+        "scanned_at": {
+          "description": "UTC, e.g. \"2026-09-23T06:26:00Z\".",
+          "type": "string"
+        },
+        "office_time": {
+          "description": "The same moment in the office time zone, e.g. \"2026-09-23T13:26:00+07:00\".",
+          "type": "string"
+        },
+        "office_time_zone": {
+          "description": "IANA name, e.g. \"Asia/Bangkok\".",
+          "type": "string"
+        }
+      },
+      "required": [
+        "product",
+        "location",
+        "scanned_at",
+        "office_time",
+        "office_time_zone"
+      ],
+      "title": "ScanRow",
+      "type": "object"
+    },
+    "ScannedProduct": {
+      "additionalProperties": false,
+      "description": "A scanned code and what the scan lists show of its product (GLOSSARY.md).",
+      "properties": {
         "code": {
           "type": "string"
         },
@@ -627,21 +608,6 @@
             }
           ],
           "description": "The product's Nutri-Score; null when OpenFoodFacts has none."
-        },
-        "location": {
-          "type": "string"
-        },
-        "scanned_at": {
-          "description": "UTC, e.g. \"2026-09-23T06:26:00Z\".",
-          "type": "string"
-        },
-        "office_time": {
-          "description": "The same moment in the office time zone, e.g. \"2026-09-23T13:26:00+07:00\".",
-          "type": "string"
-        },
-        "office_time_zone": {
-          "description": "IANA name, e.g. \"Asia/Bangkok\".",
-          "type": "string"
         }
       },
       "required": [
@@ -650,13 +616,27 @@
         "name_source",
         "brands",
         "known",
-        "nutri_score",
-        "location",
-        "scanned_at",
-        "office_time",
-        "office_time_zone"
+        "nutri_score"
       ],
-      "title": "ScanRow",
+      "title": "ScannedProduct",
+      "type": "object"
+    },
+    "ScannedProductCount": {
+      "additionalProperties": false,
+      "description": "A scanned product and how often it was scanned in a period.",
+      "properties": {
+        "product": {
+          "$ref": "#/$defs/ScannedProduct"
+        },
+        "count": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "product",
+        "count"
+      ],
+      "title": "ScannedProductCount",
       "type": "object"
     },
     "ScannerStatus": {
@@ -738,65 +718,8 @@
     "TopScan": {
       "additionalProperties": false,
       "properties": {
-        "code": {
-          "type": "string"
-        },
-        "name": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "name_source": {
-          "anyOf": [
-            {
-              "enum": [
-                "openfoodfacts",
-                "snacker-archive"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "Where the name came from; null exactly when the name is."
-        },
-        "brands": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ]
-        },
-        "known": {
-          "description": "Whether OpenFoodFacts has the product; unknown products are flagged in the UI.",
-          "type": "boolean"
-        },
-        "nutri_score": {
-          "anyOf": [
-            {
-              "enum": [
-                "A",
-                "B",
-                "C",
-                "D",
-                "E"
-              ],
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "description": "The product's Nutri-Score; null when OpenFoodFacts has none."
+        "product": {
+          "$ref": "#/$defs/ScannedProduct"
         },
         "count": {
           "type": "integer"
@@ -807,12 +730,7 @@
         }
       },
       "required": [
-        "code",
-        "name",
-        "name_source",
-        "brands",
-        "known",
-        "nutri_score",
+        "product",
         "count",
         "share"
       ],

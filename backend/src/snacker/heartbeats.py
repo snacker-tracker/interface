@@ -107,12 +107,8 @@ def scanner_statuses(heartbeats: pl.DataFrame, scans: pl.DataFrame) -> list[Scan
             app_version=row["app_version"],
             last_seen=row["sent_at"].strftime(UTC_TIMESTAMP_FORMAT),
             last_scan=None if row["last_scanned_at"] is None else LastScan(
+                product=row["product"],
                 scanned_at=row["last_scanned_at"].strftime(UTC_TIMESTAMP_FORMAT),
-                code=row["product"]["code"],
-                product_name=row["product"]["name"],
-                name_source=row["product"]["name_source"],
-                known=row["product"]["known"],
-                nutri_score=row["product"]["nutri_score"],
             ),
         )
         for row in rows.iter_rows(named=True)

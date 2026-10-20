@@ -1,12 +1,8 @@
-import { Link, useLocation } from 'react-router'
-
 import { Ago } from '../components/Ago'
-import { NutriScoreBadge } from '../components/Grades'
-import { ArchiveTag } from '../components/ScannedProduct'
+import { ScannedProduct } from '../components/ScannedProduct'
 import { ScannerStateLabel } from '../components/ScannerStateLabel'
 import type { MetaFile, ScannersFile, ScannerStatus } from '../contract'
 import { metaDataPath, scannersDataPath, useJson } from '../data'
-import { codePagePath } from '../routes'
 import { isOffline, scannerState } from '../scanners'
 import { ALL_LOCATIONS, useSelectedLocation } from '../selectedLocation'
 import { exactTime, useNow } from '../time'
@@ -45,7 +41,6 @@ export function ScannersPage() {
 }
 
 function ScannersTable({ scanners, now }: { scanners: ScannerStatus[]; now: number }) {
-  const { search } = useLocation()
   const sorted = [...scanners].sort(
     (a, b) => Number(isOffline(b, now)) - Number(isOffline(a, now)) || a.name.localeCompare(b.name),
   )
@@ -75,15 +70,13 @@ function ScannersTable({ scanners, now }: { scanners: ScannerStatus[]; now: numb
                 <td>
                   <Ago iso={scanner.last_seen} now={now} showExact />
                 </td>
-                <td>
+                <td className="product">
                   {scanner.last_scan ? (
                     <>
                       <Ago iso={scanner.last_scan.scanned_at} now={now} />
-                      <Link className="last-scan-product" to={{ pathname: codePagePath(scanner.last_scan.code), search }}>
-                        {scanner.last_scan.product_name ?? scanner.last_scan.code}
-                      </Link>
-                      <ArchiveTag nameSource={scanner.last_scan.name_source} />
-                      <NutriScoreBadge grade={scanner.last_scan.nutri_score} />
+                      <div className="last-scan-product">
+                        <ScannedProduct product={scanner.last_scan.product} />
+                      </div>
                     </>
                   ) : (
                     'Never'
