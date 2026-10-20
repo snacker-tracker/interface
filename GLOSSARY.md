@@ -22,6 +22,10 @@ _Avoid_: item, snack (for the catalogue entry)
 Product records kept by the previous Snacker Tracker, pulled from shop websites or entered by hand. Frozen: nothing is added or corrected. A second, less trusted source of product details than OpenFoodFacts.
 _Avoid_: legacy data, historical data, old codes
 
+**Scanned product**:
+A scanned code together with what the scan lists show of its product: its name and where the name came from, its brands, whether OpenFoodFacts has it, and its Nutri-Score. An unknown product is a scanned product too, just with little or nothing known.
+_Avoid_: listed product, product summary
+
 **Unknown product**:
 A code OpenFoodFacts doesn't have, whether or not the Snacker archive does; worth adding to OpenFoodFacts. Its scans still count.
 
