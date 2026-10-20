@@ -1,11 +1,11 @@
-import { type Period, PERIODS, type TopScan } from '../contract'
+import type { Period, TopScan } from '../contract'
 import { PERIOD_LABELS, useSelectedPeriod, useUnknownOnly } from '../selectedPeriod'
 import { ScannedProduct } from './ScannedProduct'
 
 const percent = new Intl.NumberFormat('en', { style: 'percent', maximumFractionDigits: 1 })
 
 /**
- * The codes scanned most in the chosen period, with a tab per period (see GLOSSARY.md, Top scans).
+ * The codes scanned most in the selected period (see GLOSSARY.md, Top scans).
  * "Unknown only" switches to the most-scanned unknown products, the ones worth adding to OpenFoodFacts.
  */
 export function TopScans({
@@ -15,7 +15,7 @@ export function TopScans({
   topScans: Record<Period, TopScan[]>
   topUnknownScans: Record<Period, TopScan[]>
 }) {
-  const [period, select] = useSelectedPeriod()
+  const [period] = useSelectedPeriod()
   const [unknownOnly, setUnknownOnly] = useUnknownOnly()
   const rows = (unknownOnly ? topUnknownScans : topScans)[period] ?? []
   const empty = unknownOnly
@@ -25,21 +25,6 @@ export function TopScans({
   return (
     <>
       <div className="top-scans-controls">
-        <div className="period-tabs" role="tablist" aria-label="Period">
-          {PERIODS.map((id) => (
-            <button
-              key={id}
-              type="button"
-              role="tab"
-              id={`period-${id}`}
-              aria-selected={id === period}
-              aria-controls="top-scans-list"
-              onClick={() => select(id)}
-            >
-              {PERIOD_LABELS[id].tab}
-            </button>
-          ))}
-        </div>
         <button
           type="button"
           className="unknown-toggle"
@@ -49,17 +34,15 @@ export function TopScans({
           Unknown only
         </button>
       </div>
-      <div id="top-scans-list" role="tabpanel" aria-labelledby={`period-${period}`}>
-        {rows.length === 0 ? (
-          <p className="status">{empty}.</p>
-        ) : (
-          <ol className="top-scans">
-            {rows.map((row) => (
-              <TopScanRow key={row.code} row={row} />
-            ))}
-          </ol>
-        )}
-      </div>
+      {rows.length === 0 ? (
+        <p className="status">{empty}.</p>
+      ) : (
+        <ol className="top-scans">
+          {rows.map((row) => (
+            <TopScanRow key={row.code} row={row} />
+          ))}
+        </ol>
+      )}
     </>
   )
 }

@@ -5,7 +5,7 @@ import { TopScanRow } from './TopScans'
 const count = new Intl.NumberFormat('en')
 
 /**
- * The healthiest and least healthy products scanned in Top scans' period (GLOSSARY.md), side by
+ * The healthiest and least healthy products scanned in the selected period (GLOSSARY.md), side by
  * side: only products with a Nutri-Score are ranked, and the coverage line says how many scans that is.
  */
 export function HealthiestAndLeastHealthy({ byPeriod }: { byPeriod: Record<Period, Lists> }) {
@@ -17,7 +17,7 @@ export function HealthiestAndLeastHealthy({ byPeriod }: { byPeriod: Record<Perio
   return (
     <>
       <p className="panel-hint">
-        {PERIOD_LABELS[period].tab}. Based on the {count.format(lists.graded_scans)} of {count.format(lists.scans)}{' '}
+        Based on the {count.format(lists.graded_scans)} of {count.format(lists.scans)}{' '}
         scans with a Nutri-Score.
       </p>
       <div className="health-lists">

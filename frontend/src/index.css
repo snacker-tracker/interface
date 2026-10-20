@@ -166,7 +166,7 @@ a {
   cursor: pointer;
 }
 
-.period-tabs button[aria-selected='true'] {
+.period-tabs button[aria-pressed='true'] {
   background: var(--text-primary);
   border-color: var(--text-primary);
   color: var(--surface-1);
@@ -178,10 +178,6 @@ a {
   align-items: flex-start;
   gap: 6px 12px;
   margin-bottom: 12px;
-}
-
-.top-scans-controls .period-tabs {
-  margin-bottom: 0;
 }
 
 .unknown-toggle {

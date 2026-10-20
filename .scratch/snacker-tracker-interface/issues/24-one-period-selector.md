@@ -4,7 +4,7 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Decisions from the design session:
 
@@ -17,10 +17,20 @@ Decisions from the design session:
 - **Chart:** Scans per day is unchanged in this ticket. Zooming it to the period is ticket 25.
 - **Vocabulary:** say "period", not "time-line" (GLOSSARY.md).
 
-- [ ] The period tabs sit at the top of the index page, and Top scans keeps only "Unknown only".
-- [ ] Top scans and the healthiest and least healthy products follow the selected period and name it in their headings.
-- [ ] The coverage line no longer starts with the period's name.
-- [ ] Changing the period, the location or "Unknown only" keeps the other URL parameters, as before.
-- [ ] The PRD (§6.2) describes the selector and the headings.
+- [x] The period tabs sit at the top of the index page, and Top scans keeps only "Unknown only".
+- [x] Top scans and the healthiest and least healthy products follow the selected period and name it in their headings.
+- [x] The coverage line no longer starts with the period's name.
+- [x] Changing the period, the location or "Unknown only" keeps the other URL parameters, as before.
+- [x] The PRD (§6.2) describes the selector and the headings.
 
 ## Comments
+
+- 2026-10-20: Implemented.
+  - **Selector:** a new PeriodSelector sits at the top of the index page. Top scans keeps only "Unknown only".
+  - **Accessibility:** one selector now drives several sections, so the tabs became a labelled button group with `aria-pressed` rather than an ARIA tablist with a single tabpanel.
+  - **Headings:** the index page puts the period in the Top scans and healthiest and least healthy headings. The coverage line lost its period prefix.
+  - **Tests:** no frontend tests (PRD §9).
+  - **Checked:**
+    - tsc, lint and the build pass.
+    - A server-side render with `?location=thailand&period=last-30-days&unknown=1` showed Last 30 days pressed, "Unknown only" on, and both lists for the period.
+    - Not checked in a browser.
