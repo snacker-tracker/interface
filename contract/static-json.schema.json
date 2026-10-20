@@ -63,6 +63,81 @@
       "title": "DailyCount",
       "type": "object"
     },
+    "HealthiestAndLeastHealthy": {
+      "additionalProperties": false,
+      "description": "The products with a Nutri-Score scanned within a period (GLOSSARY.md), split in two\nlists that never share a product: the better half, best grade first, and the worse half,\nworst grade first; the most scanned first within a grade.",
+      "properties": {
+        "healthiest": {
+          "items": {
+            "$ref": "#/$defs/TopScan"
+          },
+          "type": "array"
+        },
+        "least_healthy": {
+          "items": {
+            "$ref": "#/$defs/TopScan"
+          },
+          "type": "array"
+        },
+        "graded_scans": {
+          "description": "Scans in the period of products with a Nutri-Score.",
+          "type": "integer"
+        },
+        "scans": {
+          "description": "All scans in the period.",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "healthiest",
+        "least_healthy",
+        "graded_scans",
+        "scans"
+      ],
+      "title": "HealthiestAndLeastHealthy",
+      "type": "object"
+    },
+    "HealthiestAndLeastHealthyByPeriod": {
+      "additionalProperties": false,
+      "properties": {
+        "today": {
+          "$ref": "#/$defs/HealthiestAndLeastHealthy"
+        },
+        "this-work-week": {
+          "$ref": "#/$defs/HealthiestAndLeastHealthy"
+        },
+        "last-7-days": {
+          "$ref": "#/$defs/HealthiestAndLeastHealthy"
+        },
+        "this-month": {
+          "$ref": "#/$defs/HealthiestAndLeastHealthy"
+        },
+        "last-30-days": {
+          "$ref": "#/$defs/HealthiestAndLeastHealthy"
+        },
+        "this-year": {
+          "$ref": "#/$defs/HealthiestAndLeastHealthy"
+        },
+        "last-365-days": {
+          "$ref": "#/$defs/HealthiestAndLeastHealthy"
+        },
+        "all-time": {
+          "$ref": "#/$defs/HealthiestAndLeastHealthy"
+        }
+      },
+      "required": [
+        "today",
+        "this-work-week",
+        "last-7-days",
+        "this-month",
+        "last-30-days",
+        "this-year",
+        "last-365-days",
+        "all-time"
+      ],
+      "title": "HealthiestAndLeastHealthyByPeriod",
+      "type": "object"
+    },
     "HourlyCount": {
       "additionalProperties": false,
       "properties": {
@@ -95,6 +170,9 @@
           "$ref": "#/$defs/TopScansByPeriod",
           "description": "Top scans of unknown products only; shares are still of all scans in the period."
         },
+        "healthiest_and_least_healthy": {
+          "$ref": "#/$defs/HealthiestAndLeastHealthyByPeriod"
+        },
         "daily": {
           "description": "Scans per office date, oldest first; days without scans are left out.",
           "items": {
@@ -114,6 +192,7 @@
         "location",
         "top_scans",
         "top_unknown_scans",
+        "healthiest_and_least_healthy",
         "daily",
         "recent"
       ],

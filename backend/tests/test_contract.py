@@ -125,9 +125,25 @@ def test_index_files_must_list_every_period() -> None:
         )
     }
     without_today = {period: lists for period, lists in every_period.items() if period != "today"}
-    index = {"location": "all", "top_scans": without_today, "top_unknown_scans": every_period, "daily": [], "recent": []}
+    no_products = {"healthiest": [], "least_healthy": [], "graded_scans": 0, "scans": 0}
+    index = {
+        "location": "all", "top_scans": without_today, "top_unknown_scans": every_period,
+        "healthiest_and_least_healthy": {period: no_products for period in every_period}, "daily": [], "recent": [],
+    }
 
     assert schema_errors("IndexFile", index) == ["top_scans: 'today' is a required property"]
+
+
+def edit_all_time_health(edit: Callable[[Any], None]) -> Callable[[Path], None]:
+    """A breakage of the all index file's all-time healthiest and least healthy products, where
+    Coca Cola (graded E) is the only graded product. `graded(...)` makes more graded rows."""
+    return lambda data: edit_json(
+        data, "index/by-location/all.json", lambda content: edit(content["healthiest_and_least_healthy"]["all-time"])
+    )
+
+
+def graded(lists: Any, code: str, nutri_score: str) -> dict[str, Any]:
+    return {**lists["healthiest"][0], "code": code, "nutri_score": nutri_score}
 
 
 def edit_json(data_dir: Path, relative_path: str, edit: Callable[[Any], None]) -> None:
@@ -236,6 +252,43 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
             "index/by-location/all.json: top_unknown_scans/all-time/0: a Nutri-Score for a product OpenFoodFacts doesn't have",
         ),
         (
+            edit_all_time_health(lambda lists: lists["least_healthy"].append(lists["healthiest"][0])),
+            "index/by-location/all.json: healthiest_and_least_healthy/all-time: a product is in both lists",
+        ),
+        (
+            edit_all_time_health(lambda lists: lists["healthiest"][0].update(nutri_score=None)),
+            "index/by-location/all.json: healthiest_and_least_healthy/all-time: lists a product without a Nutri-Score",
+        ),
+        (
+            edit_all_time_health(lambda lists: lists["healthiest"].append(graded(lists, "water", "E"))),
+            "index/by-location/all.json: healthiest_and_least_healthy/all-time: isn't split in halves",
+        ),
+        (
+            edit_all_time_health(lambda lists: lists.update(
+                healthiest=[graded(lists, "water", "A"), graded(lists, "milk", "C")],
+                least_healthy=[graded(lists, "chips", "D"), graded(lists, "cake", "E")],
+            )),
+            "index/by-location/all.json: healthiest_and_least_healthy/all-time: least_healthy isn't worst grade first, then most scanned",
+        ),
+        (
+            edit_all_time_health(lambda lists: lists.update(
+                healthiest=[graded(lists, "water", "A"), graded(lists, "chips", "E")],
+                least_healthy=[graded(lists, "cake", "D"), graded(lists, "milk", "C")],
+            )),
+            "index/by-location/all.json: healthiest_and_least_healthy/all-time: a least healthy product is graded better than a healthiest one",
+        ),
+        (
+            edit_all_time_health(lambda lists: lists.update(
+                healthiest=[graded(lists, f"water-{n}", "A") for n in range(11)],
+                least_healthy=[graded(lists, f"chips-{n}", "E") for n in range(11)],
+            )),
+            "index/by-location/all.json: healthiest_and_least_healthy/all-time: healthiest lists 11 products, more than 10",
+        ),
+        (
+            edit_all_time_health(lambda lists: lists.update(graded_scans=lists["scans"] + 1)),
+            "index/by-location/all.json: healthiest_and_least_healthy/all-time: more graded scans than scans",
+        ),
+        (
             lambda data: edit_json(data, "meta.json", lambda content: content.update(generated_at="2026-10-19T12:00:00+00:00")),
             "meta.json: generated_at: '2026-10-19T12:00:00+00:00' isn't a UTC time like 2026-10-19T12:00:00Z",
         ),
@@ -246,7 +299,9 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
         "daily out of order", "recent out of order", "known product in unknown-only list", "shares over 1",
         "name without a source", "OpenFoodFacts name for an unknown product", "product name without a source",
         "grades for an unknown product",
-        "Nutri-Score for an unknown product in a list", "generated_at not in UTC",
+        "Nutri-Score for an unknown product in a list", "product in both health lists", "ungraded product in a health list",
+        "health lists not split in halves", "least healthy out of order", "health lists overlap in grade",
+        "health list over the limit", "more graded scans than scans", "generated_at not in UTC",
     ],
 )
 def test_the_check_names_each_way_a_build_breaks_the_contract(

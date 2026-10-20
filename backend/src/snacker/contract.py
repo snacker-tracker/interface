@@ -84,6 +84,32 @@ TopScansByPeriod = TypedDict("TopScansByPeriod", {
 })
 """Top scans for every period, keyed by period ID."""
 
+
+class HealthiestAndLeastHealthy(TypedDict):
+    """The products with a Nutri-Score scanned within a period (GLOSSARY.md), split in two
+    lists that never share a product: the better half, best grade first, and the worse half,
+    worst grade first; the most scanned first within a grade."""
+
+    healthiest: list[TopScan]
+    least_healthy: list[TopScan]
+    graded_scans: int
+    """Scans in the period of products with a Nutri-Score."""
+    scans: int
+    """All scans in the period."""
+
+
+HealthiestAndLeastHealthyByPeriod = TypedDict("HealthiestAndLeastHealthyByPeriod", {
+    "today": HealthiestAndLeastHealthy,
+    "this-work-week": HealthiestAndLeastHealthy,
+    "last-7-days": HealthiestAndLeastHealthy,
+    "this-month": HealthiestAndLeastHealthy,
+    "last-30-days": HealthiestAndLeastHealthy,
+    "this-year": HealthiestAndLeastHealthy,
+    "last-365-days": HealthiestAndLeastHealthy,
+    "all-time": HealthiestAndLeastHealthy,
+})
+"""The healthiest and least healthy products for every period, keyed by period ID."""
+
 Period = Literal[
     "today",
     "this-work-week",
@@ -193,6 +219,7 @@ class IndexFile(TypedDict):
     top_scans: TopScansByPeriod
     top_unknown_scans: TopScansByPeriod
     """Top scans of unknown products only; shares are still of all scans in the period."""
+    healthiest_and_least_healthy: HealthiestAndLeastHealthyByPeriod
     daily: list[DailyCount]
     """Scans per office date, oldest first; days without scans are left out."""
     recent: list[ScanRow]

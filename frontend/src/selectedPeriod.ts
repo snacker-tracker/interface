@@ -5,6 +5,19 @@ import { useSearchParams } from 'react-router'
 import { type Period, PERIODS } from './contract'
 
 export const DEFAULT_PERIOD: Period = 'last-30-days'
+
+/** Each period's tab, and what its lists say when they're empty. */
+export const PERIOD_LABELS: Record<Period, { tab: string; empty: string }> = {
+  today: { tab: 'Today', empty: 'No scans today' },
+  'this-work-week': { tab: 'This work week', empty: 'No scans this work week' },
+  'last-7-days': { tab: 'Last 7 days', empty: 'No scans in the last 7 days' },
+  'this-month': { tab: 'This month', empty: 'No scans this month' },
+  'last-30-days': { tab: 'Last 30 days', empty: 'No scans in the last 30 days' },
+  'this-year': { tab: 'This year', empty: 'No scans this year' },
+  'last-365-days': { tab: 'Last 365 days', empty: 'No scans in the last 365 days' },
+  'all-time': { tab: 'All time', empty: 'No scans yet' },
+}
+
 const PARAM = 'period'
 
 const isPeriod = (value: string | null): value is Period => PERIODS.some((period) => period === value)

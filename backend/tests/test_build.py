@@ -52,6 +52,14 @@ def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) 
                 {"code": "8850999220000", "name": None, "name_source": None, "brands": None, "known": False, "nutri_score": None, "count": 1, "share": 0.5},
             ],
         },
+        # Neither product has a Nutri-Score, so only the coverage counts are filled in.
+        "healthiest_and_least_healthy": {
+            **{period: {"healthiest": [], "least_healthy": [], "graded_scans": 0, "scans": 0} for period in (
+                "today", "this-work-week", "last-7-days", "this-month",
+                "last-30-days", "this-year", "last-365-days",
+            )},
+            "all-time": {"healthiest": [], "least_healthy": [], "graded_scans": 0, "scans": 2},
+        },
         "daily": [{"date": "2023-01-08", "count": 2}],
         "recent": [
             {
@@ -576,3 +584,36 @@ def test_scan_lists_carry_the_products_nutri_score(raw_dir: Path, out_dir: Path)
     assert [row["nutri_score"] for row in code_scans["recent"]] == ["E"]
     scanners = read_json(out_dir, "data/scanners/by-location/all.json")["scanners"]
     assert {scanner["name"]: scanner["last_scan"]["nutri_score"] for scanner in scanners} == {"kitchen": "E", "lobby": None}
+
+
+def test_index_files_list_the_healthiest_and_least_healthy_products_for_every_period(raw_dir: Path, out_dir: Path) -> None:
+    write_events(raw_dir, "scans/2026/10/19/delivery", [
+        live_scan("8850999220000", time="2026-10-19T03:00:00Z"),
+        live_scan("8851959132012", time="2026-10-19T04:00:00Z", location="thailand:bangkok:lobby"),
+        live_scan("005", time="2026-10-19T05:00:00Z"),
+    ])
+    write_products(
+        raw_dir,
+        {"8850999220000": ("Soda water", "Singha"), "8851959132012": ("Coca Cola", "Coke"), "005": (None, None)},
+        details={"8850999220000": {"nutri_score": "B"}, "8851959132012": {"nutri_score": "E"}},
+    )
+
+    run_build(raw_dir, out_dir)
+
+    lists = read_json(out_dir, "data/index/by-location/all.json")["healthiest_and_least_healthy"]
+    assert list(lists) == [
+        "today", "this-work-week", "last-7-days", "this-month",
+        "last-30-days", "this-year", "last-365-days", "all-time",
+    ]
+    assert lists["today"] == {
+        "healthiest": [
+            {"code": "8850999220000", "name": "Soda water", "name_source": "openfoodfacts", "brands": "Singha", "known": True, "nutri_score": "B", "count": 1, "share": 0.3333},
+        ],
+        "least_healthy": [
+            {"code": "8851959132012", "name": "Coca Cola", "name_source": "openfoodfacts", "brands": "Coke", "known": True, "nutri_score": "E", "count": 1, "share": 0.3333},
+        ],
+        "graded_scans": 2,
+        "scans": 3,
+    }
+    kitchen = read_json(out_dir, "data/index/by-location/thailand:bangkok:main-kitchen.json")["healthiest_and_least_healthy"]
+    assert (kitchen["today"]["healthiest"][0]["code"], kitchen["today"]["least_healthy"]) == ("8850999220000", [])

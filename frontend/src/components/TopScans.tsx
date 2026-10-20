@@ -1,17 +1,6 @@
 import { type Period, PERIODS, type TopScan } from '../contract'
-import { useSelectedPeriod, useUnknownOnly } from '../selectedPeriod'
+import { PERIOD_LABELS, useSelectedPeriod, useUnknownOnly } from '../selectedPeriod'
 import { ScannedProduct } from './ScannedProduct'
-
-const LABELS: Record<Period, { tab: string; empty: string }> = {
-  today: { tab: 'Today', empty: 'No scans today' },
-  'this-work-week': { tab: 'This work week', empty: 'No scans this work week' },
-  'last-7-days': { tab: 'Last 7 days', empty: 'No scans in the last 7 days' },
-  'this-month': { tab: 'This month', empty: 'No scans this month' },
-  'last-30-days': { tab: 'Last 30 days', empty: 'No scans in the last 30 days' },
-  'this-year': { tab: 'This year', empty: 'No scans this year' },
-  'last-365-days': { tab: 'Last 365 days', empty: 'No scans in the last 365 days' },
-  'all-time': { tab: 'All time', empty: 'No scans yet' },
-}
 
 const percent = new Intl.NumberFormat('en', { style: 'percent', maximumFractionDigits: 1 })
 
@@ -30,8 +19,8 @@ export function TopScans({
   const [unknownOnly, setUnknownOnly] = useUnknownOnly()
   const rows = (unknownOnly ? topUnknownScans : topScans)[period] ?? []
   const empty = unknownOnly
-    ? LABELS[period].empty.replace('No scans', 'No unknown products scanned')
-    : LABELS[period].empty
+    ? PERIOD_LABELS[period].empty.replace('No scans', 'No unknown products scanned')
+    : PERIOD_LABELS[period].empty
 
   return (
     <>
@@ -47,7 +36,7 @@ export function TopScans({
               aria-controls="top-scans-list"
               onClick={() => select(id)}
             >
-              {LABELS[id].tab}
+              {PERIOD_LABELS[id].tab}
             </button>
           ))}
         </div>
@@ -75,7 +64,8 @@ export function TopScans({
   )
 }
 
-function TopScanRow({ row }: { row: TopScan }) {
+/** A ranked code: its product, its count and, unless left out, its share of the period's scans. */
+export function TopScanRow({ row, withShare = true }: { row: TopScan; withShare?: boolean }) {
   return (
     <li>
       <div className="top-scan-row">
@@ -91,7 +81,7 @@ function TopScanRow({ row }: { row: TopScan }) {
         </div>
         <div className="top-scan-count">
           <strong>{row.count}</strong> {row.count === 1 ? 'scan' : 'scans'}
-          <span className="share">{percent.format(row.share)}</span>
+          {withShare && <span className="share">{percent.format(row.share)}</span>}
         </div>
       </div>
     </li>

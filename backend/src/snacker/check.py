@@ -12,12 +12,13 @@ from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path, PurePosixPath
-from typing import Any
+from typing import Any, get_args
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from snacker.config import RECENT_SCANS_LIMIT, TOP_SCANS_LIMIT
 from snacker.contract import (
     GRADES,
+    NutriScore,
     code_scans_path,
     index_path,
     locations_path,
@@ -165,6 +166,7 @@ class _Output:
             yield from self._recent_length(path, content["daily"], content["recent"])
             yield from self._top_scans(path, "top_scans", content["top_scans"], unknown_only=False)
             yield from self._top_scans(path, "top_unknown_scans", content["top_unknown_scans"], unknown_only=True)
+            yield from self._healthiest_and_least_healthy(path, content["healthiest_and_least_healthy"])
         for path, content in self.of("CodeScansFile"):
             yield from self._daily(path, content["daily"])
             yield from self._hourly(path, content["hourly"])
@@ -254,6 +256,50 @@ class _Output:
             for index, row in enumerate(rows):
                 yield from _name_source(path, f"{where}/{index}", row["name"], row)
                 yield from _nutri_score(path, f"{where}/{index}", row)
+
+    def _healthiest_and_least_healthy(self, path: PurePosixPath, by_period: dict[str, Any]) -> Iterator[Violation]:
+        for period, lists in by_period.items():
+            where = f"healthiest_and_least_healthy/{period}"
+            healthiest, least_healthy = lists["healthiest"], lists["least_healthy"]
+            for name, rows in (("healthiest", healthiest), ("least_healthy", least_healthy)):
+                if len(rows) > self.top_limit:
+                    yield Violation(path, f"{where}: {name} lists {len(rows)} products, more than {self.top_limit}")
+                if any(row["count"] <= 0 for row in rows):
+                    yield Violation(path, f"{where}: {name} has a count that isn't positive")
+                for index, row in enumerate(rows):
+                    yield from _name_source(path, f"{where}/{name}/{index}", row["name"], row)
+                    yield from _nutri_score(path, f"{where}/{name}/{index}", row)
+            if any(row["nutri_score"] is None for row in healthiest + least_healthy):
+                yield Violation(path, f"{where}: lists a product without a Nutri-Score")
+                continue
+            if {row["code"] for row in healthiest} & {row["code"] for row in least_healthy}:
+                yield Violation(path, f"{where}: a product is in both lists")
+            # The better half takes an odd count's extra product, and a big period fills both lists.
+            if not len(least_healthy) <= len(healthiest) <= len(least_healthy) + 1:
+                yield Violation(path, f"{where}: isn't split in halves")
+            if [_health_order(row) for row in healthiest] != sorted(_health_order(row) for row in healthiest):
+                yield Violation(path, f"{where}: healthiest isn't best grade first, then most scanned")
+            worst_first = [_health_order(row, worst_first=True) for row in least_healthy]
+            if worst_first != sorted(worst_first):
+                yield Violation(path, f"{where}: least_healthy isn't worst grade first, then most scanned")
+            if healthiest and least_healthy and (
+                max(_grade(row) for row in healthiest) > min(_grade(row) for row in least_healthy)
+            ):
+                yield Violation(path, f"{where}: a least healthy product is graded better than a healthiest one")
+            if lists["graded_scans"] > lists["scans"]:
+                yield Violation(path, f"{where}: more graded scans than scans")
+            if sum(row["count"] for row in healthiest + least_healthy) > lists["graded_scans"]:
+                yield Violation(path, f"{where}: lists more scans than there are graded scans")
+
+
+def _grade(row: dict[str, Any]) -> int:
+    """A row's Nutri-Score as a rank, 0 for A (best)."""
+    return get_args(NutriScore).index(row["nutri_score"])
+
+
+def _health_order(row: dict[str, Any], *, worst_first: bool = False) -> tuple[int, int]:
+    """Sorts best grade first (or worst first), then most scanned first."""
+    return (-_grade(row) if worst_first else _grade(row), -row["count"])
 
 
 def _within(location: str, selected: str) -> bool:

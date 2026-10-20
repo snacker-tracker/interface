@@ -149,6 +149,16 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 - Each list holds at most N codes (N = 10, in config), with ties going to the most recently scanned. Each row has the code, name and where the name came from, brands, whether the product is known, its Nutri-Score, the count, and its share of the period's scans.
 - A second set of lists ranks **unknown products only** (ticket 11): every unknown code is ranked, not just those in the overall top N, and shares are still of all scans in the period. Unnamed products OpenFoodFacts has aren't included.
 
+### R8: Healthiest and least healthy products
+
+- For every period of R7, the **healthiest and least healthy products** (GLOSSARY.md): the products with a Nutri-Score scanned within it. A product without a Nutri-Score is left out.
+- **Ranking:** they are ranked by Nutri-Score grade, then by scans in the period, with ties going to the most recently scanned. The healthiest are best grade first, and the least healthy are worst grade first. Within a grade, the most scanned come first.
+- **No overlap:** the two lists never share a product.
+  - The graded products are ranked best first and split in halves. The better half, up to N (R7's N), is the healthiest, and an odd count's extra product goes to it.
+  - The least healthy are the worst of the rest, up to N.
+  - So with 2N or more graded products, they are simply the N best and the N worst.
+- **Coverage:** each period also carries how many of its scans are of products with a Nutri-Score, and how many scans it has in all.
+
 ## 6. Functional requirements
 
 ### 6.1 Global
@@ -163,7 +173,13 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 - **I2:** List of the **last 25 scans**: local date and time, location, and the product per R3. Each row links to its code page, keeping `?location`.
 - **I3:** A **Top scans** panel (R7), below the chart. It has a tab per period, and the chosen period is kept in `?period=` (default `last-30-days`; unknown values fall back to it). An "Unknown only" toggle, kept in `?unknown=1`, switches to the unknown-products lists. Each row shows rank, the product per R3, count and share, and links to its code page. An empty period says so, and its tab stays.
 
-Page order: scans per day (I1), top scans (I3), latest scans (I2).
+- **I4:** A **Healthiest and least healthy products** panel (R8), below Top scans.
+  - It follows Top scans' period and has no tabs of its own. "Unknown only" doesn't affect it.
+  - The two lists sit side by side and stack on narrow screens. Each row shows rank, the product per R3 with its Nutri-Score badge, and the count.
+  - A coverage line names the period and says e.g. "Based on the 1,204 of 2,310 scans with a Nutri-Score."
+  - A period without graded products says e.g. "No products with a Nutri-Score scanned today." With only one, Least healthy says "Nothing else to compare."
+
+Page order: scans per day (I1), top scans (I3), healthiest and least healthy products (I4), latest scans (I2).
 
 ### 6.3 Code page: `/codes/:code`
 
@@ -259,6 +275,11 @@ These hold in every build, alongside the schema (§7.2) and the file rules (§7.
   - Each list has at most 10 codes, each code once, with counts positive and most first.
   - Each share is in (0, 1], and a list's shares add up to at most 1, allowing for rounding.
   - `top_unknown_scans` lists only unknown products.
+- **Healthiest and least healthy products** (R8): for every period,
+  - each list has at most 10 products, every one with a Nutri-Score and a positive count, and no product is in both;
+  - the healthiest are split from the least healthy in halves: the healthiest hold as many products as the least healthy, or one more;
+  - the healthiest are best grade first and the least healthy worst grade first, the most scanned first within a grade, and no least healthy product is graded better than a healthiest one;
+  - graded scans don't exceed the period's scans, and the listed counts don't exceed the graded scans.
 - **Scanners:** unique, ordered by name.
 - **Names:** on scan rows, top scans and last scans, `name_source` is null exactly when the name is, and `openfoodfacts` only for a known product. The same holds for a product file's product.
 - **Grades:** only a known product's product file has grades, and only a known product's scan rows, top scans and last scans have a Nutri-Score.

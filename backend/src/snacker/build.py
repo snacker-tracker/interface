@@ -30,7 +30,7 @@ from snacker.contract import (
 from snacker.heartbeats import normalise_heartbeats, scanner_statuses
 from snacker.locations import Locations
 from snacker.products import product_files, with_products
-from snacker.scan_summary import summarise, top_scans
+from snacker.scan_summary import healthiest_and_least_healthy, summarise, top_scans
 from snacker.scans import normalise_scans
 from snacker.timestamps import UTC_TIMESTAMP_FORMAT
 
@@ -118,6 +118,7 @@ def write_data(
                 location=location,
                 top_scans=top_scans(scans_within, limit=top_limit, now=generated_at),
                 top_unknown_scans=top_scans(scans_within, limit=top_limit, now=generated_at, unknown_only=True),
+                healthiest_and_least_healthy=healthiest_and_least_healthy(scans_within, limit=top_limit, now=generated_at),
                 daily=summary.daily,
                 recent=summary.recent,
             ),

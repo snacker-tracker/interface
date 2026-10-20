@@ -1,4 +1,5 @@
 import { DailyScansChart } from '../components/DailyScansChart'
+import { HealthiestAndLeastHealthy } from '../components/HealthiestAndLeastHealthy'
 import { RecentScans } from '../components/RecentScans'
 import { TopScans } from '../components/TopScans'
 import type { IndexFile } from '../contract'
@@ -17,7 +18,7 @@ export function IndexPage() {
     return <p className="status status-error">Couldn't load scans for {location} ({index.message}).</p>
   }
 
-  const { top_scans, top_unknown_scans, daily, recent } = index.data
+  const { top_scans, top_unknown_scans, healthiest_and_least_healthy, daily, recent } = index.data
   return (
     <>
       <section className="panel" aria-labelledby="daily-heading">
@@ -29,6 +30,10 @@ export function IndexPage() {
         <h2 id="top-scans-heading">Top scans</h2>
         <p className="panel-hint">The codes scanned most, up to when the data was built.</p>
         <TopScans topScans={top_scans} topUnknownScans={top_unknown_scans} />
+      </section>
+      <section className="panel" aria-labelledby="health-heading">
+        <h2 id="health-heading">Healthiest and least healthy products</h2>
+        <HealthiestAndLeastHealthy byPeriod={healthiest_and_least_healthy} />
       </section>
       <section className="panel" aria-labelledby="recent-heading">
         <h2 id="recent-heading">Latest {recent.length} scans</h2>

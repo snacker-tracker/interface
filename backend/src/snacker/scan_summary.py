@@ -8,12 +8,22 @@ plus `product_name`, `product_name_source`, `product_brands`, `product_known` an
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from collections.abc import Callable
-from typing import cast
+from typing import Any, cast, get_args
 from zoneinfo import ZoneInfo
 
 import polars as pl
 
-from snacker.contract import PERIODS, DailyCount, HourlyCount, ScanRow, TopScan, TopScansByPeriod
+from snacker.contract import (
+    PERIODS,
+    DailyCount,
+    HealthiestAndLeastHealthy,
+    HealthiestAndLeastHealthyByPeriod,
+    HourlyCount,
+    NutriScore,
+    ScanRow,
+    TopScan,
+    TopScansByPeriod,
+)
 from snacker.timestamps import DATE_FORMAT, UTC_TIMESTAMP_FORMAT
 
 
@@ -178,30 +188,67 @@ def _rank(scans: pl.DataFrame, limit: int, *, total: int) -> list[TopScan]:
 
     `total` is the number of scans each share is a fraction of.
     """
-    ranked = (
-        scans.group_by("code")
-        .agg(
-            pl.len().alias("count"),
-            pl.col("scanned_at").max().alias("last_scanned_at"),
-            pl.col("product_name").first(),
-            pl.col("product_name_source").first(),
-            pl.col("product_brands").first(),
-            pl.col("product_known").first(),
-            pl.col("product_nutri_score").first(),
-        )
-        .sort(["count", "last_scanned_at", "code"], descending=[True, True, False])
-        .head(limit)
+    ranked = _per_code(scans).sort(["count", "last_scanned_at", "code"], descending=[True, True, False]).head(limit)
+    return [_top_scan(row, total) for row in ranked.iter_rows(named=True)]
+
+
+def healthiest_and_least_healthy(scans: pl.DataFrame, *, limit: int, now: datetime) -> HealthiestAndLeastHealthyByPeriod:
+    """For every period (see PERIODS), its healthiest and least healthy products (GLOSSARY.md).
+
+    `now` is when the data is built, as for top_scans.
+    """
+    flagged = _with_period_flags(scans, now)
+    return cast(HealthiestAndLeastHealthyByPeriod, {
+        period: _split_by_health(flagged.filter(pl.col(period)), limit) for period in PERIODS
+    })
+
+
+def _split_by_health(scans: pl.DataFrame, limit: int) -> HealthiestAndLeastHealthy:
+    """The graded products ranked best first and split in halves, each cut to `limit`: the
+    better half is the healthiest, and an odd count's extra product goes to it. The least
+    healthy are the worst of the rest, so a big period lists its 10 best and 10 worst."""
+    graded = _per_code(scans.filter(pl.col("product_nutri_score").is_not_null())).with_columns(
+        pl.col("product_nutri_score").cast(pl.Enum(get_args(NutriScore))).to_physical().alias("grade")
     )
-    return [
-        TopScan(
-            code=row["code"],
-            name=row["product_name"],
-            name_source=row["product_name_source"],
-            brands=row["product_brands"],
-            known=bool(row["product_known"]),
-            nutri_score=row["product_nutri_score"],
-            count=row["count"],
-            share=round(row["count"] / total, 4),
-        )
-        for row in ranked.iter_rows(named=True)
-    ]
+    healthiest_count = min(limit, (graded.height + 1) // 2)
+    least_healthy_count = min(limit, graded.height // 2)
+    # Within a grade, as in top scans: most scanned first, ties to the most recently scanned.
+    order = ["grade", "count", "last_scanned_at", "code"]
+    healthiest = graded.sort(order, descending=[False, True, True, False]).head(healthiest_count)
+    least_healthy = (
+        graded.join(healthiest, on="code", how="anti")
+        .sort(order, descending=[True, True, True, False])
+        .head(least_healthy_count)
+    )
+    return HealthiestAndLeastHealthy(
+        healthiest=[_top_scan(row, scans.height) for row in healthiest.iter_rows(named=True)],
+        least_healthy=[_top_scan(row, scans.height) for row in least_healthy.iter_rows(named=True)],
+        graded_scans=int(graded["count"].sum()),
+        scans=scans.height,
+    )
+
+
+def _per_code(scans: pl.DataFrame) -> pl.DataFrame:
+    """One row per code in `scans`: its count, when it was last scanned, and its product."""
+    return scans.group_by("code").agg(
+        pl.len().alias("count"),
+        pl.col("scanned_at").max().alias("last_scanned_at"),
+        pl.col("product_name").first(),
+        pl.col("product_name_source").first(),
+        pl.col("product_brands").first(),
+        pl.col("product_known").first(),
+        pl.col("product_nutri_score").first(),
+    )
+
+
+def _top_scan(row: dict[str, Any], total: int) -> TopScan:
+    return TopScan(
+        code=row["code"],
+        name=row["product_name"],
+        name_source=row["product_name_source"],
+        brands=row["product_brands"],
+        known=bool(row["product_known"]),
+        nutri_score=row["product_nutri_score"],
+        count=row["count"],
+        share=round(row["count"] / total, 4),
+    )

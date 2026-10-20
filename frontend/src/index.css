@@ -547,3 +547,15 @@ details .table-scroll {
   margin-left: 6px;
   vertical-align: middle;
 }
+
+/* The healthiest and least healthy products side by side, stacked on narrow screens. */
+.health-lists {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
+  gap: 8px 24px;
+}
+
+.health-lists h3 {
+  font-size: 0.9375rem;
+  margin: 8px 0 4px;
+}

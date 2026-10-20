@@ -67,30 +67,21 @@ export interface ScanRow {
   office_time_zone: string
 }
 /**
- * The index page for one selectable location.
+ * The products with a Nutri-Score scanned within a period (GLOSSARY.md), split in two
+ * lists that never share a product: the better half, best grade first, and the worse half,
+ * worst grade first; the most scanned first within a grade.
  */
-export interface IndexFile {
-  location: string
-  top_scans: TopScansByPeriod
-  top_unknown_scans: TopScansByPeriod
+export interface HealthiestAndLeastHealthy {
+  healthiest: TopScan[]
+  least_healthy: TopScan[]
   /**
-   * Scans per office date, oldest first; days without scans are left out.
+   * Scans in the period of products with a Nutri-Score.
    */
-  daily: DailyCount[]
+  graded_scans: number
   /**
-   * The most recent scans, newest first.
+   * All scans in the period.
    */
-  recent: ScanRow[]
-}
-export interface TopScansByPeriod {
-  today: TopScan[]
-  'this-work-week': TopScan[]
-  'last-7-days': TopScan[]
-  'this-month': TopScan[]
-  'last-30-days': TopScan[]
-  'this-year': TopScan[]
-  'last-365-days': TopScan[]
-  'all-time': TopScan[]
+  scans: number
 }
 export interface TopScan {
   code: string
@@ -113,6 +104,43 @@ export interface TopScan {
    * This code's fraction of all scans in the period, e.g. 0.25.
    */
   share: number
+}
+export interface HealthiestAndLeastHealthyByPeriod {
+  today: HealthiestAndLeastHealthy
+  'this-work-week': HealthiestAndLeastHealthy
+  'last-7-days': HealthiestAndLeastHealthy
+  'this-month': HealthiestAndLeastHealthy
+  'last-30-days': HealthiestAndLeastHealthy
+  'this-year': HealthiestAndLeastHealthy
+  'last-365-days': HealthiestAndLeastHealthy
+  'all-time': HealthiestAndLeastHealthy
+}
+/**
+ * The index page for one selectable location.
+ */
+export interface IndexFile {
+  location: string
+  top_scans: TopScansByPeriod
+  top_unknown_scans: TopScansByPeriod
+  healthiest_and_least_healthy: HealthiestAndLeastHealthyByPeriod
+  /**
+   * Scans per office date, oldest first; days without scans are left out.
+   */
+  daily: DailyCount[]
+  /**
+   * The most recent scans, newest first.
+   */
+  recent: ScanRow[]
+}
+export interface TopScansByPeriod {
+  today: TopScan[]
+  'this-work-week': TopScan[]
+  'last-7-days': TopScan[]
+  'this-month': TopScan[]
+  'last-30-days': TopScan[]
+  'this-year': TopScan[]
+  'last-365-days': TopScan[]
+  'all-time': TopScan[]
 }
 export interface LastScan {
   /**
