@@ -123,6 +123,7 @@ export interface IndexFile {
   top_scans: TopScansByPeriod
   top_unknown_scans: TopScansByPeriod
   healthiest_and_least_healthy: HealthiestAndLeastHealthyByPeriod
+  period_days: PeriodDaysByPeriod
   /**
    * Scans per office date, oldest first; days without scans are left out.
    */
@@ -141,6 +142,32 @@ export interface TopScansByPeriod {
   'this-year': TopScan[]
   'last-365-days': TopScan[]
   'all-time': TopScan[]
+}
+export interface PeriodDaysByPeriod {
+  today: PeriodDays
+  'this-work-week': PeriodDays
+  'last-7-days': PeriodDays
+  'this-month': PeriodDays
+  'last-30-days': PeriodDays
+  'this-year': PeriodDays
+  'last-365-days': PeriodDays
+  'all-time': PeriodDays
+}
+/**
+ * The office days a period touches, for zooming a chart of scans per day to it. Both are
+ * null only when nothing has been scanned, so there's no office time zone to count days in.
+ */
+export interface PeriodDays {
+  /**
+   * The office date the period starts on, e.g. "2026-10-12"; a rolling period's partial
+   * first day counts. All time starts on the first scanned day. Across office time zones,
+   * the earliest.
+   */
+  first_day: string | null
+  /**
+   * The office date the data was built on; across office time zones, the latest.
+   */
+  last_day: string | null
 }
 export interface LastScan {
   /**

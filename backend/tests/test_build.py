@@ -60,6 +60,16 @@ def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) 
             )},
             "all-time": {"healthiest": [], "least_healthy": [], "graded_scans": 0, "scans": 2},
         },
+        "period_days": {
+            "today": {"first_day": "2026-10-19", "last_day": "2026-10-19"},
+            "this-work-week": {"first_day": "2026-10-19", "last_day": "2026-10-19"},
+            "last-7-days": {"first_day": "2026-10-12", "last_day": "2026-10-19"},
+            "this-month": {"first_day": "2026-10-01", "last_day": "2026-10-19"},
+            "last-30-days": {"first_day": "2026-09-19", "last_day": "2026-10-19"},
+            "this-year": {"first_day": "2026-01-01", "last_day": "2026-10-19"},
+            "last-365-days": {"first_day": "2025-10-19", "last_day": "2026-10-19"},
+            "all-time": {"first_day": "2023-01-08", "last_day": "2026-10-19"},
+        },
         "daily": [{"date": "2023-01-08", "count": 2}],
         "recent": [
             {
@@ -617,3 +627,37 @@ def test_index_files_list_the_healthiest_and_least_healthy_products_for_every_pe
     }
     kitchen = read_json(out_dir, "data/index/by-location/thailand:bangkok:main-kitchen.json")["healthiest_and_least_healthy"]
     assert (kitchen["today"]["healthiest"][0]["code"], kitchen["today"]["least_healthy"]) == ("8850999220000", [])
+
+
+def test_index_files_give_the_office_days_each_period_touches(raw_dir: Path, out_dir: Path) -> None:
+    # GENERATED_AT is 2026-10-19 12:00 UTC: 19:00 on Monday 19 October in Bangkok.
+    write_events(raw_dir, "scans/2026/10/19/delivery", [live_scan("8851959132012", time="2026-10-19T03:00:00Z")])
+    write_events(raw_dir, "scans/2023/01/08/backfill-2023-01-08.jsonl", [
+        backfill_scan("8850999220000", scanned_at="2023-01-08T03:10:22Z", location="thailand:test"),
+    ])
+
+    run_build(raw_dir, out_dir)
+
+    days = read_json(out_dir, "data/index/by-location/all.json")["period_days"]
+    assert days == {
+        "today": {"first_day": "2026-10-19", "last_day": "2026-10-19"},
+        "this-work-week": {"first_day": "2026-10-19", "last_day": "2026-10-19"},
+        # Rolling periods start part-way through a day, which they touch.
+        "last-7-days": {"first_day": "2026-10-12", "last_day": "2026-10-19"},
+        "this-month": {"first_day": "2026-10-01", "last_day": "2026-10-19"},
+        "last-30-days": {"first_day": "2026-09-19", "last_day": "2026-10-19"},
+        "this-year": {"first_day": "2026-01-01", "last_day": "2026-10-19"},
+        "last-365-days": {"first_day": "2025-10-19", "last_day": "2026-10-19"},
+        "all-time": {"first_day": "2023-01-08", "last_day": "2026-10-19"},
+    }
+    # A location with nothing scanned in a period still gets its days.
+    test_days = read_json(out_dir, "data/index/by-location/thailand:test.json")["period_days"]
+    assert test_days["today"] == {"first_day": "2026-10-19", "last_day": "2026-10-19"}
+    assert test_days["all-time"] == {"first_day": "2023-01-08", "last_day": "2026-10-19"}
+
+
+def test_without_scans_the_periods_have_no_days(raw_dir: Path, out_dir: Path) -> None:
+    run_build(raw_dir, out_dir)
+
+    days = read_json(out_dir, "data/index/by-location/all.json")["period_days"]
+    assert set(map(str, days.values())) == {str({"first_day": None, "last_day": None})}

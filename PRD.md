@@ -170,6 +170,9 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 ### 6.2 Index page: `/`
 
 - **I1:** Bar chart of scans per local day across **all history**, with brush-to-zoom.
+  - It opens zoomed to the selected period (I0): the office days the period touches, from its first day to the build's day. A rolling period's partial first day counts, so "Last 7 days" shows 8 bars. All time isn't zoomed.
+  - The overview's brush is placed on those days. Brushing by hand still works but doesn't change `?period=`.
+  - The heading stays "Scans per day", and the hint reads "Zoomed to the period; drag across the lower chart to look elsewhere."
 - **I2:** List of the **last 25 scans**: local date and time, location, and the product per R3. Each row links to its code page, keeping `?location`.
 - **I0:** A **period selector** at the top of the page, above the chart: a button per period (R7), the selected one shown pressed. The chosen period is kept in `?period=` (default `last-30-days`; unknown values fall back to it). Top scans (I3) and the healthiest and least healthy products (I4) follow it and name it in their headings, e.g. "Top scans · Last 30 days". Latest scans (I2) doesn't follow it.
 - **I3:** A **Top scans** panel (R7), below the chart, for the selected period (I0). An "Unknown only" toggle, kept in `?unknown=1`, switches to the unknown-products lists. Each row shows rank, the product per R3, count and share, and links to its code page. An empty period says so.
@@ -276,6 +279,7 @@ These hold in every build, alongside the schema (§7.2) and the file rules (§7.
   - Each list has at most 10 codes, each code once, with counts positive and most first.
   - Each share is in (0, 1], and a list's shares add up to at most 1, allowing for rounding.
   - `top_unknown_scans` lists only unknown products.
+- **Period days** (I1): for every period, `first_day` is no later than `last_day`. Every period ends on the same day, within a day of the build's UTC date. All time starts on the first scanned day. The days are null only in an index file without scans.
 - **Healthiest and least healthy products** (R8): for every period,
   - each list has at most 10 products, every one with a Nutri-Score and a positive count, and no product is in both;
   - the healthiest are split from the least healthy in halves: the healthiest hold as many products as the least healthy, or one more;

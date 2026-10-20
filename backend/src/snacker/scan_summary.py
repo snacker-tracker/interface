@@ -20,6 +20,8 @@ from snacker.contract import (
     HealthiestAndLeastHealthyByPeriod,
     HourlyCount,
     NutriScore,
+    PeriodDays,
+    PeriodDaysByPeriod,
     ScanRow,
     TopScan,
     TopScansByPeriod,
@@ -144,6 +146,34 @@ def top_scans(
     ranked = flagged.filter(~pl.col("product_known")) if unknown_only else flagged
     return cast(TopScansByPeriod, {
         period: _rank(ranked.filter(pl.col(period)), limit, total=flagged.filter(pl.col(period)).height)
+        for period in PERIODS
+    })
+
+
+def period_days(scans: pl.DataFrame, *, now: datetime) -> PeriodDaysByPeriod:
+    """For every period (see PERIODS), the office days it touches in the scans' office time
+    zones, from the earliest first day to the latest build day. Without scans there's no
+    office time zone to count days in, so every day is null.
+    """
+    if scans.is_empty():
+        return cast(PeriodDaysByPeriod, {period: PeriodDays(first_day=None, last_day=None) for period in PERIODS})
+    zones = [ZoneInfo(zone) for zone in scans["office_time_zone"].unique().to_list()]
+    last_day = max(now.astimezone(zone).date() for zone in zones)
+    first_scanned = cast(date, _with_office_moments(scans.filter(pl.col("scanned_at") <= now))["office_date"].min())
+    first_days: dict[str, date] = {
+        **{
+            period: min(first_day(now.astimezone(zone).date()) for zone in zones)
+            for period, first_day in CALENDAR_PERIODS.items()
+        },
+        **{
+            period: min((now - duration).astimezone(zone).date() for zone in zones)
+            for period, duration in ROLLING_PERIODS.items()
+        },
+        # Scans after the build fall in no period, so all time can start on the build day.
+        "all-time": first_scanned or last_day,
+    }
+    return cast(PeriodDaysByPeriod, {
+        period: PeriodDays(first_day=first_days[period].strftime(DATE_FORMAT), last_day=last_day.strftime(DATE_FORMAT))
         for period in PERIODS
     })
 

@@ -128,7 +128,9 @@ def test_index_files_must_list_every_period() -> None:
     no_products = {"healthiest": [], "least_healthy": [], "graded_scans": 0, "scans": 0}
     index = {
         "location": "all", "top_scans": without_today, "top_unknown_scans": every_period,
-        "healthiest_and_least_healthy": {period: no_products for period in every_period}, "daily": [], "recent": [],
+        "healthiest_and_least_healthy": {period: no_products for period in every_period},
+        "period_days": {period: {"first_day": None, "last_day": None} for period in every_period},
+        "daily": [], "recent": [],
     }
 
     assert schema_errors("IndexFile", index) == ["top_scans: 'today' is a required property"]
@@ -289,6 +291,42 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
             "index/by-location/all.json: healthiest_and_least_healthy/all-time: more graded scans than scans",
         ),
         (
+            lambda data: edit_json(
+                data, "index/by-location/all.json",
+                lambda content: content["period_days"]["today"].update(first_day="2026-10-20"),
+            ),
+            "index/by-location/all.json: period_days/today: first_day is after last_day",
+        ),
+        (
+            lambda data: edit_json(
+                data, "index/by-location/all.json",
+                lambda content: content["period_days"]["all-time"].update(first_day="2023-01-01"),
+            ),
+            "index/by-location/all.json: period_days/all-time: doesn't start on the first scanned day",
+        ),
+        (
+            lambda data: edit_json(
+                data, "index/by-location/all.json",
+                lambda content: content["period_days"]["this-month"].update(last_day="2026-10-18"),
+            ),
+            "index/by-location/all.json: period_days: the periods end on different days",
+        ),
+        (
+            lambda data: edit_json(
+                data, "index/by-location/all.json",
+                lambda content: content.update(period_days={
+                    period: {**days, "last_day": "2026-10-25"} for period, days in content["period_days"].items()
+                }),
+            ),
+            "index/by-location/all.json: period_days: last_day 2026-10-25 isn't the day the data was built",
+        ),
+        (
+            lambda data: edit_json(
+                data, "index/by-location/all.json", lambda content: content["period_days"]["today"].update(first_day=None),
+            ),
+            "index/by-location/all.json: period_days/today: days are null though there are scans",
+        ),
+        (
             lambda data: edit_json(data, "meta.json", lambda content: content.update(generated_at="2026-10-19T12:00:00+00:00")),
             "meta.json: generated_at: '2026-10-19T12:00:00+00:00' isn't a UTC time like 2026-10-19T12:00:00Z",
         ),
@@ -301,7 +339,9 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
         "grades for an unknown product",
         "Nutri-Score for an unknown product in a list", "product in both health lists", "ungraded product in a health list",
         "health lists not split in halves", "least healthy out of order", "health lists overlap in grade",
-        "health list over the limit", "more graded scans than scans", "generated_at not in UTC",
+        "health list over the limit", "more graded scans than scans",
+        "period starts after it ends", "all time not from the first scan", "periods end on different days",
+        "periods end on another day than the build", "null period days with scans", "generated_at not in UTC",
     ],
 )
 def test_the_check_names_each_way_a_build_breaks_the_contract(

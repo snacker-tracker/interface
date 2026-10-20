@@ -21,15 +21,20 @@ export function IndexPage() {
     return <p className="status status-error">Couldn't load scans for {location} ({index.message}).</p>
   }
 
-  const { top_scans, top_unknown_scans, healthiest_and_least_healthy, daily, recent } = index.data
+  const { top_scans, top_unknown_scans, healthiest_and_least_healthy, period_days, daily, recent } = index.data
   const periodName = PERIOD_LABELS[period].label
   return (
     <>
       <PeriodSelector period={period} select={selectPeriod} />
       <section className="panel" aria-labelledby="daily-heading">
         <h2 id="daily-heading">Scans per day</h2>
-        <p className="panel-hint">Drag across the lower chart to zoom in; double-click it to reset.</p>
-        <DailyScansChart daily={daily} />
+        <p className="panel-hint">
+          {period === 'all-time'
+            ? 'Drag across the lower chart to zoom in; double-click it to reset.'
+            : 'Zoomed to the period; drag across the lower chart to look elsewhere.'}
+        </p>
+        {/* All time is the whole history, so it needs no zoom. */}
+        <DailyScansChart daily={daily} zoom={period === 'all-time' ? null : period_days[period]} />
       </section>
       <section className="panel" aria-labelledby="top-scans-heading">
         <h2 id="top-scans-heading">Top scans · {periodName}</h2>

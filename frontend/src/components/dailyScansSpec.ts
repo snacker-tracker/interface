@@ -1,6 +1,6 @@
 import type { VisualizationSpec } from 'vega-embed'
 
-import type { DailyCount } from '../contract'
+import type { DailyCount, PeriodDays } from '../contract'
 import { type ChartTokens, chartConfig } from '../theme'
 
 /**
@@ -8,8 +8,10 @@ import { type ChartTokens, chartConfig } from '../theme'
  * the whole range where dragging a brush zooms the detail chart in. Dates are calendar
  * days already bucketed by the backend, so they're handled as UTC to avoid browser
  * timezone shifts.
+ *
+ * With `zoom`, the brush starts on those days, so the detail chart opens zoomed to them.
  */
-export function dailyScansSpec(daily: DailyCount[], tokens: ChartTokens): VisualizationSpec {
+export function dailyScansSpec(daily: DailyCount[], tokens: ChartTokens, zoom: PeriodDays | null = null): VisualizationSpec {
   const x = {
     field: 'date',
     timeUnit: 'utcyearmonthdate',
@@ -59,7 +61,15 @@ export function dailyScansSpec(daily: DailyCount[], tokens: ChartTokens): Visual
         width: 'container',
         height: 60,
         mark: { ...bar, width: { band: 1 } },
-        params: [{ name: 'brush', select: { type: 'interval', encodings: ['x'] } }],
+        params: [
+          {
+            name: 'brush',
+            select: { type: 'interval', encodings: ['x'] },
+            ...(zoom?.first_day && zoom.last_day
+              ? { value: { x: [utcDay(zoom.first_day), utcDay(zoom.last_day, 1)] } }
+              : {}),
+          },
+        ],
         encoding: {
           x,
           y: { field: 'count', type: 'quantitative', title: null, axis: { tickCount: 2, grid: false } },
@@ -68,4 +78,11 @@ export function dailyScansSpec(daily: DailyCount[], tokens: ChartTokens): Visual
     ],
     config: chartConfig(tokens),
   }
+}
+
+/** "2026-10-12" as a Vega-Lite UTC date, `plusDays` later: the brush ends after its last day's bar. */
+function utcDay(isoDate: string, plusDays = 0) {
+  const day = new Date(`${isoDate}T00:00:00Z`)
+  day.setUTCDate(day.getUTCDate() + plusDays)
+  return { year: day.getUTCFullYear(), month: day.getUTCMonth() + 1, date: day.getUTCDate(), utc: true }
 }

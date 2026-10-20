@@ -110,6 +110,31 @@ HealthiestAndLeastHealthyByPeriod = TypedDict("HealthiestAndLeastHealthyByPeriod
 })
 """The healthiest and least healthy products for every period, keyed by period ID."""
 
+
+class PeriodDays(TypedDict):
+    """The office days a period touches, for zooming a chart of scans per day to it. Both are
+    null only when nothing has been scanned, so there's no office time zone to count days in."""
+
+    first_day: str | None
+    """The office date the period starts on, e.g. "2026-10-12"; a rolling period's partial
+    first day counts. All time starts on the first scanned day. Across office time zones,
+    the earliest."""
+    last_day: str | None
+    """The office date the data was built on; across office time zones, the latest."""
+
+
+PeriodDaysByPeriod = TypedDict("PeriodDaysByPeriod", {
+    "today": PeriodDays,
+    "this-work-week": PeriodDays,
+    "last-7-days": PeriodDays,
+    "this-month": PeriodDays,
+    "last-30-days": PeriodDays,
+    "this-year": PeriodDays,
+    "last-365-days": PeriodDays,
+    "all-time": PeriodDays,
+})
+"""The office days of every period, keyed by period ID."""
+
 Period = Literal[
     "today",
     "this-work-week",
@@ -220,6 +245,7 @@ class IndexFile(TypedDict):
     top_unknown_scans: TopScansByPeriod
     """Top scans of unknown products only; shares are still of all scans in the period."""
     healthiest_and_least_healthy: HealthiestAndLeastHealthyByPeriod
+    period_days: PeriodDaysByPeriod
     daily: list[DailyCount]
     """Scans per office date, oldest first; days without scans are left out."""
     recent: list[ScanRow]

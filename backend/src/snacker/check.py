@@ -167,6 +167,7 @@ class _Output:
             yield from self._top_scans(path, "top_scans", content["top_scans"], unknown_only=False)
             yield from self._top_scans(path, "top_unknown_scans", content["top_unknown_scans"], unknown_only=True)
             yield from self._healthiest_and_least_healthy(path, content["healthiest_and_least_healthy"])
+            yield from self._period_days(path, content["period_days"], content["daily"])
         for path, content in self.of("CodeScansFile"):
             yield from self._daily(path, content["daily"])
             yield from self._hourly(path, content["hourly"])
@@ -290,6 +291,28 @@ class _Output:
                 yield Violation(path, f"{where}: more graded scans than scans")
             if sum(row["count"] for row in healthiest + least_healthy) > lists["graded_scans"]:
                 yield Violation(path, f"{where}: lists more scans than there are graded scans")
+
+    def _period_days(self, path: PurePosixPath, by_period: dict[str, Any], daily: list[Any]) -> Iterator[Violation]:
+        """Periods end on the build's office day; all time starts on the first scanned day."""
+        for period, days in by_period.items():
+            if daily and None in days.values():
+                yield Violation(path, f"period_days/{period}: days are null though there are scans")
+            elif days["first_day"] and days["last_day"] and days["first_day"] > days["last_day"]:
+                yield Violation(path, f"period_days/{period}: first_day is after last_day")
+        if daily and by_period["all-time"]["first_day"] != daily[0]["date"]:
+            yield Violation(path, "period_days/all-time: doesn't start on the first scanned day")
+        last_days = {days["last_day"] for days in by_period.values()} - {None}
+        if len(last_days) > 1:
+            yield Violation(path, "period_days: the periods end on different days")
+        built = self._built_at()
+        for last_day in last_days:
+            # An office day differs from the UTC day by at most one, either way.
+            if built and abs((date.fromisoformat(last_day) - built.date()).days) > 1:
+                yield Violation(path, f"period_days: last_day {last_day} isn't the day the data was built")
+
+    def _built_at(self) -> datetime | None:
+        meta = self.files.get(meta_path())
+        return datetime.fromisoformat(meta[1]["generated_at"]) if meta else None
 
 
 def _grade(row: dict[str, Any]) -> int:

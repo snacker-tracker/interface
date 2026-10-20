@@ -1,14 +1,17 @@
 import { useMemo } from 'react'
 import { VegaEmbed } from 'react-vega'
 
-import type { DailyCount } from '../contract'
+import type { DailyCount, PeriodDays } from '../contract'
 import { useChartTokens } from '../theme'
 import { dailyScansSpec } from './dailyScansSpec'
 
-/** Scans per day, with brush-to-zoom (see `dailyScansSpec`) and a table view of the same data. */
-export function DailyScansChart({ daily }: { daily: DailyCount[] }) {
+/**
+ * Scans per day, with brush-to-zoom (see `dailyScansSpec`) and a table view of the same data.
+ * With `zoom`, it opens zoomed to those days; brushing by hand still moves it.
+ */
+export function DailyScansChart({ daily, zoom = null }: { daily: DailyCount[]; zoom?: PeriodDays | null }) {
   const tokens = useChartTokens()
-  const spec = useMemo(() => dailyScansSpec(daily, tokens), [daily, tokens])
+  const spec = useMemo(() => dailyScansSpec(daily, tokens, zoom), [daily, tokens, zoom])
 
   if (daily.length === 0) return <p className="status">No scans yet.</p>
 
