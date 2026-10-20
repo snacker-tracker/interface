@@ -29,7 +29,9 @@ export function ScannedProduct({
   if (name) {
     return (
       <>
-        <Link to={codePage}>{name}</Link>
+        <Link to={codePage} title={code}>
+          {name}
+        </Link>
         <ArchiveTag nameSource={nameSource} />
         {brands && <span className="brands">{brands}</span>}
         {!known && <OpenFoodFactsLink code={code} known={known} />}

@@ -112,7 +112,7 @@ Every scan counts in every chart and list, whether or not the code is a barcode 
 
 - A code OpenFoodFacts doesn't have is an **unknown product** (GLOSSARY.md), even when the Snacker archive names it.
 - A product's name comes from OpenFoodFacts when it has one, otherwise from the Snacker archive (§4.4). An archive name is always tagged "Snacker archive"; OpenFoodFacts names aren't tagged.
-- In the scan lists (Top scans, the latest scans and a scanner's last scan), a product with a name shows its name and brands, never its code. An unknown product with an archive name also links to "Add it to OpenFoodFacts". A product without a name shows its raw code instead, with a link to OpenFoodFacts if the code is a barcode: "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`) for an unknown product, "On OpenFoodFacts" (`https://world.openfoodfacts.org/product/{code}`) for a known one without a name.
+- In the scan lists (Top scans, the latest scans and a scanner's last scan), a product with a name shows its name and brands, with its code only as the name's tooltip. An unknown product with an archive name also links to "Add it to OpenFoodFacts". A product without a name shows its raw code instead, with a link to OpenFoodFacts if the code is a barcode: "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`) for an unknown product, "On OpenFoodFacts" (`https://world.openfoodfacts.org/product/{code}`) for a known one without a name.
 - The code page shows "Unknown product" and the raw code for a product without a name.
 
 ### R4: Office time
