@@ -86,6 +86,7 @@ function TopScanRow({ row }: { row: TopScan }) {
             nameSource={row.name_source}
             brands={row.brands}
             known={row.known}
+            nutriScore={row.nutri_score}
           />
         </div>
         <div className="top-scan-count">

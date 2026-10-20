@@ -2,7 +2,7 @@
 
 Days are counted in each scan's office time zone, so the scans table must carry an
 `office_time_zone` column (see Locations.with_office_time_zones) alongside `scanned_at` in UTC,
-plus `product_name`, `product_name_source`, `product_brands` and `product_known` columns (see products.with_products).
+plus `product_name`, `product_name_source`, `product_brands`, `product_known` and `product_nutri_score` columns (see products.with_products).
 """
 
 from dataclasses import dataclass
@@ -94,7 +94,7 @@ def _recent_scans(scans: pl.DataFrame, limit: int) -> list[ScanRow]:
         scans.sort(["scanned_at", "event_id"], descending=True)
         .head(limit)
         .select(
-            "code", "product_name", "product_name_source", "product_brands", "product_known",
+            "code", "product_name", "product_name_source", "product_brands", "product_known", "product_nutri_score",
             "location", "scanned_at", "office_time_zone",
         )
     )
@@ -105,6 +105,7 @@ def _recent_scans(scans: pl.DataFrame, limit: int) -> list[ScanRow]:
             name_source=row["product_name_source"],
             brands=row["product_brands"],
             known=row["product_known"],
+            nutri_score=row["product_nutri_score"],
             location=row["location"],
             scanned_at=row["scanned_at"].strftime(UTC_TIMESTAMP_FORMAT),
             office_time=in_office_time_zone(row["scanned_at"], row["office_time_zone"]),
@@ -186,6 +187,7 @@ def _rank(scans: pl.DataFrame, limit: int, *, total: int) -> list[TopScan]:
             pl.col("product_name_source").first(),
             pl.col("product_brands").first(),
             pl.col("product_known").first(),
+            pl.col("product_nutri_score").first(),
         )
         .sort(["count", "last_scanned_at", "code"], descending=[True, True, False])
         .head(limit)
@@ -197,6 +199,7 @@ def _rank(scans: pl.DataFrame, limit: int, *, total: int) -> list[TopScan]:
             name_source=row["product_name_source"],
             brands=row["product_brands"],
             known=bool(row["product_known"]),
+            nutri_score=row["product_nutri_score"],
             count=row["count"],
             share=round(row["count"] / total, 4),
         )

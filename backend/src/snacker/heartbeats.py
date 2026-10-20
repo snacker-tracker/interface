@@ -96,7 +96,7 @@ def scanner_statuses(heartbeats: pl.DataFrame, scans: pl.DataFrame) -> list[Scan
         # Renamed so it can't be confused with the heartbeat's own times once joined.
         .select(
             "api_key", pl.col("scanned_at").alias("last_scanned_at"),
-            "code", "product_name", "product_name_source", "product_known",
+            "code", "product_name", "product_name_source", "product_known", "product_nutri_score",
         )
     )
     rows = latest_heartbeats.join(last_scans, on="api_key", how="left", maintain_order="left")
@@ -112,6 +112,7 @@ def scanner_statuses(heartbeats: pl.DataFrame, scans: pl.DataFrame) -> list[Scan
                 product_name=row["product_name"],
                 name_source=row["product_name_source"],
                 known=row["product_known"],
+                nutri_score=row["product_nutri_score"],
             ),
         )
         for row in rows.iter_rows(named=True)

@@ -535,3 +535,11 @@ details .table-scroll {
 .green-score[data-grade='F'] {
   background: #a5110a;
 }
+
+/* In a scan list, the Nutri-Score sits after the product, smaller than on the card. */
+.grade.compact {
+  font-size: 0.7rem;
+  padding: 0 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}

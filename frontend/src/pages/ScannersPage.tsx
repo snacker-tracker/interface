@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router'
 
 import { Ago } from '../components/Ago'
+import { NutriScoreBadge } from '../components/Grades'
 import { ArchiveTag } from '../components/ScannedProduct'
 import { ScannerStateLabel } from '../components/ScannerStateLabel'
 import type { MetaFile, ScannersFile, ScannerStatus } from '../contract'
@@ -82,6 +83,7 @@ function ScannersTable({ scanners, now }: { scanners: ScannerStatus[]; now: numb
                         {scanner.last_scan.product_name ?? scanner.last_scan.code}
                       </Link>
                       <ArchiveTag nameSource={scanner.last_scan.name_source} />
+                      <NutriScoreBadge grade={scanner.last_scan.nutri_score} />
                     </>
                   ) : (
                     'Never'

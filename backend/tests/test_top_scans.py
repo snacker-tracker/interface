@@ -51,10 +51,10 @@ def test_a_row_names_the_product_counts_its_scans_and_gives_its_share_of_the_per
     rows = top_scans(scans, limit=10, now=NOW)["last-7-days"]
 
     assert rows == [
-        {"code": "8851959132012", "name": "Coca Cola", "name_source": "openfoodfacts", "brands": "Coke", "known": True,
+        {"code": "8851959132012", "name": "Coca Cola", "name_source": "openfoodfacts", "brands": "Coke", "known": True, "nutri_score": None,
          "count": 2, "share": 0.5},
-        {"code": "8858702410304", "name": None, "name_source": None, "brands": None, "known": True, "count": 1, "share": 0.25},
-        {"code": "005", "name": None, "name_source": None, "brands": None, "known": False, "count": 1, "share": 0.25},
+        {"code": "8858702410304", "name": None, "name_source": None, "brands": None, "known": True, "nutri_score": None, "count": 1, "share": 0.25},
+        {"code": "005", "name": None, "name_source": None, "brands": None, "known": False, "nutri_score": None, "count": 1, "share": 0.25},
     ]
 
 

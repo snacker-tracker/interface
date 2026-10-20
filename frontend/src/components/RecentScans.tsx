@@ -52,6 +52,7 @@ export function RecentScans({ scans, forOneCode = false }: { scans: ScanRow[]; f
                     nameSource={scan.name_source}
                     brands={scan.brands}
                     known={scan.known}
+                    nutriScore={scan.nutri_score}
                   />
                 </td>
               )}

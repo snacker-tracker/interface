@@ -159,6 +159,24 @@
         "known": {
           "description": "Whether OpenFoodFacts has the product.",
           "type": "boolean"
+        },
+        "nutri_score": {
+          "anyOf": [
+            {
+              "enum": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The product's Nutri-Score; null when OpenFoodFacts has none."
         }
       },
       "required": [
@@ -166,7 +184,8 @@
         "code",
         "product_name",
         "name_source",
-        "known"
+        "known",
+        "nutri_score"
       ],
       "title": "LastScan",
       "type": "object"
@@ -430,6 +449,24 @@
           "description": "Whether OpenFoodFacts has the product; it may have it without a name.",
           "type": "boolean"
         },
+        "nutri_score": {
+          "anyOf": [
+            {
+              "enum": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The product's Nutri-Score; null when OpenFoodFacts has none."
+        },
         "location": {
           "type": "string"
         },
@@ -452,6 +489,7 @@
         "name_source",
         "brands",
         "known",
+        "nutri_score",
         "location",
         "scanned_at",
         "office_time",
@@ -581,6 +619,24 @@
           "description": "Whether OpenFoodFacts has the product; unknown products are flagged in the UI.",
           "type": "boolean"
         },
+        "nutri_score": {
+          "anyOf": [
+            {
+              "enum": [
+                "A",
+                "B",
+                "C",
+                "D",
+                "E"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "The product's Nutri-Score; null when OpenFoodFacts has none."
+        },
         "count": {
           "type": "integer"
         },
@@ -595,6 +651,7 @@
         "name_source",
         "brands",
         "known",
+        "nutri_score",
         "count",
         "share"
       ],

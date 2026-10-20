@@ -184,8 +184,8 @@ def update_products(
 
 
 def with_products(scans: pl.DataFrame, products_parquet: Path) -> pl.DataFrame:
-    """Attach each scan's product as `product_name`, `product_name_source`, `product_brands`
-    and `product_known` columns.
+    """Attach each scan's product as `product_name`, `product_name_source`, `product_brands`,
+    `product_known` and `product_nutri_score` columns.
 
     Brands are null, and known is false, for unknown products, including codes scanned
     since the last extraction; the name is null unless the Snacker archive gives one.
@@ -196,6 +196,7 @@ def with_products(scans: pl.DataFrame, products_parquet: Path) -> pl.DataFrame:
         pl.col("name_source").cast(pl.String()).alias("product_name_source"),
         pl.col("brands").alias("product_brands"),
         pl.col("known").alias("product_known"),
+        pl.col("nutri_score").cast(pl.String()).alias("product_nutri_score"),
     )
     return scans.join(products, on="code", how="left", maintain_order="left").with_columns(
         pl.col("product_known").fill_null(False)

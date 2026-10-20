@@ -48,6 +48,10 @@ export interface ScanRow {
    * Whether OpenFoodFacts has the product; it may have it without a name.
    */
   known: boolean
+  /**
+   * The product's Nutri-Score; null when OpenFoodFacts has none.
+   */
+  nutri_score: ('A' | 'B' | 'C' | 'D' | 'E') | null
   location: string
   /**
    * UTC, e.g. "2026-09-23T06:26:00Z".
@@ -100,6 +104,10 @@ export interface TopScan {
    * Whether OpenFoodFacts has the product; unknown products are flagged in the UI.
    */
   known: boolean
+  /**
+   * The product's Nutri-Score; null when OpenFoodFacts has none.
+   */
+  nutri_score: ('A' | 'B' | 'C' | 'D' | 'E') | null
   count: number
   /**
    * This code's fraction of all scans in the period, e.g. 0.25.
@@ -124,6 +132,10 @@ export interface LastScan {
    * Whether OpenFoodFacts has the product.
    */
   known: boolean
+  /**
+   * The product's Nutri-Score; null when OpenFoodFacts has none.
+   */
+  nutri_score: ('A' | 'B' | 'C' | 'D' | 'E') | null
 }
 export interface LocationsFile {
   /**

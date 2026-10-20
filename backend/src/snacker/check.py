@@ -194,6 +194,7 @@ class _Output:
                     where = f"{scanner['name']} last_scan"
                     yield from _utc(path, where, last_scan["scanned_at"])
                     yield from _name_source(path, where, last_scan["product_name"], last_scan)
+                    yield from _nutri_score(path, where, last_scan)
 
     def _daily(self, path: PurePosixPath, daily: list[Any]) -> Iterator[Violation]:
         try:
@@ -218,6 +219,7 @@ class _Output:
             yield from _utc(path, f"{where}/scanned_at", row["scanned_at"])
             yield from _office_time(path, where, row)
             yield from _name_source(path, where, row["name"], row)
+            yield from _nutri_score(path, where, row)
             if not _within(row["location"], location):
                 yield Violation(path, f"{where}: scanned at {row['location']!r}, outside this location")
             if row["location"] not in self.selectable:
@@ -251,6 +253,7 @@ class _Output:
                 yield Violation(path, f"{where}: lists a known product")
             for index, row in enumerate(rows):
                 yield from _name_source(path, f"{where}/{index}", row["name"], row)
+                yield from _nutri_score(path, f"{where}/{index}", row)
 
 
 def _within(location: str, selected: str) -> bool:
@@ -266,6 +269,12 @@ def _name_source(path: PurePosixPath, where: str, name: str | None, row: dict[st
         yield Violation(path, f"{where}: name_source is null but the name isn't")
     if row["name_source"] == "openfoodfacts" and not row["known"]:
         yield Violation(path, f"{where}: an OpenFoodFacts name for a product OpenFoodFacts doesn't have")
+
+
+def _nutri_score(path: PurePosixPath, where: str, row: dict[str, Any]) -> Iterator[Violation]:
+    """Only OpenFoodFacts grades products, so only a known product's row has a Nutri-Score."""
+    if row["nutri_score"] is not None and not row["known"]:
+        yield Violation(path, f"{where}: a Nutri-Score for a product OpenFoodFacts doesn't have")
 
 
 def _utc(path: PurePosixPath, field: str, value: str) -> Iterator[Violation]:

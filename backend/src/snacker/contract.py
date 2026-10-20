@@ -45,6 +45,8 @@ class ScanRow(TypedDict):
     brands: str | None
     known: bool
     """Whether OpenFoodFacts has the product; it may have it without a name."""
+    nutri_score: NutriScore | None
+    """The product's Nutri-Score; null when OpenFoodFacts has none."""
     location: str
     scanned_at: str
     """UTC, e.g. "2026-09-23T06:26:00Z"."""
@@ -62,6 +64,8 @@ class TopScan(TypedDict):
     brands: str | None
     known: bool
     """Whether OpenFoodFacts has the product; unknown products are flagged in the UI."""
+    nutri_score: NutriScore | None
+    """The product's Nutri-Score; null when OpenFoodFacts has none."""
     count: int
     share: float
     """This code's fraction of all scans in the period, e.g. 0.25."""
@@ -130,6 +134,8 @@ class LastScan(TypedDict):
     """Where the name came from; null exactly when the name is."""
     known: bool
     """Whether OpenFoodFacts has the product."""
+    nutri_score: NutriScore | None
+    """The product's Nutri-Score; null when OpenFoodFacts has none."""
 
 
 class ScannerStatus(TypedDict):

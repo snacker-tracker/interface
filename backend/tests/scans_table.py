@@ -16,6 +16,7 @@ def scan(
     product_name_source: str | None = None,
     product_brands: str | None = None,
     product_known: bool = False,
+    product_nutri_score: str | None = None,
 ) -> dict[str, object]:
     return {
         "event_id": str(uuid.uuid4()),
@@ -28,6 +29,7 @@ def scan(
         "product_name_source": product_name_source or ("openfoodfacts" if product_name else None),
         "product_brands": product_brands,
         "product_known": product_known,
+        "product_nutri_score": product_nutri_score,
     }
 
 
@@ -44,5 +46,6 @@ def scans_table(*scans: dict[str, object]) -> pl.DataFrame:
             "product_name_source": pl.String(),
             "product_brands": pl.String(),
             "product_known": pl.Boolean(),
+            "product_nutri_score": pl.String(),
         },
     )

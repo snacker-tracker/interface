@@ -53,10 +53,16 @@ export function Grades({ product }: { product: Product }) {
   )
 }
 
+/** A product's Nutri-Score in a scan list, where the other grades are left out; none without one. */
+export function NutriScoreBadge({ grade }: { grade: Product['nutri_score'] }) {
+  if (grade === null) return null
+  return <GradeBadge scale="nutri-score" grade={grade} compact />
+}
+
 /** A grade as text on its colour, so it reads without the colour too. */
-function GradeBadge({ scale, grade }: { scale: Scale; grade: string | number }) {
+function GradeBadge({ scale, grade, compact = false }: { scale: Scale; grade: string | number; compact?: boolean }) {
   return (
-    <span className={`grade ${scale}`} data-grade={grade} title={MEANINGS[scale][grade]}>
+    <span className={`grade ${scale}${compact ? ' compact' : ''}`} data-grade={grade} title={MEANINGS[scale][grade]}>
       {LABELS[scale]} {grade}
     </span>
   )

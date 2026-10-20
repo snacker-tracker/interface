@@ -78,6 +78,7 @@ def valid_scan_row() -> dict[str, Any]:
         "name_source": None,
         "brands": None,
         "known": False,
+        "nutri_score": None,
         "location": "thailand:test",
         "scanned_at": "2026-10-19T04:00:00Z",
         "office_time": "2026-10-19T11:00:00+07:00",
@@ -227,6 +228,14 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
             "codes/http:%2F%2Foishidrink.com%2Fm%2F/product.json: product: grades for a product OpenFoodFacts doesn't have",
         ),
         (
+            lambda data: edit_json(
+                data,
+                "index/by-location/all.json",
+                lambda content: content["top_unknown_scans"]["all-time"][0].update(nutri_score="A"),
+            ),
+            "index/by-location/all.json: top_unknown_scans/all-time/0: a Nutri-Score for a product OpenFoodFacts doesn't have",
+        ),
+        (
             lambda data: edit_json(data, "meta.json", lambda content: content.update(generated_at="2026-10-19T12:00:00+00:00")),
             "meta.json: generated_at: '2026-10-19T12:00:00+00:00' isn't a UTC time like 2026-10-19T12:00:00Z",
         ),
@@ -236,7 +245,8 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
         "unselectable location", "office time a different moment", "office time in another zone",
         "daily out of order", "recent out of order", "known product in unknown-only list", "shares over 1",
         "name without a source", "OpenFoodFacts name for an unknown product", "product name without a source",
-        "grades for an unknown product", "generated_at not in UTC",
+        "grades for an unknown product",
+        "Nutri-Score for an unknown product in a list", "generated_at not in UTC",
     ],
 )
 def test_the_check_names_each_way_a_build_breaks_the_contract(
