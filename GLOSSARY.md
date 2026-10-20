@@ -15,11 +15,15 @@ The value a scanner read: usually a product barcode, but sometimes a QR-code URL
 _Avoid_: UPC, EAN, barcode (when the value isn't necessarily one)
 
 **Product**:
-What a code identifies, when the product catalogue knows it.
+What a code identifies, as described by OpenFoodFacts or the Snacker archive. Where both describe it, OpenFoodFacts is preferred and the archive fills what it lacks.
 _Avoid_: item, snack (for the catalogue entry)
 
+**Snacker archive**:
+Product records kept by the previous Snacker Tracker, pulled from shop websites or entered by hand. Frozen: nothing is added or corrected. A second, less trusted source of product details than OpenFoodFacts.
+_Avoid_: legacy data, historical data, old codes
+
 **Unknown product**:
-A code with no matching product; its scans still count.
+A code OpenFoodFacts doesn't have, whether or not the Snacker archive does; worth adding to OpenFoodFacts. Its scans still count.
 
 **Scan summary**:
 What a set of scans amounts to: how many fell on each day and in each hour of the day in their office time zone, and which were the most recent.
