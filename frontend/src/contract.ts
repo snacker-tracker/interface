@@ -40,6 +40,10 @@ export interface ScanRow {
    */
   name: string | null
   brands: string | null
+  /**
+   * Whether OpenFoodFacts has the product; it may have it without a name.
+   */
+  known: boolean
   location: string
   /**
    * UTC, e.g. "2026-09-23T06:26:00Z".
@@ -104,6 +108,10 @@ export interface LastScan {
    * Null for an unknown product.
    */
   product_name: string | null
+  /**
+   * Whether OpenFoodFacts has the product.
+   */
+  known: boolean
 }
 export interface LocationsFile {
   /**
@@ -125,7 +133,7 @@ export interface MetaFile {
   /**
    * The version of this contract the data was built to (CONTRACT_VERSION).
    */
-  contract_version: 1
+  contract_version: 2
 }
 /**
  * What a code page shows about a product (PRD R5).
@@ -198,4 +206,4 @@ export const PERIODS = [
 export type Period = (typeof PERIODS)[number]
 
 /** The contract version this frontend was built for; meta.json names the one the data was built to. */
-export const CONTRACT_VERSION = 1
+export const CONTRACT_VERSION = 2

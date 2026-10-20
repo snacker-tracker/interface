@@ -72,6 +72,7 @@ def test_lists_the_most_recent_scans_newest_first() -> None:
         "code": "8850000000026",
         "name": None,
         "brands": None,
+        "known": False,
         "location": "thailand:bangkok:main-kitchen",
         "scanned_at": "2026-09-23T06:26:00Z",
         "office_time": "2026-09-23T13:26:00+07:00",

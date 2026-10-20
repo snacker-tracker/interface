@@ -140,12 +140,17 @@
             }
           ],
           "description": "Null for an unknown product."
+        },
+        "known": {
+          "description": "Whether OpenFoodFacts has the product.",
+          "type": "boolean"
         }
       },
       "required": [
         "scanned_at",
         "code",
-        "product_name"
+        "product_name",
+        "known"
       ],
       "title": "LastScan",
       "type": "object"
@@ -175,7 +180,7 @@
           "type": "string"
         },
         "contract_version": {
-          "const": 1,
+          "const": 2,
           "description": "The version of this contract the data was built to (CONTRACT_VERSION).",
           "type": "integer"
         }
@@ -307,6 +312,10 @@
             }
           ]
         },
+        "known": {
+          "description": "Whether OpenFoodFacts has the product; it may have it without a name.",
+          "type": "boolean"
+        },
         "location": {
           "type": "string"
         },
@@ -327,6 +336,7 @@
         "code",
         "name",
         "brands",
+        "known",
         "location",
         "scanned_at",
         "office_time",

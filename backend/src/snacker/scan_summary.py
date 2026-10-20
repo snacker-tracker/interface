@@ -93,13 +93,14 @@ def _recent_scans(scans: pl.DataFrame, limit: int) -> list[ScanRow]:
     rows = (
         scans.sort(["scanned_at", "event_id"], descending=True)
         .head(limit)
-        .select("code", "product_name", "product_brands", "location", "scanned_at", "office_time_zone")
+        .select("code", "product_name", "product_brands", "product_known", "location", "scanned_at", "office_time_zone")
     )
     return [
         ScanRow(
             code=row["code"],
             name=row["product_name"],
             brands=row["product_brands"],
+            known=row["product_known"],
             location=row["location"],
             scanned_at=row["scanned_at"].strftime(UTC_TIMESTAMP_FORMAT),
             office_time=in_office_time_zone(row["scanned_at"], row["office_time_zone"]),

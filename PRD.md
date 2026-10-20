@@ -102,7 +102,7 @@ Duplicate `event_id`s are dropped.
 Every scan counts in every chart and list, whether or not the code is a barcode or has product info.
 
 - A code OpenFoodFacts doesn't have is an **unknown product** (GLOSSARY.md).
-- In the scan lists (Top scans and the latest scans), a product with a name shows its name and brands, never its code. A product without a name shows its raw code instead, with a link to OpenFoodFacts if the code is a barcode: "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`) for an unknown product, "On OpenFoodFacts" (`https://world.openfoodfacts.org/product/{code}`) for a known one without a name. Recent-scan rows don't say whether a product is known, so there a nameless product is treated as unknown; see §10.
+- In the scan lists (Top scans and the latest scans), a product with a name shows its name and brands, never its code. A product without a name shows its raw code instead, with a link to OpenFoodFacts if the code is a barcode: "Add it to OpenFoodFacts" (`https://world.openfoodfacts.org/cgi/product.pl?type=search_or_add&action=process&code={code}`) for an unknown product, "On OpenFoodFacts" (`https://world.openfoodfacts.org/product/{code}`) for a known one without a name.
 - The code page shows "Unknown product" and the raw code for a product without a name.
 
 ### R4: Office time
@@ -214,7 +214,7 @@ The shapes are defined by the JSON Schema at `contract/static-json.schema.json`.
 - **Generated, not hand-edited:** the schema comes from the backend's contract module (`snacker schema`), and a test fails when the committed copy is out of date.
 - **Frontend types:** the frontend's types for these files (`frontend/src/contract.ts`) are generated from the schema by `npm run contract`. The frontend build and lint fail when they're out of date.
 - **Strict:** every field is required, even one that may be null, and fields the schema doesn't list are rejected.
-- **Versioned:** `meta.json` carries `contract_version`, a single integer (now 1). Bump it on any breaking change: removing, renaming or retyping a field, a field becoming nullable, a file moving, adding a field, or changing a rule in §7.1 or §7.4. Adding a field counts because the schema rejects fields it doesn't list; only a whole new file doesn't. The frontend reads `meta.json` before any other file. When the version differs from the one it was built for, every page says the data and interface are out of step instead of rendering.
+- **Versioned:** `meta.json` carries `contract_version`, a single integer (now 2). Bump it on any breaking change: removing, renaming or retyping a field, a field becoming nullable, a file moving, adding a field, or changing a rule in §7.1 or §7.4. Adding a field counts because the schema rejects fields it doesn't list; only a whole new file doesn't. The frontend reads `meta.json` before any other file. When the version differs from the one it was built for, every page says the data and interface are out of step instead of rendering.
 - **What the schema can't express:** which files exist (§7.1) and the rules that hold across fields and files (§7.4).
 
 ### 7.3 Encoding
@@ -325,7 +325,6 @@ Frontend tests are out of scope for this phase.
 
 ## 10. Future / open
 
-- **Nameless known products in recent scans:** scan rows don't carry `known` yet, so a known product without a name gets "Add it to OpenFoodFacts" in the latest-scans list rather than "On OpenFoodFacts" as in Top scans.
 - Range toggle or weekly/monthly roll-ups on the index chart, if the all-history daily chart proves hard to read.
 - Telemetry (wifi RSSI, uptime, free memory, reset cause) on the scanners page.
 - The scanner name in the scan payload (a firmware change), which would replace the API-key link (docs/adr/0002).

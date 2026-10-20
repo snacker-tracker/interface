@@ -24,10 +24,10 @@ def write_products(
 ) -> None:
     """The extracted products table: code -> (name, brands), plus optional details by code.
 
-    A code whose name and brands are both None is an unknown product.
+    A code whose name and brands are both None, and that has no details, is an unknown product.
     """
     def row(code: str, name: str | None, brands: str | None) -> dict[str, Any]:
-        if name is None and brands is None:
+        if name is None and brands is None and code not in (details or {}):
             return {"code": code, "known": False}
         known = {"known": True, "off_url": OPENFOODFACTS_PRODUCT_PAGE.format(code=code), "categories": []}
         return {"code": code, "name": name, "brands": brands, **known, **(details or {}).get(code, {})}

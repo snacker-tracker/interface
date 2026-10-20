@@ -29,6 +29,8 @@ class ScanRow(TypedDict):
     name: str | None
     """The product's name; null for an unknown product."""
     brands: str | None
+    known: bool
+    """Whether OpenFoodFacts has the product; it may have it without a name."""
     location: str
     scanned_at: str
     """UTC, e.g. "2026-09-23T06:26:00Z"."""
@@ -97,6 +99,8 @@ class LastScan(TypedDict):
     code: str
     product_name: str | None
     """Null for an unknown product."""
+    known: bool
+    """Whether OpenFoodFacts has the product."""
 
 
 class ScannerStatus(TypedDict):
@@ -119,8 +123,8 @@ class SelectableLocation(TypedDict):
 
 # --- Files ---
 
-ContractVersion = Literal[1]
-CONTRACT_VERSION: ContractVersion = 1
+ContractVersion = Literal[2]
+CONTRACT_VERSION: ContractVersion = 2
 """The version of this contract, written to meta.json so the frontend can tell when the data
 it was built for and the data it is served are out of step.
 

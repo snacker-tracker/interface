@@ -71,6 +71,7 @@ def valid_scan_row() -> dict[str, Any]:
         "code": "005",
         "name": None,
         "brands": None,
+        "known": False,
         "location": "thailand:test",
         "scanned_at": "2026-10-19T04:00:00Z",
         "office_time": "2026-10-19T11:00:00+07:00",
@@ -259,6 +260,6 @@ def test_a_build_replaces_the_previous_data_entirely(raw_dir: Path, out_dir: Pat
 
 
 def test_meta_must_name_this_contract_version() -> None:
-    assert schema_errors("MetaFile", {"generated_at": "2026-10-19T12:00:00Z", "contract_version": 2}) == [
-        "contract_version: 1 was expected"
+    assert schema_errors("MetaFile", {"generated_at": "2026-10-19T12:00:00Z", "contract_version": 1}) == [
+        "contract_version: 2 was expected"
     ]
