@@ -108,7 +108,7 @@ configuration takes as `image_uri`. A commit that already has an image reuses it
 
 ## Deploying
 
-`.github/workflows/dev.yml` deploys dev on every push to `main`:
+`.github/workflows/dev.yml` deploys dev on every push to `master`:
 
 1. Backend tests and mypy, frontend lint and build. A failure stops the deploy before it starts.
 2. `scripts/push-image.sh`. The job summary records the digest, for promotion to prod.

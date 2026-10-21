@@ -1,6 +1,6 @@
 # 07: CI deploys dev on push to main
 
-**What to build:** pushing to main tests the code and deploys it to dev with no manual steps, so dev always runs main.
+**What to build:** pushing to master tests the code and deploys it to dev with no manual steps, so dev always runs master. (The branch stays `master`; the title says main from before that was decided.)
 
 **Blocked by:** 06 (Dev runs on Lambda behind CloudFront).
 
@@ -19,7 +19,7 @@ Decisions from the design session (ADRs 0005, 0006):
 - **Pull requests** get a `terraform plan` in the `dev` workspace, run with read-only use of the same role.
 - **Contract mismatch:** between steps 5 and 6 a page may show the designed "data and interface are out of step" message for a few seconds.
 
-- [ ] A push to main deploys dev end to end, and a failing test stops it before anything is deployed.
+- [ ] A push to master deploys dev end to end, and a failing test stops it before anything is deployed.
 - [ ] The workflow never writes under `data/`, and the role's explicit deny would stop it if it tried.
 - [ ] Pull requests show a dev plan.
 - [ ] The image is built once per commit, and its digest is recorded so that 08 can promote it.
@@ -29,7 +29,7 @@ Decisions from the design session (ADRs 0005, 0006):
 **2026-10-21: workflow written, not yet run.** `.github/workflows/dev.yml`:
 - `backend` (uv, mypy, pytest) and `frontend` (lint, build, artifact `frontend-<sha>` kept 90 days) run on every push and PR.
 - `plan` (PRs): assumes the dev CI role without an environment (OIDC subject `pull_request`), then `terraform plan -lock=false` against the image dev runs now; the plan goes in the job summary.
-- `deploy` (push to main, environment `dev`, one at a time; needs both test jobs):
+- `deploy` (push to master, environment `dev`, one at a time; needs both test jobs):
   - `backend/scripts/push-image.sh` builds once per commit and reuses an image already tagged with the SHA;
   - `terraform apply` points both functions at the digest;
   - it waits on both functions and invokes one build, failing on a function error;
@@ -44,7 +44,7 @@ The digest is in the job summary, and the commit's ECR tag leads to it for 08.
 - The IAM simulator allows every read and write the jobs make, and explicitly denies `data/*` writes.
 
 **Before the first run:**
-- Push to `snacker-tracker/interface` with the branch named `main` (it's `master` locally).
+- Push to `snacker-tracker/interface` (the branch stays `master`, which the workflow triggers on).
 - Create the `dev` environment.
 
 **Open:** PRs plan with the full CI role, as the trust policy allows. "Read-only" is only how the job uses it. PRs from forks get no OIDC token, so their plan job fails.

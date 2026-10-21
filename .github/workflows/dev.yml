@@ -1,11 +1,11 @@
-# Dev always runs main (aws-deployment ticket 07, ADRs 0005 and 0006). A push to main tests,
+# Dev always runs master (aws-deployment ticket 07, ADRs 0005 and 0006). A push to master tests,
 # builds the image once, applies the main configuration and publishes; a pull request tests and
 # shows the dev plan.
 name: dev
 
 on:
   push:
-    branches: [main]
+    branches: [master]
   pull_request:
 
 permissions:
