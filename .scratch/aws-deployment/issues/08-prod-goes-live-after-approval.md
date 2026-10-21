@@ -47,3 +47,13 @@ Decisions from the design session (ADRs 0003–0006):
 - Create the `prod` GitHub environment with required reviewers.
 - After the first prod apply, upload the Snacker archive to `s3://snacker-tracker-prod-working/snacker-archive.csv` by hand, as in dev. Until then the extraction the first build starts fails, and each scheduled build starts it again.
 - Check `https://<distribution_domain>`, then set `serve_hostnames = true` and run again.
+
+**2026-10-21: first prod run, approved, deployed without the hostnames.**
+- **Distribution:** `E19OZ4WNBAMAKB`, `d3d09dryz2ybdk.cloudfront.net`, with aliases `khanom.xyz` and `www.khanom.xyz`.
+- **Build:** published 3,466 files on the first run, then 5 on the next.
+- **Extraction:** failed twice before the archive was there, as expected. I then uploaded `data/codes.csv` as `s3://snacker-tracker-prod-working/snacker-archive.csv` and started one extraction: 854 codes in 111 s, 1.48 GB peak, `products.parquet` written.
+- **Checked on `cloudfront.net`:**
+  - `/` and `/codes/8851959132012`: 200, HTML, no-cache;
+  - `data/*.json`: 200, `max-age=60`;
+  - HTTP redirects with a 301 to HTTPS.
+- **Cut-over:** removed `serve_hostnames = false` from `prod.tfvars`. The prod plan adds the four A/AAAA records and nothing else. It takes effect on the next approved prod run.
