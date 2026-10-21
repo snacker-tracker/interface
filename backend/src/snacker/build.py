@@ -32,6 +32,7 @@ from snacker.locations import Locations
 from snacker.products import product_files, with_products
 from snacker.scan_summary import healthiest_and_least_healthy, period_days, summarise, top_scans
 from snacker.scans import normalise_scans
+from snacker.storage import Bucket, Published, publish_to_bucket
 from snacker.timestamps import UTC_TIMESTAMP_FORMAT
 
 
@@ -44,11 +45,13 @@ def build(
     office_time_zones: Mapping[str, str] = OFFICE_TIME_ZONES,
     recent_limit: int = RECENT_SCANS_LIMIT,
     top_limit: int = TOP_SCANS_LIMIT,
-) -> None:
+    site: Bucket | None = None,
+) -> Published | None:
     """Write the static JSON to `out_dir/data`, replacing what's there, but only if it keeps
     the output contract: otherwise raise ContractBroken and leave the previous data alone.
 
-    `generated_at` is when the data is built; every top-scans period ends then.
+    `generated_at` is when the data is built; every top-scans period ends then. With a `site`
+    bucket, the checked build goes to its data/ instead, and only `out_dir` stages it.
     """
     staging_dir = out_dir / ".data-building"
     if staging_dir.exists():
@@ -65,7 +68,10 @@ def build(
     violations = contract_violations(staging_dir, recent_limit=recent_limit, top_limit=top_limit)
     if violations:
         raise ContractBroken(staging_dir, violations)
+    if site is not None:
+        return publish_to_bucket(staging_dir, site)
     publish(staging_dir, out_dir / "data")
+    return None
 
 
 class ContractBroken(Exception):

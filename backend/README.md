@@ -29,3 +29,28 @@ publishing it: if any file breaks it, the build lists each violation, exits non-
 leaves the previous `data/` in place. The rejected build stays in `<out>/.data-building/`
 for inspection. A build that passes replaces `data/` entirely, so files a build no longer
 writes disappear.
+
+## Building from and to S3
+
+`--raw` and `--products` can each be an `s3://` URI, and `--out` can be `s3://<site bucket>`.
+Credentials come from the standard AWS environment or profile.
+
+```sh
+uv run snacker build --raw s3://snacker-tracker-dev/raw/data/scanner \
+  --products s3://snacker-tracker-dev-working/products.parquet --out s3://snacker-tracker-dev-site
+```
+
+- **Inputs are copied to a temporary directory first,** 64 objects at a time. That's 5× faster
+  than globbing over S3 (aws-deployment ticket 01).
+- **The build is checked before anything is published,** as with a local build. A rejected
+  build is staged in a temporary directory, so it's listed but not kept for inspection.
+- **An `s3://` input with nothing under it stops the build.** Building from it would
+  publish an empty site over the real one.
+- **Publishing touches only `data/` in the site bucket** (ADR 0004):
+  - It uploads the files whose MD5 differs from the object's ETag, with
+    `Content-Type: application/json` and `Cache-Control: max-age=60`.
+  - It deletes the `data/` keys the build no longer writes.
+  - It writes `meta.json` last.
+  - It prints every key it uploaded or deleted.
+- **The site bucket must use default S3 encryption (SSE-S3), not KMS.** With SSE-KMS an ETag
+  isn't the file's MD5, so every file would look changed and be uploaded on every run.

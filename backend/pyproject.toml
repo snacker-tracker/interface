@@ -5,6 +5,7 @@ description = "Builds the static JSON behind the Snacker Tracker interface from 
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "boto3>=1.43.116",
     "jsonschema>=4.26.0",
     "marimo>=0.25.2",
     "polars>=2.0.0",
@@ -22,6 +23,7 @@ build-backend = "uv_build"
 dev = [
     "mypy>=2.4.0",
     "pytest>=9.1.1",
+    "types-boto3[s3]>=1.43.116",
     "types-jsonschema>=4.26.0.20261006",
 ]
 

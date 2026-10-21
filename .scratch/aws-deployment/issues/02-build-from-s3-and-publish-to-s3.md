@@ -28,3 +28,29 @@ Decisions from the design session (ADRs 0003, 0004):
 - [ ] The backend README documents the S3 usage and the default-encryption requirement (SSE-S3, not KMS).
 
 ## Comments
+
+### 2026-10-21: implemented, real run pending
+
+`snacker build --raw/--products <path | s3://…> --out <dir | s3://site-bucket>`, in `backend/src/snacker/storage.py`.
+
+**What it does:**
+- **Inputs:** `s3://` inputs are copied first, 64 objects at a time (ticket 01). A prefix keeps its layout, and an object becomes a file. An `s3://` input with nothing under it stops the build, so a mistyped prefix can't publish an empty site.
+- **Publishing:** to the site bucket, as ADR 0004 describes. Local `--out` still swaps `data/` in one rename.
+
+**Tests**, at the two agreed seams, both through an in-memory `FakeBucket`:
+- `tests/test_publish_to_bucket.py` covers:
+  - new and changed files only;
+  - stale `data/` keys deleted, and nothing outside `data/` touched;
+  - `meta.json` last;
+  - the `application/json` and `max-age=60` headers.
+- `tests/test_fetch.py` covers:
+  - a local path passed through;
+  - a prefix copied with its layout kept, respecting prefix boundaries;
+  - a single object copied to a file;
+  - an empty location stopping the build.
+
+The boto3 adapter (`S3Bucket`) is left to the real run.
+
+**Pending:**
+- **The real run against a scratch bucket.** The AWS session expired. The CLI prints every key it uploads or deletes, for recording here.
+- **"A second build uploads only `meta.json`".** This depends on what changes between the two builds. Top scans, healthiest/least healthy and `period_days` depend on the build time, so a second build that crosses a period boundary can change more files even with no new scans. Run the two builds back to back to check the acceptance line.

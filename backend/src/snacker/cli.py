@@ -1,13 +1,14 @@
 """Command line entry point.
 
     snacker extract-products --raw <scanner dir> --food <food.parquet> --products <products.parquet> [--archive <codes.csv>]
-    snacker build --raw <scanner dir> --products <products.parquet> --out <output dir>
+    snacker build --raw <scanner dir | s3://…> --products <products.parquet | s3://…> --out <output dir | s3://site-bucket>
     snacker check --out <output dir>
     snacker schema --out <schema file>
 """
 
 import argparse
 import sys
+import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -18,9 +19,11 @@ from snacker.check import Violation, contract_violations
 from snacker.products import read_archive, update_products
 from snacker.schema import schema_json
 from snacker.scans import normalise_scans
+from snacker.storage import S3_SCHEME, S3Bucket, fetch
 
 RAW_HELP = "Raw scanner data directory, containing scans/."
 PRODUCTS_HELP = "The extracted products table (written by extract-products)."
+S3_HELP = "Or an s3:// URI, copied to local disk first."
 
 
 def main() -> None:
@@ -45,11 +48,12 @@ def main() -> None:
     )
 
     build_command = commands.add_parser("build", help="Build the static JSON for the interface.")
-    build_command.add_argument("--raw", type=Path, required=True, help=RAW_HELP)
-    build_command.add_argument("--products", type=Path, required=True, help=PRODUCTS_HELP)
+    build_command.add_argument("--raw", required=True, help=f"{RAW_HELP} {S3_HELP}")
+    build_command.add_argument("--products", required=True, help=f"{PRODUCTS_HELP} {S3_HELP}")
     build_command.add_argument(
-        "--out", type=Path, required=True,
-        help="Output directory; JSON is written under <out>/data/.",
+        "--out", required=True,
+        help="Output directory, JSON written under <out>/data/; or s3://<site bucket>, whose "
+        "data/ gets only the files that changed.",
     )
 
     check_command = commands.add_parser(
@@ -89,16 +93,37 @@ def main() -> None:
             fail(f"{args.out / 'data'} breaks the output contract", violations)
         print(f"{args.out / 'data'} keeps the output contract")
     else:
+        run_build(args.raw, args.products, args.out)
+
+
+def run_build(raw: str, products: str, out: str) -> None:
+    """Build from local or S3 inputs, to a local directory or a site bucket."""
+    with tempfile.TemporaryDirectory(prefix="snacker-") as scratch:
+        site = None
+        out_dir = Path(out)
+        if out.startswith(S3_SCHEME):
+            bucket_name = out.removeprefix(S3_SCHEME).rstrip("/")
+            if "/" in bucket_name:
+                sys.exit(f"--out {out}: give the site bucket alone; the build writes its data/")
+            site, out_dir = S3Bucket(bucket_name), Path(scratch) / "out"
         try:
-            build(
-                raw_dir=args.raw,
-                products_parquet=args.products,
-                out_dir=args.out,
+            published = build(
+                raw_dir=fetch(raw, Path(scratch) / "raw", S3Bucket),
+                products_parquet=fetch(products, Path(scratch) / "products", S3Bucket),
+                out_dir=out_dir,
                 generated_at=datetime.now(UTC),
+                site=site,
             )
         except ContractBroken as broken:
             fail(f"Not published: {broken}. The previous data is unchanged", broken.violations)
-        print(f"Built {args.out / 'data'}")
+    if published is None:
+        print(f"Built {out_dir / 'data'}")
+    else:
+        print(f"Published to {out}: uploaded {len(published.uploaded)} files, deleted {len(published.deleted)}")
+        for key in published.uploaded:
+            print(f"  + {key}")
+        for key in published.deleted:
+            print(f"  - {key}")
 
 
 def fail(message: str, violations: list[Violation], *, shown: int = 50) -> None:
