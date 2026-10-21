@@ -76,7 +76,7 @@ jobs:
         with:
           role-to-assume: ${{ env.DEV_CI_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
         with:
           terraform_version: "1.16.6"
           terraform_wrapper: false
