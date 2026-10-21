@@ -1,6 +1,5 @@
 # The site: the private site bucket (infra/admin) behind CloudFront through Origin Access
-# Control, on this environment's hostnames, with OpenFoodFacts's product images alongside
-# (ADR 0007).
+# Control, on this environment's hostnames.
 
 data "aws_s3_bucket" "site" {
   bucket = local.site_bucket
@@ -32,18 +31,6 @@ resource "aws_cloudfront_distribution" "site" {
     origin_access_control_id = aws_cloudfront_origin_access_control.site.id
   }
 
-  origin {
-    origin_id   = "openfoodfacts-images"
-    domain_name = "images.openfoodfacts.org"
-
-    custom_origin_config {
-      http_port              = 80
-      https_port             = 443
-      origin_protocol_policy = "https-only"
-      origin_ssl_protocols   = ["TLSv1.2"]
-    }
-  }
-
   # CachingOptimized keeps each object's own Cache-Control: max-age=60 on data/ (ADR 0003).
   default_cache_behavior {
     target_origin_id       = "site"
@@ -54,20 +41,8 @@ resource "aws_cloudfront_distribution" "site" {
     compress               = true
   }
 
-  # Product images at OpenFoodFacts's own path. It sends no Cache-Control, so CachingOptimized
-  # keeps each for its 1-day default. No origin request policy, so OpenFoodFacts gets its own Host.
-  ordered_cache_behavior {
-    path_pattern           = "/images/products/*"
-    target_origin_id       = "openfoodfacts-images"
-    viewer_protocol_policy = "redirect-to-https"
-    allowed_methods        = ["GET", "HEAD"]
-    cached_methods         = ["GET", "HEAD"]
-    cache_policy_id        = data.aws_cloudfront_cache_policy.caching_optimized.id
-  }
-
   # Deep links (/codes/…) are the frontend's routes, not objects. A missing data file gets
-  # index.html too, which the frontend reads as missing, and so does a missing product image,
-  # which the page's image fallback hides.
+  # index.html too, which the frontend reads as missing.
   dynamic "custom_error_response" {
     for_each = [403, 404]
     content {

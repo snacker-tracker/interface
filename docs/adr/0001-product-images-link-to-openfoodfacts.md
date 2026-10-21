@@ -1,6 +1,6 @@
 # Product images link to OpenFoodFacts's image server
 
-Superseded in part by ADR 0007: images are now proxied through CloudFront. The choice of image and the URL format below still hold.
+ADR 0007 would proxy these images through CloudFront, but it is on hold, so images are still hotlinked as described here.
 
 Code pages show a product's image straight from `images.openfoodfacts.org`; the image isn't copied into the published data. The build works out the URL from the food parquet:
 
