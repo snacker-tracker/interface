@@ -18,12 +18,23 @@ terraform {
   }
 }
 
+# The organization's tag policy requires these keys, case included. The Project tag is also
+# what lets the CI role manage CloudFront and ACM (ADR 0005).
+locals {
+  tags = {
+    Project     = "snacker-tracker"
+    Environment = local.env
+    Component   = "interface"
+    ManagedBy   = "terraform"
+    Repository  = "git@github.com:snacker-tracker/interface.git"
+  }
+}
+
 provider "aws" {
   region = var.region
 
-  # The project tag is what lets the CI role manage CloudFront and ACM (ADR 0005).
   default_tags {
-    tags = { project = "snacker-tracker", environment = local.env }
+    tags = local.tags
   }
 }
 
@@ -33,6 +44,6 @@ provider "aws" {
   region = "us-east-1"
 
   default_tags {
-    tags = { project = "snacker-tracker", environment = local.env }
+    tags = local.tags
   }
 }

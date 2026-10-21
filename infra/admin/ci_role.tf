@@ -1,5 +1,5 @@
 # The role the main configuration is applied with (ADR 0005). It manages only resources named
-# snacker-tracker-<env>-*, or tagged project=snacker-tracker where AWS generates the ID, and on
+# snacker-tracker-<env>-*, or tagged Project=snacker-tracker where AWS generates the ID, and on
 # IAM it can only read and pass its environment's workload roles. It never writes a permission.
 
 locals {
@@ -8,7 +8,7 @@ locals {
     lambda    = ["${local.role_arn}/${local.prefix}-build", "${local.role_arn}/${local.prefix}-extraction"]
     scheduler = ["${local.role_arn}/${local.prefix}-scheduler"]
   }
-  project_tag = { variable = "project", value = "snacker-tracker" }
+  project_tag = { variable = "Project", value = "snacker-tracker" }
 }
 
 data "aws_iam_policy_document" "ci_trust" {

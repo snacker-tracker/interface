@@ -18,10 +18,17 @@ terraform {
   }
 }
 
+# The organization's tag policy requires these keys, case included.
 provider "aws" {
   region = var.region
 
   default_tags {
-    tags = { project = "snacker-tracker", environment = local.env }
+    tags = {
+      Project     = "snacker-tracker"
+      Environment = local.env
+      Component   = "interface"
+      ManagedBy   = "terraform"
+      Repository  = "git@github.com:snacker-tracker/interface.git"
+    }
   }
 }

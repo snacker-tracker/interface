@@ -43,7 +43,7 @@ The policies are written against these, so the main configuration has to create 
 - the schedule `snacker-tracker-<env>-*` in the default group;
 - the state key `snacker-tracker-interface` (so `env:/<env>/snacker-tracker-interface`).
 
-CloudFront distributions and ACM certificates must carry the tag `project=snacker-tracker`.
+CloudFront distributions and ACM certificates must carry the tag `Project=snacker-tracker`.
 The provider's `default_tags` does that.
 
 ## State
