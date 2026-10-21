@@ -143,10 +143,11 @@ data "aws_iam_policy_document" "ci_workloads" {
 # --- CloudFront, its certificate and DNS records ---
 
 data "aws_iam_policy_document" "ci_edge" {
+  # Creates take no resource ARN (the ID doesn't exist yet), only "*"; the tag scopes them.
   statement {
     sid       = "CreateTaggedDistributions"
     actions   = ["cloudfront:CreateDistribution", "cloudfront:TagResource"]
-    resources = ["arn:aws:cloudfront::${local.account}:distribution/*"]
+    resources = ["*"]
     condition {
       test     = "StringEquals"
       variable = "aws:RequestTag/${local.project_tag.variable}"
@@ -173,10 +174,16 @@ data "aws_iam_policy_document" "ci_edge" {
   # Origin access controls can't carry tags. They grant nothing by themselves: the site
   # bucket's policy decides what CloudFront may read.
   statement {
+    sid       = "CreateOriginAccessControls"
+    actions   = ["cloudfront:CreateOriginAccessControl"]
+    resources = ["*"]
+  }
+
+  statement {
     sid = "OriginAccessControls"
     actions = [
-      "cloudfront:CreateOriginAccessControl", "cloudfront:GetOriginAccessControl",
-      "cloudfront:UpdateOriginAccessControl", "cloudfront:DeleteOriginAccessControl",
+      "cloudfront:GetOriginAccessControl", "cloudfront:UpdateOriginAccessControl",
+      "cloudfront:DeleteOriginAccessControl",
     ]
     resources = ["arn:aws:cloudfront::${local.account}:origin-access-control/*"]
   }
@@ -193,11 +200,11 @@ data "aws_iam_policy_document" "ci_edge" {
     resources = ["*"]
   }
 
-  # CloudFront certificates live in us-east-1.
+  # CloudFront certificates live in us-east-1. Requests take no resource ARN, only "*".
   statement {
     sid       = "RequestTaggedCertificates"
     actions   = ["acm:RequestCertificate", "acm:AddTagsToCertificate"]
-    resources = ["arn:aws:acm:us-east-1:${local.account}:certificate/*"]
+    resources = ["*"]
     condition {
       test     = "StringEquals"
       variable = "aws:RequestTag/${local.project_tag.variable}"
