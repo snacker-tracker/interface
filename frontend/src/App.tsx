@@ -1,6 +1,7 @@
 import { createBrowserRouter, Link, Outlet, useLocation } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 
+import { BuildFooter } from './components/BuildFooter'
 import { LocationSelector } from './components/LocationSelector'
 import { ScannersLink } from './components/ScannersLink'
 import { CONTRACT_VERSION, type MetaFile } from './contract'
@@ -29,7 +30,7 @@ function Layout() {
       <main className="app-main">
         {outOfStep ? <OutOfStep dataVersion={meta.data.contract_version} /> : <Outlet />}
       </main>
-      <footer className="app-footer">snacker-tracker/interface local build</footer>
+      <BuildFooter stamp={__BUILD_STAMP__} />
     </>
   )
 }
