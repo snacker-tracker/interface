@@ -1,5 +1,7 @@
 # Product images link to OpenFoodFacts's image server
 
+Superseded in part by ADR 0007: images are now proxied through CloudFront. The choice of image and the URL format below still hold.
+
 Code pages show a product's image straight from `images.openfoodfacts.org`; the image isn't copied into the published data. The build works out the URL from the food parquet:
 
 - **Which image:** the "front" image selected in the product's own language (`lang`), then English, then any selected front image. Products with no selected front image show no image.
