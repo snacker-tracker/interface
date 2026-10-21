@@ -52,3 +52,7 @@ The digest is in the job summary, and the commit's ECR tag leads to it for 08.
 **2026-10-21: first PR run failed at login, fixed.**
 - **Cause:** GitHub's OIDC subject carries the owner's and repo's numeric IDs, `repo:snacker-tracker@59108816/interface@1428184726:pull_request` (seen in CloudTrail). The trust policy expected `repo:snacker-tracker/interface:…`.
 - **Fix:** the `github_repo` default in `infra/admin` is now the ID form. Applied in dev: the CI role's trust changed in place. Prod's admin apply picks it up.
+
+**2026-10-21: second PR run failed at `terraform init`, fixed.**
+- **Cause:** `init` in the default workspace checks the bare key `snacker-tracker-interface`. The CI role is allowed only `env:/dev/…`, so S3 returned 403 on HeadObject.
+- **Fix:** the workflow now sets `TF_WORKSPACE=dev`, so `init` starts in dev, and the `workspace select` steps are gone.

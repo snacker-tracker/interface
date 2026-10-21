@@ -18,6 +18,9 @@ env:
   CI_ROLE: arn:aws:iam::132218943709:role/snacker-tracker-dev-ci
   TF_IN_AUTOMATION: "1"
   TF_VERSION: "1.16.6"
+  # Selected before init: the CI role can reach only dev's state (env:/dev/…), not the default
+  # workspace's, which init would otherwise check.
+  TF_WORKSPACE: dev
 
 jobs:
   backend:
@@ -77,7 +80,6 @@ jobs:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
       - run: terraform init -input=false
-      - run: terraform workspace select dev
       # Planned against the image dev runs now, so the plan shows only infrastructure changes.
       - name: terraform plan
         run: |
@@ -122,7 +124,6 @@ jobs:
         working-directory: infra/main
         run: |
           terraform init -input=false
-          terraform workspace select dev
           terraform apply -input=false -auto-approve -var-file=dev.tfvars -var "image_uri=${{ steps.image.outputs.image_uri }}"
           {
             echo "site_bucket=$(terraform output -raw site_bucket)"
