@@ -69,3 +69,12 @@ Outputs (dev):
   - **Explicit deny:** put `data/meta.json`, read the `snacker-tracker-dev` raw bucket, `PutBucketPolicy`.
   - **Implicit deny:** `CreateRole`, `PutRolePolicy` on itself, `PassRole` to EC2, prod's functions, `AddPermission`, the admin state, prod's state.
 - **Not yet tested for real:** the CloudFront and ACM tag conditions and the Route 53 record-name condition. Ticket 06's first plan under the CI role will exercise them. Anything missing there means an admin re-apply.
+
+**2026-10-21: prod applied.** `infra/admin`, prod workspace: 19 created, nothing changed. Before applying, the prod CI role's trust was narrowed to `environment:prod` only; only dev's role trusts `pull_request`.
+
+**Checked after the apply:**
+- `snacker-tracker-prod-site` uses AES256 and blocks all public access.
+- The IAM simulator on `snacker-tracker-prod-ci`:
+  - allowed: frontend writes, image pulls, and its own state `env:/prod/…`;
+  - explicitly denied: `data/*` and the raw buckets;
+  - not granted: `ecr:PutImage` and dev's state.

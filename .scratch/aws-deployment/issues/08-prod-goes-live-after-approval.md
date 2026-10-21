@@ -22,3 +22,13 @@ Decisions from the design session (ADRs 0003–0006):
 - [ ] Rolling back means re-running the job for an earlier commit, and this is documented.
 
 ## Comments
+
+**2026-10-21: groundwork.**
+- The prod admin workspace is applied (ticket 05); the prod site bucket is AES256, not KMS.
+- `infra/main/prod.tfvars` holds the prod role ARNs.
+- **Existing records:** before the cut-over the `khanom.xyz` zone has only NS and SOA at the apex and nothing for `www`, so no A/AAAA records are overwritten.
+
+**Still to do:**
+- a `prod` GitHub environment with required reviewers;
+- the prod job;
+- the first approved run, checked on `cloudfront.net` first.
