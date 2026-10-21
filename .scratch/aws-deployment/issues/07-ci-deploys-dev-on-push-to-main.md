@@ -48,3 +48,7 @@ The digest is in the job summary, and the commit's ECR tag leads to it for 08.
 - Create the `dev` environment.
 
 **Open:** PRs plan with the full CI role, as the trust policy allows. "Read-only" is only how the job uses it. PRs from forks get no OIDC token, so their plan job fails.
+
+**2026-10-21: first PR run failed at login, fixed.**
+- **Cause:** GitHub's OIDC subject carries the owner's and repo's numeric IDs, `repo:snacker-tracker@59108816/interface@1428184726:pull_request` (seen in CloudTrail). The trust policy expected `repo:snacker-tracker/interface:…`.
+- **Fix:** the `github_repo` default in `infra/admin` is now the ID form. Applied in dev: the CI role's trust changed in place. Prod's admin apply picks it up.

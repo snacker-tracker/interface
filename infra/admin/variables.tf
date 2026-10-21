@@ -20,9 +20,12 @@ variable "hostnames" {
 }
 
 variable "github_repo" {
-  description = "owner/name of the GitHub repository whose workflows assume the CI role."
+  # GitHub puts the owner's and repository's numeric IDs in the OIDC subject
+  # (repo:<owner>@<id>/<name>@<id>:…), so a deleted and recreated repository of the same name
+  # can't assume the role.
+  description = "<owner>@<owner id>/<name>@<repository id> of the GitHub repository whose workflows assume the CI role."
   type        = string
-  default     = "snacker-tracker/interface"
+  default     = "snacker-tracker@59108816/interface@1428184726"
 }
 
 variable "ecr_repository_name" {
