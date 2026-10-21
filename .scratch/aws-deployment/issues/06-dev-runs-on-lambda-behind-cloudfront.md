@@ -64,3 +64,5 @@ Decisions from the design session (ADRs 0003–0006):
 **Open:**
 - **Acceptance "a missing code triggers an extraction":** this needs a scan in dev, and dev has none until a real dev scanner sends one. The build role's `lambda:InvokeFunction` on `snacker-tracker-dev-extract` is in its policy but not yet exercised.
 - **Build memory:** 2,048 MB is far above the 194 MB used, and could drop to 512–1,024.
+
+**2026-10-21: CI edge policy fix applied in dev.** `terraform apply dev.tfplan` in `infra/admin` (dev): 1 changed (`aws_iam_policy.ci["edge"]`). The IAM simulator now allows `snacker-tracker-dev-ci` to call cloudfront:CreateDistribution, cloudfront:TagResource, acm:RequestCertificate and acm:AddTagsToCertificate on `*` when `aws:RequestTag/project=snacker-tracker`, and denies them with any other tag. cloudfront:CreateOriginAccessControl is allowed on `*` (OACs can't be tagged).
