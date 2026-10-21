@@ -283,6 +283,15 @@ td.product .archive-tag,
   gap: 16px;
 }
 
+.app-footer {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 8px 16px 24px;
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
 .panel {
   background: var(--surface-1);
   border: 1px solid var(--border);

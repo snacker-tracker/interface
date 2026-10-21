@@ -29,6 +29,7 @@ function Layout() {
       <main className="app-main">
         {outOfStep ? <OutOfStep dataVersion={meta.data.contract_version} /> : <Outlet />}
       </main>
+      <footer className="app-footer">snacker-tracker/interface local build</footer>
     </>
   )
 }
