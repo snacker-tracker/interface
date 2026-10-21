@@ -2,7 +2,8 @@
 # snacker.handlers.build_handler (the default) or snacker.handlers.extract_handler.
 FROM public.ecr.aws/lambda/python:3.13
 
-COPY --from=ghcr.io/astral-sh/uv:0.13.4 /uv /bin/uv
+# From PyPI rather than ghcr.io/astral-sh/uv, whose pulls can fail authentication.
+RUN pip install --no-cache-dir uv==0.13.4
 
 # Dependencies first, so a code change doesn't reinstall Polars.
 COPY pyproject.toml uv.lock README.md ./
