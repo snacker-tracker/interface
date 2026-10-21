@@ -4,7 +4,7 @@
 
 **Blocked by:** 02 (Build from S3 and publish to S3), 03 (Extract products from Hugging Face into S3).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Decisions from the design session (ADRs 0003, 0006):
 
@@ -15,10 +15,10 @@ Decisions from the design session (ADRs 0003, 0006):
 - **Dependencies:** marimo moves to a dev-only dependency.
 - **Tags:** the image is tagged with the commit SHA. Where it's pushed is the shared ECR repository (ADR 0006), but pushing belongs to 06–07.
 
-- [ ] The image builds locally and holds both handlers.
-- [ ] Run with the Lambda runtime emulator against real S3, the build handler publishes and the extraction handler writes the products table.
-- [ ] The build handler invokes extraction only when codes are missing. A test covers the decision, at a seam to be agreed.
-- [ ] marimo is no longer a runtime dependency.
+- [x] The image builds locally and holds both handlers.
+- [x] Run with the Lambda runtime emulator against real S3, the build handler publishes and the extraction handler writes the products table.
+- [x] The build handler invokes extraction only when codes are missing. A test covers the decision, at a seam to be agreed.
+- [x] marimo is no longer a runtime dependency.
 
 ## Comments
 
@@ -41,3 +41,12 @@ Decisions from the design session (ADRs 0003, 0006):
 **IAM gap found:** `fetch` lists a key to tell an object from a prefix, but the build and extraction roles had no `ListBucket` on the working bucket. Both handlers would have failed in Lambda, and a missing table would have read as 403 rather than not found. `infra/admin/workload_roles.tf` now grants `ListBucket` limited to the `products.parquet*` and `snacker-archive.csv*` prefixes. Planned in dev (2 policies changed in place, Access Analyzer clean). **Admin apply pending.**
 
 **Pending:** run `backend/scripts/run-image-locally.sh` on a machine with Docker. It builds the image tagged with the commit SHA, then runs the extraction handler and the build handler in the Lambda runtime emulator. They read prod raw, write to a scratch bucket, and publish to the dev site. The real asynchronous invoke under the build role is first exercised in 06.
+
+### 2026-10-21: image built and run in the emulator
+
+You ran `backend/scripts/run-image-locally.sh` on a machine with Docker, after uv was switched to installing from PyPI (`f401b99`; pulling from ghcr.io failed authentication), and reported that it succeeded. Its output wasn't recorded here. What S3 shows:
+- **The build handler published to the dev site:** `data/meta.json` has `generated_at 2026-10-21T06:18:49Z` and was written at `06:19:18Z`.
+- **The extraction handler ran first:** the build needs its products table in the scratch bucket.
+- **Cleanup ran:** the script's scratch bucket was deleted, and no scratch buckets are left.
+
+**Still pending, outside this ticket:** the admin apply of the working-bucket `ListBucket` grants (dev), before 06.
