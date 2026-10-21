@@ -7,6 +7,7 @@ A Python build step turns raw scanner events into static JSON; a React app rende
 - `PRD.md`: requirements and the static JSON contract
 - `.scratch/snacker-tracker-interface/`: spec and tickets
 
+
 ## Layout
 
 | Path | What it is |
