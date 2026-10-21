@@ -1,0 +1,150 @@
+# Dev always runs main (aws-deployment ticket 07, ADRs 0005 and 0006). A push to main tests,
+# builds the image once, applies the main configuration and publishes; a pull request tests and
+# shows the dev plan.
+name: dev
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-1
+  # The dev CI role (infra/admin). Deploys assume it in the dev environment; pull requests
+  # assume it only to plan, without the state lock.
+  CI_ROLE: arn:aws:iam::132218943709:role/snacker-tracker-dev-ci
+  TF_IN_AUTOMATION: "1"
+  TF_VERSION: "1.16.6"
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.4"
+      - run: uv sync --locked
+      - run: uv run mypy
+      - run: uv run pytest
+
+  frontend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          # Ticket 08 promotes this build, with the image of the same commit, to prod.
+          name: frontend-${{ github.sha }}
+          path: frontend/dist
+          if-no-files-found: error
+          retention-days: 90
+
+  plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    defaults:
+      run:
+        working-directory: infra/main
+    steps:
+      - uses: actions/checkout@v5
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ env.CI_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+      - run: terraform init -input=false
+      - run: terraform workspace select dev
+      # Planned against the image dev runs now, so the plan shows only infrastructure changes.
+      - name: terraform plan
+        run: |
+          image_uri="$(aws lambda get-function --function-name snacker-tracker-dev-build --query Code.ImageUri --output text)"
+          terraform plan -input=false -lock=false -no-color -var-file=dev.tfvars -var "image_uri=$image_uri" | tee plan.txt
+          { echo '### Dev plan'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: [backend, frontend]
+    runs-on: ubuntu-24.04
+    environment: dev
+    # One deploy at a time; a newer push waits rather than cancelling one half done.
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ env.CI_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Push the image
+        id: image
+        run: |
+          image_uri="$(backend/scripts/push-image.sh)"
+          echo "image_uri=$image_uri" >> "$GITHUB_OUTPUT"
+          # The commit's tag in ECR leads to the same digest; ticket 08 promotes it to prod.
+          echo "Image for ${GITHUB_SHA}: \`$image_uri\`" >> "$GITHUB_STEP_SUMMARY"
+
+      # The apply points both functions at the image's digest.
+      - name: terraform apply
+        id: terraform
+        working-directory: infra/main
+        run: |
+          terraform init -input=false
+          terraform workspace select dev
+          terraform apply -input=false -auto-approve -var-file=dev.tfvars -var "image_uri=${{ steps.image.outputs.image_uri }}"
+          {
+            echo "site_bucket=$(terraform output -raw site_bucket)"
+            echo "build_function=$(terraform output -raw build_function)"
+            echo "extract_function=$(terraform output -raw extract_function)"
+          } >> "$GITHUB_OUTPUT"
+
+      # A build on the new image, so the data matches its contract version before the frontend
+      # expecting it goes out.
+      - name: Build the data
+        run: |
+          for function in "${{ steps.terraform.outputs.build_function }}" "${{ steps.terraform.outputs.extract_function }}"; do
+            aws lambda wait function-updated-v2 --function-name "$function"
+          done
+          error="$(aws lambda invoke --function-name "${{ steps.terraform.outputs.build_function }}" \
+            --cli-read-timeout 0 --query FunctionError --output text build.json)"
+          cat build.json; echo
+          if [ "$error" != "None" ]; then echo "the build failed: $error" >&2; exit 1; fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: frontend/dist
+      - name: Publish the frontend
+        run: frontend/scripts/sync-site.sh "${{ steps.terraform.outputs.site_bucket }}"

@@ -101,3 +101,21 @@ Settings come from environment variables:
 `scripts/run-image-locally.sh` builds the image and runs both handlers in the Lambda runtime
 emulator against real S3 (it needs Docker). Give the extraction function about 3 GB of memory:
 its peak is 1.4 GB, and Lambda's CPU grows with memory.
+
+`scripts/push-image.sh` pushes the image for the current commit to the shared ECR repository,
+tagged with the commit SHA, and prints its URI by digest. That URI is what the main Terraform
+configuration takes as `image_uri`. A commit that already has an image reuses it.
+
+## Deploying
+
+`.github/workflows/dev.yml` deploys dev on every push to `main`:
+
+1. Backend tests and mypy, frontend lint and build. A failure stops the deploy before it starts.
+2. `scripts/push-image.sh`. The job summary records the digest, for promotion to prod.
+3. `terraform apply` of `infra/main` in the `dev` workspace, which points both functions at the
+   digest.
+4. One run of the build function, so `data/` matches the new contract version.
+5. `frontend/scripts/sync-site.sh`, which uploads `dist/` outside `data/`.
+
+A pull request runs the same checks and puts a dev `terraform plan`, against the image dev runs
+now, in its job summary. The plan takes no state lock.

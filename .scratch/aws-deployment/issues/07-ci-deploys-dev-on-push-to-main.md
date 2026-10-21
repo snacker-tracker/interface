@@ -4,7 +4,7 @@
 
 **Blocked by:** 06 (Dev runs on Lambda behind CloudFront).
 
-**Status:** ready-for-agent
+**Status:** in-progress (written; waiting for the repo on GitHub)
 
 Decisions from the design session (ADRs 0005, 0006):
 
@@ -25,3 +25,26 @@ Decisions from the design session (ADRs 0005, 0006):
 - [ ] The image is built once per commit, and its digest is recorded so that 08 can promote it.
 
 ## Comments
+
+**2026-10-21: workflow written, not yet run.** `.github/workflows/dev.yml`:
+- `backend` (uv, mypy, pytest) and `frontend` (lint, build, artifact `frontend-<sha>` kept 90 days) run on every push and PR.
+- `plan` (PRs): assumes the dev CI role without an environment (OIDC subject `pull_request`), then `terraform plan -lock=false` against the image dev runs now; the plan goes in the job summary.
+- `deploy` (push to main, environment `dev`, one at a time; needs both test jobs):
+  - `backend/scripts/push-image.sh` builds once per commit and reuses an image already tagged with the SHA;
+  - `terraform apply` points both functions at the digest;
+  - it waits on both functions and invokes one build, failing on a function error;
+  - `frontend/scripts/sync-site.sh` uploads new assets, then `index.html` (no-cache, excluding `data/*`), then prunes old assets.
+
+The digest is in the job summary, and the commit's ECR tag leads to it for 08.
+
+**Checked locally, not yet in CI:**
+- actionlint and shellcheck pass.
+- The sync was dry-run and then run against the dev site: no keys under `data/`, and the headers are right.
+- The lock-free plan shows only new outputs.
+- The IAM simulator allows every read and write the jobs make, and explicitly denies `data/*` writes.
+
+**Before the first run:**
+- Push to `snacker-tracker/interface` with the branch named `main` (it's `master` locally).
+- Create the `dev` environment.
+
+**Open:** PRs plan with the full CI role, as the trust policy allows. "Read-only" is only how the job uses it. PRs from forks get no OIDC token, so their plan job fails.
