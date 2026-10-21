@@ -114,6 +114,7 @@ export interface IndexFile {
   top_scans: TopScansByPeriod
   top_unknown_scans: TopScansByPeriod
   healthiest_and_least_healthy: HealthiestAndLeastHealthyByPeriod
+  nutri_score_distribution: NutriScoreDistributionByPeriod
   period_days: PeriodDaysByPeriod
   /**
    * Scans per office date, oldest first; days without scans are left out.
@@ -141,6 +142,37 @@ export interface TopScan {
    * This code's fraction of all scans in the period, e.g. 0.25.
    */
   share: number
+}
+export interface NutriScoreDistributionByPeriod {
+  today: NutriScoreDistribution
+  'this-work-week': NutriScoreDistribution
+  'last-7-days': NutriScoreDistribution
+  'this-month': NutriScoreDistribution
+  'last-30-days': NutriScoreDistribution
+  'this-year': NutriScoreDistribution
+  'last-365-days': NutriScoreDistribution
+  'all-time': NutriScoreDistribution
+}
+/**
+ * How many scans within a period were of products of each Nutri-Score grade (GLOSSARY.md).
+ */
+export interface NutriScoreDistribution {
+  grades: NutriScoreCounts
+  /**
+   * Scans in the period of products with a Nutri-Score: the grades' sum.
+   */
+  graded_scans: number
+  /**
+   * All scans in the period.
+   */
+  scans: number
+}
+export interface NutriScoreCounts {
+  A: number
+  B: number
+  C: number
+  D: number
+  E: number
 }
 export interface PeriodDaysByPeriod {
   today: PeriodDays
@@ -195,7 +227,7 @@ export interface MetaFile {
   /**
    * The version of this contract the data was built to (CONTRACT_VERSION).
    */
-  contract_version: 3
+  contract_version: 4
 }
 /**
  * What a code page shows about a product (PRD R5): OpenFoodFacts's details, or for a
@@ -289,4 +321,4 @@ export const PERIODS = [
 export type Period = (typeof PERIODS)[number]
 
 /** The contract version this frontend was built for; meta.json names the one the data was built to. */
-export const CONTRACT_VERSION = 3
+export const CONTRACT_VERSION = 4

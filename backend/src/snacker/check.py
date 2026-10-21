@@ -170,6 +170,7 @@ class _Output:
             yield from self._top_scans(path, "top_scans", content["top_scans"], unknown_only=False)
             yield from self._top_scans(path, "top_unknown_scans", content["top_unknown_scans"], unknown_only=True)
             yield from self._healthiest_and_least_healthy(path, content["healthiest_and_least_healthy"])
+            yield from self._nutri_score_distribution(path, content["nutri_score_distribution"])
             yield from self._period_days(path, content["period_days"], content["daily"])
         for path, content in self.of("CodeScansFile"):
             yield from self._daily(path, content["daily"])
@@ -290,6 +291,14 @@ class _Output:
                 yield Violation(path, f"{where}: more graded scans than scans")
             if sum(row["count"] for row in healthiest + least_healthy) > lists["graded_scans"]:
                 yield Violation(path, f"{where}: lists more scans than there are graded scans")
+
+    def _nutri_score_distribution(self, path: PurePosixPath, by_period: dict[str, Any]) -> Iterator[Violation]:
+        for period, distribution in by_period.items():
+            where = f"nutri_score_distribution/{period}"
+            if sum(distribution["grades"].values()) != distribution["graded_scans"]:
+                yield Violation(path, f"{where}: grades don't add up to graded_scans")
+            if distribution["graded_scans"] > distribution["scans"]:
+                yield Violation(path, f"{where}: more graded scans than scans")
 
     def _period_days(self, path: PurePosixPath, by_period: dict[str, Any], daily: list[Any]) -> Iterator[Violation]:
         """Periods end on the build's office day; all time starts on the first scanned day."""

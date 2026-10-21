@@ -1,4 +1,5 @@
 import type { Product } from '../contract'
+import { NUTRI_SCORE_MEANINGS } from '../nutriScore'
 
 type Scale = 'nutri-score' | 'nova-group' | 'green-score'
 
@@ -10,13 +11,9 @@ const LABELS: Record<Scale, string> = {
 
 /** What each grade means, shown as the badge's tooltip. */
 const MEANINGS: Record<Scale, Record<string, string>> = {
-  'nutri-score': {
-    A: 'Best nutritional quality (Nutri-Score runs from A to E)',
-    B: 'Good nutritional quality (Nutri-Score runs from A to E)',
-    C: 'Average nutritional quality (Nutri-Score runs from A to E)',
-    D: 'Poor nutritional quality (Nutri-Score runs from A to E)',
-    E: 'Worst nutritional quality (Nutri-Score runs from A to E)',
-  },
+  'nutri-score': Object.fromEntries(
+    Object.entries(NUTRI_SCORE_MEANINGS).map(([grade, meaning]) => [grade, `${meaning} (Nutri-Score runs from A to E)`]),
+  ),
   'nova-group': {
     1: 'Unprocessed or minimally processed food',
     2: 'Processed culinary ingredient',

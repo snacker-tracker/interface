@@ -18,7 +18,7 @@ from raw_events import (
 def test_meta_file_records_when_the_data_was_built_and_to_which_contract(raw_dir: Path, out_dir: Path) -> None:
     run_build(raw_dir, out_dir)
 
-    assert read_json(out_dir, "data/meta.json") == {"generated_at": "2026-10-19T12:00:00Z", "contract_version": 3}
+    assert read_json(out_dir, "data/meta.json") == {"generated_at": "2026-10-19T12:00:00Z", "contract_version": 4}
 
 
 def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) -> None:
@@ -59,6 +59,13 @@ def test_the_all_index_file_summarises_every_scan(raw_dir: Path, out_dir: Path) 
                 "last-30-days", "this-year", "last-365-days",
             )},
             "all-time": {"healthiest": [], "least_healthy": [], "graded_scans": 0, "scans": 2},
+        },
+        "nutri_score_distribution": {
+            **{period: {"grades": {"A": 0, "B": 0, "C": 0, "D": 0, "E": 0}, "graded_scans": 0, "scans": 0} for period in (
+                "today", "this-work-week", "last-7-days", "this-month",
+                "last-30-days", "this-year", "last-365-days",
+            )},
+            "all-time": {"grades": {"A": 0, "B": 0, "C": 0, "D": 0, "E": 0}, "graded_scans": 0, "scans": 2},
         },
         "period_days": {
             "today": {"first_day": "2026-10-19", "last_day": "2026-10-19"},

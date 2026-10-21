@@ -20,6 +20,9 @@ from snacker.contract import (
     HealthiestAndLeastHealthyByPeriod,
     HourlyCount,
     NutriScore,
+    NutriScoreCounts,
+    NutriScoreDistribution,
+    NutriScoreDistributionByPeriod,
     PeriodDays,
     PeriodDaysByPeriod,
     ScannedProductCount,
@@ -249,6 +252,27 @@ def _split_by_health(scans: pl.DataFrame, limit: int) -> HealthiestAndLeastHealt
         least_healthy=[_scanned_product_count(row) for row in least_healthy.iter_rows(named=True)],
         graded_scans=int(graded["count"].sum()),
         scans=scans.height,
+    )
+
+
+def nutri_score_distribution(scans: pl.DataFrame, *, now: datetime) -> NutriScoreDistributionByPeriod:
+    """For every period (see PERIODS), its Nutri-Score distribution (GLOSSARY.md).
+
+    `now` is when the data is built, as for top_scans.
+    """
+    flagged = _with_period_flags(scans, now)
+    return cast(NutriScoreDistributionByPeriod, {
+        period: _distribution(flagged.filter(pl.col(period))) for period in PERIODS
+    })
+
+
+def _distribution(scans: pl.DataFrame) -> NutriScoreDistribution:
+    counts = dict(
+        scans.get_column("product").struct.field("nutri_score").drop_nulls().value_counts().iter_rows()
+    )
+    grades = {grade: int(counts.get(grade, 0)) for grade in get_args(NutriScore)}
+    return NutriScoreDistribution(
+        grades=cast(NutriScoreCounts, grades), graded_scans=sum(grades.values()), scans=scans.height
     )
 
 

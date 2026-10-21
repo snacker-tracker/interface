@@ -2,10 +2,14 @@
 import { useEffect, useState } from 'react'
 import type { Config } from 'vega-lite'
 
+import type { NutriScoreCounts } from './contract'
+
 export type ChartTokens = {
   textSecondary: string
   grid: string
   series1: string
+  /** The Nutri-Score badges' colours, by grade. */
+  nutriScore: Record<keyof NutriScoreCounts, string>
   scheme: 'light' | 'dark'
 }
 
@@ -18,6 +22,13 @@ function readTokens(): ChartTokens {
     textSecondary: token('--text-secondary'),
     grid: token('--grid'),
     series1: token('--series-1'),
+    nutriScore: {
+      A: token('--nutri-score-a'),
+      B: token('--nutri-score-b'),
+      C: token('--nutri-score-c'),
+      D: token('--nutri-score-d'),
+      E: token('--nutri-score-e'),
+    },
     scheme: token('color-scheme') === 'dark' ? 'dark' : 'light',
   }
 }

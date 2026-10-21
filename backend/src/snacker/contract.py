@@ -116,6 +116,33 @@ HealthiestAndLeastHealthyByPeriod = TypedDict("HealthiestAndLeastHealthyByPeriod
 """The healthiest and least healthy products for every period, keyed by period ID."""
 
 
+NutriScoreCounts = TypedDict("NutriScoreCounts", {"A": int, "B": int, "C": int, "D": int, "E": int})
+"""Scans per Nutri-Score grade; every grade is present, with 0 when none was scanned."""
+
+
+class NutriScoreDistribution(TypedDict):
+    """How many scans within a period were of products of each Nutri-Score grade (GLOSSARY.md)."""
+
+    grades: NutriScoreCounts
+    graded_scans: int
+    """Scans in the period of products with a Nutri-Score: the grades' sum."""
+    scans: int
+    """All scans in the period."""
+
+
+NutriScoreDistributionByPeriod = TypedDict("NutriScoreDistributionByPeriod", {
+    "today": NutriScoreDistribution,
+    "this-work-week": NutriScoreDistribution,
+    "last-7-days": NutriScoreDistribution,
+    "this-month": NutriScoreDistribution,
+    "last-30-days": NutriScoreDistribution,
+    "this-year": NutriScoreDistribution,
+    "last-365-days": NutriScoreDistribution,
+    "all-time": NutriScoreDistribution,
+})
+"""The Nutri-Score distribution for every period, keyed by period ID."""
+
+
 class PeriodDays(TypedDict):
     """The office days a period touches, for zooming a chart of scans per day to it. Both are
     null only when nothing has been scanned, so there's no office time zone to count days in."""
@@ -208,8 +235,8 @@ class SelectableLocation(TypedDict):
 
 # --- Files ---
 
-ContractVersion = Literal[3]
-CONTRACT_VERSION: ContractVersion = 3
+ContractVersion = Literal[4]
+CONTRACT_VERSION: ContractVersion = 4
 """The version of this contract, written to meta.json so the frontend can tell when the data
 it was built for and the data it is served are out of step.
 
@@ -242,6 +269,7 @@ class IndexFile(TypedDict):
     top_unknown_scans: TopScansByPeriod
     """Top scans of unknown products only; shares are still of all scans in the period."""
     healthiest_and_least_healthy: HealthiestAndLeastHealthyByPeriod
+    nutri_score_distribution: NutriScoreDistributionByPeriod
     period_days: PeriodDaysByPeriod
     daily: list[DailyCount]
     """Scans per office date, oldest first; days without scans are left out."""

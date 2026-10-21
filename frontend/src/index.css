@@ -10,6 +10,12 @@
   --link: #1c5cab;
   --critical: #d03b3b;
   --good: #0ca30c;
+  /* OpenFoodFacts's Nutri-Score colours, the same in both themes: the badges and the chart. */
+  --nutri-score-a: #038141;
+  --nutri-score-b: #85bb2f;
+  --nutri-score-c: #fecb02;
+  --nutri-score-d: #ee8100;
+  --nutri-score-e: #e63e11;
 
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.5;
@@ -465,26 +471,26 @@ details .table-scroll {
 }
 
 .nutri-score[data-grade='A'] {
-  background: #038141;
+  background: var(--nutri-score-a);
 }
 
 .nutri-score[data-grade='B'] {
-  background: #85bb2f;
+  background: var(--nutri-score-b);
   color: #0b0b0b;
 }
 
 .nutri-score[data-grade='C'] {
-  background: #fecb02;
+  background: var(--nutri-score-c);
   color: #0b0b0b;
 }
 
 .nutri-score[data-grade='D'] {
-  background: #ee8100;
+  background: var(--nutri-score-d);
   color: #0b0b0b;
 }
 
 .nutri-score[data-grade='E'] {
-  background: #e63e11;
+  background: var(--nutri-score-e);
 }
 
 .nova-group[data-grade='1'] {

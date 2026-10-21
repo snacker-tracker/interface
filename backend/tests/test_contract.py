@@ -127,6 +127,10 @@ def test_index_files_must_list_every_period() -> None:
     index = {
         "location": "all", "top_scans": without_today, "top_unknown_scans": every_period,
         "healthiest_and_least_healthy": {period: no_products for period in every_period},
+        "nutri_score_distribution": {
+            period: {"grades": {"A": 0, "B": 0, "C": 0, "D": 0, "E": 0}, "graded_scans": 0, "scans": 0}
+            for period in every_period
+        },
         "period_days": {period: {"first_day": None, "last_day": None} for period in every_period},
         "daily": [], "recent": [],
     }
@@ -139,6 +143,13 @@ def edit_all_time_health(edit: Callable[[Any], None]) -> Callable[[Path], None]:
     Coca Cola (graded E) is the only graded product. `graded(...)` makes more graded rows."""
     return lambda data: edit_json(
         data, "index/by-location/all.json", lambda content: edit(content["healthiest_and_least_healthy"]["all-time"])
+    )
+
+
+def edit_all_time_distribution(edit: Callable[[Any], None]) -> Callable[[Path], None]:
+    """A breakage of the all index file's all-time Nutri-Score distribution."""
+    return lambda data: edit_json(
+        data, "index/by-location/all.json", lambda content: edit(content["nutri_score_distribution"]["all-time"])
     )
 
 
@@ -301,6 +312,14 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
             "index/by-location/all.json: healthiest_and_least_healthy/all-time: more graded scans than scans",
         ),
         (
+            edit_all_time_distribution(lambda distribution: distribution["grades"].update(A=distribution["grades"]["A"] + 1)),
+            "index/by-location/all.json: nutri_score_distribution/all-time: grades don't add up to graded_scans",
+        ),
+        (
+            edit_all_time_distribution(lambda distribution: distribution.update(scans=0)),
+            "index/by-location/all.json: nutri_score_distribution/all-time: more graded scans than scans",
+        ),
+        (
             lambda data: edit_json(
                 data, "index/by-location/all.json",
                 lambda content: content["period_days"]["today"].update(first_day="2026-10-20"),
@@ -350,6 +369,7 @@ KITCHEN_CODE_SCANS = "codes/8851959132012/by-location/thailand:bangkok:main-kitc
         "Nutri-Score for an unknown product in a list", "last scan name without a source", "health-list code without a product file", "product in both health lists", "ungraded product in a health list",
         "health lists not split in halves", "least healthy out of order", "health lists overlap in grade",
         "health list over the limit", "more graded scans than scans",
+        "distribution grades not adding up", "distribution graded over scans",
         "period starts after it ends", "all time not from the first scan", "periods end on different days",
         "periods end on another day than the build", "null period days with scans", "generated_at not in UTC",
     ],
@@ -407,6 +427,6 @@ def test_a_build_replaces_the_previous_data_entirely(raw_dir: Path, out_dir: Pat
 
 
 def test_meta_must_name_this_contract_version() -> None:
-    assert schema_errors("MetaFile", {"generated_at": "2026-10-19T12:00:00Z", "contract_version": 2}) == [
-        "contract_version: 3 was expected"
+    assert schema_errors("MetaFile", {"generated_at": "2026-10-19T12:00:00Z", "contract_version": 3}) == [
+        "contract_version: 4 was expected"
     ]
