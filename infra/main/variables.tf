@@ -1,0 +1,49 @@
+variable "region" {
+  type    = string
+  default = "ap-southeast-1"
+}
+
+variable "image_uri" {
+  description = "The backend image by digest: <repository url>@sha256:… (ADR 0006)."
+  type        = string
+}
+
+variable "build_role_arn" {
+  description = "From the admin configuration's outputs."
+  type        = string
+}
+
+variable "extraction_role_arn" {
+  description = "From the admin configuration's outputs."
+  type        = string
+}
+
+variable "scheduler_role_arn" {
+  description = "From the admin configuration's outputs."
+  type        = string
+}
+
+variable "raw_bucket" {
+  description = "The environment's raw scanner bucket, read-only and not managed here."
+  type        = string
+}
+
+variable "hostnames" {
+  description = "The names the site is served on; the first is the certificate's main name."
+  type        = list(string)
+}
+
+variable "hosted_zone_id" {
+  type    = string
+  default = "Z0781732PCOBWRVFR9YS"
+}
+
+variable "build_schedule" {
+  type    = string
+  default = "rate(15 minutes)"
+}
+
+variable "log_retention_days" {
+  type    = number
+  default = 30
+}

@@ -1,0 +1,38 @@
+terraform {
+  required_version = ">= 1.10"
+
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 6.0"
+    }
+  }
+
+  # Each workspace's state is at env:/<workspace>/snacker-tracker-interface, the one key the CI
+  # roles can reach (infra/admin).
+  backend "s3" {
+    bucket       = "snacker-tracker-aws-infra-tfstate"
+    key          = "snacker-tracker-interface"
+    region       = "ap-southeast-1"
+    use_lockfile = true
+  }
+}
+
+provider "aws" {
+  region = var.region
+
+  # The project tag is what lets the CI role manage CloudFront and ACM (ADR 0005).
+  default_tags {
+    tags = { project = "snacker-tracker", environment = local.env }
+  }
+}
+
+# CloudFront certificates live in us-east-1.
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+
+  default_tags {
+    tags = { project = "snacker-tracker", environment = local.env }
+  }
+}
