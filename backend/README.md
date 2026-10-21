@@ -30,6 +30,26 @@ leaves the previous `data/` in place. The rejected build stays in `<out>/.data-b
 for inspection. A build that passes replaces `data/` entirely, so files a build no longer
 writes disappear.
 
+## Extracting from Hugging Face and S3
+
+`--food` can be `hf://datasets/openfoodfacts/product-database/food.parquet`, so each extraction
+reads the latest OpenFoodFacts data without a local copy. `--raw`, `--archive` and `--products`
+can each be an `s3://` URI.
+
+```sh
+uv run snacker extract-products --raw s3://snacker-tracker-dev/raw/data/scanner \
+  --food hf://datasets/openfoodfacts/product-database/food.parquet \
+  --products s3://snacker-tracker-dev-working/products.parquet \
+  --archive s3://snacker-tracker-dev-working/snacker-archive.csv
+```
+
+- **The hf:// location is resolved once to its signed CDN URL, and Polars scans that.** Polars'
+  own `hf://` reads send every range request through Hugging Face's resolver, and one scan
+  exceeds its anonymous quota of 3,000 requests per 5 minutes (aws-deployment ticket 01).
+  `HF_TOKEN` is sent if it's set. A run takes about 2 minutes and 1.4 GB.
+- **A table that already covers every scanned code reads nothing from Hugging Face.**
+- **A products table not in S3 yet** is written there, as a first local extraction would be.
+
 ## Building from and to S3
 
 `--raw` and `--products` can each be an `s3://` URI, and `--out` can be `s3://<site bucket>`.

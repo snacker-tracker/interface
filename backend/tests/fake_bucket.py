@@ -2,6 +2,7 @@
 
 import hashlib
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 
@@ -46,3 +47,8 @@ class FakeBucket:
 
     def deletes(self) -> list[str]:
         return [key for call in self.calls if isinstance(call, Delete) for key in call.keys]
+
+
+def opener(buckets: dict[str, FakeBucket]) -> Callable[[str], FakeBucket]:
+    """Opens each bucket by name, as S3Bucket does."""
+    return lambda name: buckets[name]

@@ -40,13 +40,21 @@ class Bucket(Protocol):
     def delete(self, keys: list[str]) -> None: ...
 
 
+def s3_location(location: str) -> tuple[str, str] | None:
+    """`s3://<bucket>/<key>` as (bucket, key), or None for any other location."""
+    if not location.startswith(S3_SCHEME):
+        return None
+    bucket, _, key = location.removeprefix(S3_SCHEME).partition("/")
+    return bucket, key
+
+
 def fetch(location: str, local_dir: Path, open_bucket: Callable[[str], Bucket]) -> Path:
     """A local path to read an input from: a local path as it is, an s3:// object copied to
     `local_dir/<its name>`, or an s3:// prefix copied under `local_dir` with the layout below
     it kept (copying first is 5x faster than a direct glob over S3; aws-deployment ticket 01)."""
-    if not location.startswith(S3_SCHEME):
+    if (s3 := s3_location(location)) is None:
         return Path(location)
-    bucket_name, _, key = location.removeprefix(S3_SCHEME).partition("/")
+    bucket_name, key = s3
     bucket = open_bucket(bucket_name)
     if key in bucket.etags(key):
         path = local_dir / PurePosixPath(key).name

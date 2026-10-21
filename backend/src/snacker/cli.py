@@ -1,6 +1,7 @@
 """Command line entry point.
 
-    snacker extract-products --raw <scanner dir> --food <food.parquet> --products <products.parquet> [--archive <codes.csv>]
+    snacker extract-products --raw <scanner dir | s3://…> --food <food.parquet | hf://…> --products <products.parquet | s3://…>
+        [--archive <codes.csv | s3://…>]
     snacker build --raw <scanner dir | s3://…> --products <products.parquet | s3://…> --out <output dir | s3://site-bucket>
     snacker check --out <output dir>
     snacker schema --out <schema file>
@@ -12,11 +13,9 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
-import polars as pl
-
 from snacker.build import ContractBroken, build
 from snacker.check import Violation, contract_violations
-from snacker.products import read_archive, update_products
+from snacker.extraction import signed_hf_url, update_products_at
 from snacker.schema import schema_json
 from snacker.scans import normalise_scans
 from snacker.storage import S3_SCHEME, S3Bucket, fetch
@@ -35,13 +34,17 @@ def main() -> None:
         help="Look up scanned codes in the OpenFoodFacts food parquet. Skipped when every "
         "scanned code was already looked up.",
     )
-    extract_command.add_argument("--raw", type=Path, required=True, help=RAW_HELP)
-    extract_command.add_argument("--food", type=Path, required=True, help="OpenFoodFacts food.parquet.")
-    extract_command.add_argument("--products", type=Path, required=True, help=PRODUCTS_HELP)
+    extract_command.add_argument("--raw", required=True, help=f"{RAW_HELP} {S3_HELP}")
     extract_command.add_argument(
-        "--archive", type=Path,
+        "--food", required=True,
+        help="OpenFoodFacts food.parquet, or hf://datasets/openfoodfacts/product-database/food.parquet "
+        "(resolved to its signed CDN URL only if the table must be written).",
+    )
+    extract_command.add_argument("--products", required=True, help=f"{PRODUCTS_HELP} {S3_HELP}")
+    extract_command.add_argument(
+        "--archive",
         help="The Snacker archive CSV (codes.csv): names for products OpenFoodFacts can't name. "
-        "Without it, names come from OpenFoodFacts only.",
+        f"Without it, names come from OpenFoodFacts only. {S3_HELP}",
     )
     extract_command.add_argument(
         "--force", action="store_true", help="Extract even if every scanned code was already looked up."
@@ -74,19 +77,7 @@ def main() -> None:
         args.out.write_text(schema_json())
         print(f"Wrote {args.out}")
     elif args.command == "extract-products":
-        codes = normalise_scans(args.raw)["code"].unique().to_list()
-        archive = read_archive(args.archive) if args.archive else None
-        if archive and archive.duplicated:
-            print(f"The archive records these codes more than once, so they get no archive name: {', '.join(archive.duplicated)}")
-        if update_products(args.food, codes, args.products, archive=archive, force=args.force):
-            sources = pl.read_parquet(args.products)["name_source"].value_counts()
-            named = dict(zip(sources["name_source"].to_list(), sources["count"].to_list()))
-            print(
-                f"Looked up {len(codes)} scanned codes; {named.get('openfoodfacts', 0)} named by OpenFoodFacts, "
-                f"{named.get('snacker-archive', 0)} by the Snacker archive. Wrote {args.products}"
-            )
-        else:
-            print(f"Every scanned code is already in {args.products}; nothing to do (use --force to redo)")
+        run_extraction(args.raw, args.food, args.products, args.archive, force=args.force)
     elif args.command == "check":
         violations = contract_violations(args.out / "data")
         if violations:
@@ -94,6 +85,24 @@ def main() -> None:
         print(f"{args.out / 'data'} keeps the output contract")
     else:
         run_build(args.raw, args.products, args.out)
+
+
+def run_extraction(raw: str, food: str, products: str, archive: str | None, *, force: bool) -> None:
+    """Extract from local, Hugging Face or S3 inputs, to a local or S3 products table."""
+    with tempfile.TemporaryDirectory(prefix="snacker-") as scratch:
+        codes = normalise_scans(fetch(raw, Path(scratch) / "raw", S3Bucket))["code"].unique().to_list()
+    update = update_products_at(
+        food, codes, products, archive=archive, force=force, open_bucket=S3Bucket, resolve_hf=signed_hf_url
+    )
+    if update.duplicated:
+        print(f"The archive records these codes more than once, so they get no archive name: {', '.join(update.duplicated)}")
+    if update.extracted:
+        print(
+            f"Looked up {len(codes)} scanned codes; {update.named.get('openfoodfacts', 0)} named by OpenFoodFacts, "
+            f"{update.named.get('snacker-archive', 0)} by the Snacker archive. Wrote {products}"
+        )
+    else:
+        print(f"Every scanned code is already in {products}; nothing to do (use --force to redo)")
 
 
 def run_build(raw: str, products: str, out: str) -> None:

@@ -65,7 +65,7 @@ def read_archive(archive_csv: Path) -> Archive:
     )
 
 
-def extract_products(food_parquet: Path, codes: Iterable[str], *, archive: Archive | None = None) -> pl.DataFrame:
+def extract_products(food_parquet: Path | str, codes: Iterable[str], *, archive: Archive | None = None) -> pl.DataFrame:
     """One row per code, in code order; an unknown product's details are null.
 
     A name from OpenFoodFacts wins; the archive only names products OpenFoodFacts can't,
@@ -160,7 +160,7 @@ def image_folder(code: str) -> str:
 
 
 def update_products(
-    food_parquet: Path,
+    food_parquet: Path | str,
     codes: Iterable[str],
     products_parquet: Path,
     *,
@@ -174,14 +174,20 @@ def update_products(
     archive is frozen, so it is merged only when the table is written.
     """
     codes = set(codes)
-    if not force and products_parquet.exists():
-        existing = pl.read_parquet(products_parquet)
-        # A table written before a column was added is out of date, whatever codes it has.
-        if existing.schema == PRODUCTS_SCHEMA and codes <= set(existing["code"].to_list()):
-            return False
+    if not force and covers(products_parquet, codes):
+        return False
     products_parquet.parent.mkdir(parents=True, exist_ok=True)
     extract_products(food_parquet, codes, archive=archive).write_parquet(products_parquet)
     return True
+
+
+def covers(products_parquet: Path, codes: Iterable[str]) -> bool:
+    """Whether a products table exists and already looked up every code."""
+    if not products_parquet.exists():
+        return False
+    existing = pl.read_parquet(products_parquet)
+    # A table written before a column was added is out of date, whatever codes it has.
+    return existing.schema == PRODUCTS_SCHEMA and set(codes) <= set(existing["code"].to_list())
 
 
 SCANNED_PRODUCT = pl.Struct({

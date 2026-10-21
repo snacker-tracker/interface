@@ -1,16 +1,11 @@
 """Tests at the fetch seam: an input's location in, a local path to read it from out."""
 
-from collections.abc import Callable
 from pathlib import Path
 
 import pytest
 
-from fake_bucket import FakeBucket
-from snacker.storage import Bucket, fetch
-
-
-def opener(buckets: dict[str, FakeBucket]) -> Callable[[str], Bucket]:
-    return lambda name: buckets[name]
+from fake_bucket import FakeBucket, opener
+from snacker.storage import fetch
 
 
 def test_a_local_path_is_read_where_it_is(tmp_path: Path) -> None:
