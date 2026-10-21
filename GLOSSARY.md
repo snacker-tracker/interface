@@ -55,6 +55,10 @@ _Avoid_: most scanned, popular, top items, best sellers, favourites
 The products with a Nutri-Score scanned within a period, split into two lists that never share a product: the healthiest are best grade first, and the least healthy are worst grade first. Within a grade, the most scanned come first.
 _Avoid_: healthiest snacks, health ranking
 
+**Nutri-Score distribution**:
+How many scans within a period were of products of each Nutri-Score grade, A to E. Each scan counts, so a product scanned ten times adds ten to its grade. Scans of products without a Nutri-Score aren't in it.
+_Avoid_: histogram (for the counts rather than the chart), Nutri-Score breakdown, health mix
+
 **Period**:
 A span of time ending when the data was built: calendar-aligned in each scan's office time zone (today, this work week from Monday, this month, this year), rolling (the last 7, 30 or 365 days), or all time.
 _Avoid_: range, window, time-line (for this concept)
