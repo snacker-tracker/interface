@@ -2,7 +2,7 @@
 
 **What to build:** `extract-products` reads the OpenFoodFacts file straight from Hugging Face, and reads the Snacker archive and writes the products table in S3. Local paths keep working.
 
-**Blocked by:** 01 (the spike decides whether the `hf://` scan fits a Lambda run).
+**Blocked by:** 01 (the spike decides whether the `hf://` scan fits a Lambda run). Resolved: a plain `hf://` scan is rate-limited (HTTP 429) before it finishes. Instead, **resolve the URL once to its signed CDN URL and scan that**: about 2 minutes, 1.4 GB peak. See 01's comments.
 
 **Status:** ready-for-agent
 

@@ -2,7 +2,7 @@
 
 **What to build:** `snacker build` can read its inputs from S3 and publish to a site bucket, so the build that will run in Lambda can be run and checked from a laptop first. Local paths keep working exactly as today.
 
-**Blocked by:** 01 (the spike decides whether raw events are read directly or copied first).
+**Blocked by:** 01 (the spike decides whether raw events are read directly or copied first). Resolved: **copy first**, with a parallel download into a local directory (21 s against 110 s for a direct glob, and the direct read grows by about a minute a month). See 01's comments.
 
 **Status:** ready-for-agent
 

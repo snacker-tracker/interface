@@ -17,7 +17,8 @@ Decisions from the design session (ADRs 0003–0006):
 - **The schedule:** an EventBridge Scheduler job every 15 minutes, as a per-environment variable, using the scheduler role.
 - **The working bucket:** `snacker-tracker-${terraform.workspace}-…`, holding the products table and the Snacker archive.
 - **CloudFront:**
-  - The origin is the site bucket's website endpoint.
+  - The origin is the private site bucket (its REST endpoint), through an Origin Access Control. The bucket's policy, from the admin configuration, already admits CloudFront from this account.
+  - Deep links: 403 and 404 replies map to `/index.html` with status 200.
   - It serves `dev.khanom.xyz`, with an ACM certificate (us-east-1) validated through the `khanom.xyz` zone (`Z0781732PCOBWRVFR9YS`), and A/AAAA alias records.
   - It respects each object's `Cache-Control`.
   - Deep links fall back to `index.html`. The frontend already treats an HTML reply for a data file as missing.
