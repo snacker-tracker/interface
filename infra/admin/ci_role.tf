@@ -23,14 +23,15 @@ data "aws_iam_policy_document" "ci_trust" {
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
-    # Deploys run in the matching GitHub environment; pull requests only plan.
+    # Deploys run in the matching GitHub environment. Pull requests plan in dev only, so they
+    # can never assume the prod role.
     condition {
       test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values = [
-        "repo:${var.github_repo}:environment:${local.env}",
-        "repo:${var.github_repo}:pull_request",
-      ]
+      values = concat(
+        ["repo:${var.github_repo}:environment:${local.env}"],
+        local.env == "dev" ? ["repo:${var.github_repo}:pull_request"] : [],
+      )
     }
   }
 }
