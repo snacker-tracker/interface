@@ -79,7 +79,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - uses: hashicorp/setup-terraform@v4
         with:
-          terraform_version: "1.16.6"
+          terraform_version: "v1.17.0"
           terraform_wrapper: false
       - run: terraform init -input=false
       # Planned against the image dev runs now, so the plan shows only infrastructure changes.
