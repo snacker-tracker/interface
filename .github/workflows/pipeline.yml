@@ -1,0 +1,134 @@
+# Dev always runs master, and prod runs what dev ran once approved (aws-deployment tickets 07 and
+# 08, ADRs 0005 and 0006). A push to master tests, builds the image once, deploys dev, then waits
+# for the prod environment's reviewers to deploy the same image and frontend build to prod. A
+# pull request tests and shows the dev plan.
+name: pipeline
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-1
+  # The dev CI role (infra/admin). It pushes the image in the dev environment; pull requests
+  # assume it only to plan, without the state lock.
+  DEV_CI_ROLE: arn:aws:iam::132218943709:role/snacker-tracker-dev-ci
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.4"
+      - run: uv sync --locked
+      - run: uv run mypy
+      - run: uv run pytest
+
+  frontend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - uses: actions/upload-artifact@v4
+        with:
+          # Dev and prod both publish this one build of the commit.
+          name: frontend-${{ github.sha }}
+          path: frontend/dist
+          if-no-files-found: error
+          retention-days: 90
+
+  plan:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      TF_IN_AUTOMATION: "1"
+      # Selected before init: the CI role can reach only dev's state (env:/dev/…), not the
+      # default workspace's, which init would otherwise check.
+      TF_WORKSPACE: dev
+    defaults:
+      run:
+        working-directory: infra/main
+    steps:
+      - uses: actions/checkout@v5
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ env.DEV_CI_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.6"
+          terraform_wrapper: false
+      - run: terraform init -input=false
+      # Planned against the image dev runs now, so the plan shows only infrastructure changes.
+      - name: terraform plan
+        run: |
+          image_uri="$(aws lambda get-function --function-name snacker-tracker-dev-build --query Code.ImageUri --output text)"
+          terraform plan -input=false -lock=false -no-color -var-file=dev.tfvars -var "image_uri=$image_uri" | tee plan.txt
+          { echo '### Dev plan'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+  # Built once per commit; prod promotes this digest and never builds its own.
+  image:
+    if: github.event_name == 'push'
+    needs: [backend, frontend]
+    runs-on: ubuntu-24.04
+    environment: dev
+    permissions:
+      contents: read
+      id-token: write
+    outputs:
+      image_uri: ${{ steps.image.outputs.image_uri }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ env.DEV_CI_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Push the image
+        id: image
+        run: |
+          image_uri="$(backend/scripts/push-image.sh)"
+          echo "image_uri=$image_uri" >> "$GITHUB_OUTPUT"
+          echo "Image for ${GITHUB_SHA}: \`$image_uri\`" >> "$GITHUB_STEP_SUMMARY"
+
+  dev:
+    needs: [image]
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      environment: dev
+      image_uri: ${{ needs.image.outputs.image_uri }}
+
+  # Waits for the prod environment's required reviewers.
+  prod:
+    needs: [image, dev]
+    uses: ./.github/workflows/deploy.yml
+    permissions:
+      contents: read
+      id-token: write
+    with:
+      environment: prod
+      image_uri: ${{ needs.image.outputs.image_uri }}

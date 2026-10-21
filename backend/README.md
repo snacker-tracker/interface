@@ -108,14 +108,21 @@ configuration takes as `image_uri`. A commit that already has an image reuses it
 
 ## Deploying
 
-`.github/workflows/dev.yml` deploys dev on every push to `master`:
+`.github/workflows/pipeline.yml` runs on every push to `master`:
 
-1. Backend tests and mypy, frontend lint and build. A failure stops the deploy before it starts.
-2. `scripts/push-image.sh`. The job summary records the digest, for promotion to prod.
-3. `terraform apply` of `infra/main` in the `dev` workspace, which points both functions at the
-   digest.
-4. One run of the build function, so `data/` matches the new contract version.
-5. `frontend/scripts/sync-site.sh`, which uploads `dist/` outside `data/`.
+1. Backend tests and mypy, frontend lint and build. A failure stops everything before it starts.
+2. `image`: `scripts/push-image.sh`, once per commit. The job summary records the digest.
+3. `dev`, then `prod` once a reviewer approves the `prod` environment. Both run
+   `.github/workflows/deploy.yml` with the same digest and frontend build:
+   1. `terraform apply` of `infra/main` in the environment's workspace, which points both
+      functions at the digest.
+   2. One run of the build function, so `data/` matches the new contract version.
+   3. `frontend/scripts/sync-site.sh`, which uploads `dist/` outside `data/`.
 
 A pull request runs the same checks and puts a dev `terraform plan`, against the image dev runs
-now, in its job summary. The plan takes no state lock.
+now, in its job summary. The plan takes no state lock. Only the dev CI role trusts pull requests.
+
+**Rolling back:** open the pipeline run for the earlier commit and re-run its `prod / deploy` job.
+It applies that commit's Terraform and promotes that commit's image and frontend build, after the
+same approval. GitHub allows re-runs for 30 days, and the frontend build is kept for 90. Dev rolls
+back the same way with `dev / deploy`; the next push to `master` deploys forward again.

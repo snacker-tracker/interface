@@ -21,3 +21,8 @@ output "build_function" {
 output "extract_function" {
   value = aws_lambda_function.extract.function_name
 }
+
+output "distribution_domain" {
+  description = "The distribution's own cloudfront.net name, to check before the hostnames point at it."
+  value       = aws_cloudfront_distribution.site.domain_name
+}

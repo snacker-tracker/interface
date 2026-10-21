@@ -33,6 +33,12 @@ variable "hostnames" {
   type        = list(string)
 }
 
+variable "serve_hostnames" {
+  description = "Whether the hostnames' A/AAAA records point at the distribution. The certificate and its validation records exist either way."
+  type        = bool
+  default     = true
+}
+
 variable "hosted_zone_id" {
   type    = string
   default = "Z0781732PCOBWRVFR9YS"

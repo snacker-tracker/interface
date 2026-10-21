@@ -32,3 +32,18 @@ Decisions from the design session (ADRs 0003–0006):
 - a `prod` GitHub environment with required reviewers;
 - the prod job;
 - the first approved run, checked on `cloudfront.net` first.
+
+**2026-10-21: prod job written, not yet run.**
+- **The split:** `.github/workflows/dev.yml` became `pipeline.yml`. It runs backend and frontend, then `image` (pushed once, in the dev environment), then `dev`, then `prod`. Both deploy jobs call `deploy.yml` with the same digest and the `frontend-<sha>` artifact.
+- **`deploy.yml`** picks the GitHub environment, the CI role `snacker-tracker-<env>-ci`, `TF_WORKSPACE` and `<env>.tfvars` from its `environment` input.
+- **The cut-over:** `serve_hostnames` (default true) gates the A/AAAA records. `prod.tfvars` sets it to false for now; the certificate and its validation records are created either way. A new output, `distribution_domain`, goes in the job summary, so the `cloudfront.net` address can be checked first.
+- **Workspace:** created the main configuration's `prod` workspace by hand, so `TF_WORKSPACE=prod` finds it.
+- **Planned locally as admin:**
+  - dev: only the new output;
+  - prod: 14 to create (functions, schedule, working bucket, OAC, distribution, certificate and its two validation records), no A/AAAA.
+- **Rollback:** documented in `backend/README.md` as re-running `prod / deploy` on an earlier commit's run (re-runs are allowed for 30 days; artifacts are kept for 90).
+
+**Still to do:**
+- Create the `prod` GitHub environment with required reviewers.
+- After the first prod apply, upload the Snacker archive to `s3://snacker-tracker-prod-working/snacker-archive.csv` by hand, as in dev. Until then the extraction the first build starts fails, and each scheduled build starts it again.
+- Check `https://<distribution_domain>`, then set `serve_hostnames = true` and run again.

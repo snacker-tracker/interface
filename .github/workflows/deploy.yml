@@ -1,0 +1,87 @@
+# Deploys one commit's image and frontend build to an environment (aws-deployment tickets 07 and
+# 08): apply the main configuration, which points both functions at the image's digest, run one
+# build, then publish the frontend outside data/. Called by pipeline.yml.
+name: deploy
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: dev or prod; picks the GitHub environment, CI role, workspace and tfvars.
+        type: string
+        required: true
+      image_uri:
+        description: The image by digest, as push-image.sh printed it.
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    environment: ${{ inputs.environment }}
+    # One deploy per environment at a time; a newer one waits rather than cancelling one half done.
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ap-southeast-1
+      ENVIRONMENT: ${{ inputs.environment }}
+      IMAGE_URI: ${{ inputs.image_uri }}
+      TF_IN_AUTOMATION: "1"
+      # Selected before init: each CI role can reach only its own environment's state.
+      TF_WORKSPACE: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: arn:aws:iam::132218943709:role/snacker-tracker-${{ inputs.environment }}-ci
+          aws-region: ${{ env.AWS_REGION }}
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.16.6"
+          terraform_wrapper: false
+
+      - name: terraform apply
+        id: terraform
+        working-directory: infra/main
+        run: |
+          terraform init -input=false
+          terraform apply -input=false -auto-approve -var-file="$ENVIRONMENT.tfvars" -var "image_uri=$IMAGE_URI"
+          {
+            echo "site_bucket=$(terraform output -raw site_bucket)"
+            echo "build_function=$(terraform output -raw build_function)"
+            echo "extract_function=$(terraform output -raw extract_function)"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "Deployed \`$IMAGE_URI\` to $ENVIRONMENT"
+            echo "- $(terraform output -raw site_url)"
+            echo "- https://$(terraform output -raw distribution_domain)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # A build on the new image, so the data matches its contract version before the frontend
+      # expecting it goes out.
+      - name: Build the data
+        env:
+          BUILD_FUNCTION: ${{ steps.terraform.outputs.build_function }}
+          EXTRACT_FUNCTION: ${{ steps.terraform.outputs.extract_function }}
+        run: |
+          for function in "$BUILD_FUNCTION" "$EXTRACT_FUNCTION"; do
+            aws lambda wait function-updated-v2 --function-name "$function"
+          done
+          error="$(aws lambda invoke --function-name "$BUILD_FUNCTION" \
+            --cli-read-timeout 0 --query FunctionError --output text build.json)"
+          cat build.json; echo
+          if [ "$error" != "None" ]; then echo "the build failed: $error" >&2; exit 1; fi
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-${{ github.sha }}
+          path: frontend/dist
+      - name: Publish the frontend
+        run: frontend/scripts/sync-site.sh "${{ steps.terraform.outputs.site_bucket }}"

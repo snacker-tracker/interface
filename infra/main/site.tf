@@ -95,11 +95,14 @@ resource "aws_acm_certificate_validation" "site" {
   validation_record_fqdns = [for record in aws_route53_record.validation : record.fqdn]
 }
 
+# Off until the distribution has been checked on its cloudfront.net address (ticket 08).
 resource "aws_route53_record" "site" {
-  for_each = { for pair in setproduct(var.hostnames, ["A", "AAAA"]) : "${pair[0]} ${pair[1]}" => pair }
-  zone_id  = var.hosted_zone_id
-  name     = each.value[0]
-  type     = each.value[1]
+  for_each = var.serve_hostnames ? {
+    for pair in setproduct(var.hostnames, ["A", "AAAA"]) : "${pair[0]} ${pair[1]}" => pair
+  } : {}
+  zone_id = var.hosted_zone_id
+  name    = each.value[0]
+  type    = each.value[1]
 
   alias {
     name                   = aws_cloudfront_distribution.site.domain_name
