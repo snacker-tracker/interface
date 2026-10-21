@@ -2,7 +2,7 @@
 
 ### Issue tracker
 
-Issues and specs live as local markdown files under `.scratch/<feature>/`. See `docs/agents/issue-tracker.md`.
+Issues and specs are GitHub issues on `snacker-tracker/interface`, used through `gh`. See `docs/agents/issue-tracker.md`.
 
 ### Triage labels
 
