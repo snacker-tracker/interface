@@ -16,3 +16,12 @@ dist/
 
 # Per-machine Claude Code settings
 .claude/settings.local.json
+
+# Local credentials
+.env
+
+# Terraform
+.terraform/
+*.tfplan
+*.plan.txt
+*.plan.json

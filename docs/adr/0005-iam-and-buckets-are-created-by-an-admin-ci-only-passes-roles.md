@@ -4,7 +4,7 @@ CI runs `terraform apply`, so its role must not be able to widen its own permiss
 - **An admin configuration, applied by hand by someone with IAM rights.** For each environment it creates:
   - a CI role, trusted only for that GitHub environment's OIDC subject;
   - the build, extraction and scheduler roles, each with least-privilege policies;
-  - the dev site bucket and its website policy.
+  - the site bucket, private, with a policy that lets only CloudFront from this account read it (through Origin Access Control).
 - **The main configuration, applied by CI.** Its role can manage only resources named `snacker-tracker-<env>-*`, or tagged `project=snacker-tracker` where AWS generates the ID (CloudFront, ACM).
   - It can change only records in the one hosted zone, and only its own key in the state bucket.
   - On IAM it has only `GetRole` and `PassRole`, for its environment's known roles and to the intended services. It cannot create, attach or alter any permission, or any bucket policy.
