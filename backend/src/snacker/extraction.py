@@ -12,9 +12,12 @@ from urllib.parse import urljoin
 import polars as pl
 
 from snacker.products import covers, read_archive, update_products
+from snacker.scans import normalise_scans
 from snacker.storage import Bucket, fetch, s3_location
 
 HF_SCHEME = "hf://"
+OPENFOODFACTS = "hf://datasets/openfoodfacts/product-database/food.parquet"
+"""The OpenFoodFacts food parquet on Hugging Face, always the latest data."""
 HF_HOST = "huggingface.co"
 REDIRECTS = {301, 302, 303, 307, 308}
 PARQUET_CONTENT_TYPE = "application/vnd.apache.parquet"
@@ -63,6 +66,12 @@ def update_products_at(
                 key, local_products.read_bytes(), content_type=PARQUET_CONTENT_TYPE, cache_control="no-cache"
             )
     return ProductsUpdate(extracted=True, duplicated=duplicated, named=named)
+
+
+def scanned_codes(raw: str, open_bucket: Callable[[str], Bucket]) -> list[str]:
+    """Every scanned code in the raw events, a path or an s3:// prefix."""
+    with tempfile.TemporaryDirectory(prefix="snacker-") as scratch:
+        return normalise_scans(fetch(raw, Path(scratch) / "raw", open_bucket))["code"].unique().to_list()
 
 
 def fetched_table(products: str, local_dir: Path, open_bucket: Callable[[str], Bucket]) -> Path:

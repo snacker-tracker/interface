@@ -1,0 +1,8 @@
+.venv/
+tests/
+**/__pycache__/
+.mypy_cache/
+.pytest_cache/
+.env
+*.nb.py
+repro/

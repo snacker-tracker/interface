@@ -74,3 +74,30 @@ uv run snacker build --raw s3://snacker-tracker-dev/raw/data/scanner \
   - It prints every key it uploaded or deleted.
 - **The site bucket must use default S3 encryption (SSE-S3), not KMS.** With SSE-KMS an ETag
   isn't the file's MD5, so every file would look changed and be uploaded on every run.
+
+## The Lambda image
+
+One image runs both functions (`Dockerfile`, Python 3.13 on the AWS Lambda base image). The
+function's handler picks the job:
+
+- `snacker.handlers.build_handler` (the default command) builds and publishes `data/` to the site
+  bucket. If any scanned code isn't in the products table, it then starts the extraction
+  function asynchronously. Those codes are unknown products until a later build reads the new
+  table. With no products table yet, every code is unknown.
+- `snacker.handlers.extract_handler` looks up the scanned codes in OpenFoodFacts and writes the
+  products table, as `extract-products` does.
+
+Settings come from environment variables:
+
+| Variable | Example |
+| --- | --- |
+| `SNACKER_RAW` | `s3://snacker-tracker-dev/raw/data/scanner` |
+| `SNACKER_PRODUCTS` | `s3://snacker-tracker-dev-working/products.parquet` |
+| `SNACKER_ARCHIVE` | `s3://snacker-tracker-dev-working/snacker-archive.csv` |
+| `SNACKER_SITE` | `s3://snacker-tracker-dev-site` |
+| `SNACKER_EXTRACT_FUNCTION` | `snacker-tracker-dev-extract` |
+| `SNACKER_FOOD` (optional) | `hf://datasets/openfoodfacts/product-database/food.parquet`, the default |
+
+`scripts/run-image-locally.sh` builds the image and runs both handlers in the Lambda runtime
+emulator against real S3 (it needs Docker). Give the extraction function about 3 GB of memory:
+its peak is 1.4 GB, and Lambda's CPU grows with memory.

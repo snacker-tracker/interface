@@ -10,9 +10,9 @@ import pytest
 from fake_bucket import FakeBucket, opener
 from food_parquet import food_product, write_food_parquet
 from snacker.products import extract_products
-from snacker.extraction import update_products_at
+from snacker.extraction import OPENFOODFACTS, update_products_at
 
-FOOD = "hf://datasets/openfoodfacts/product-database/food.parquet"
+FOOD = OPENFOODFACTS
 
 
 class Resolver:

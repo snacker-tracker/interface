@@ -15,9 +15,8 @@ from pathlib import Path
 
 from snacker.build import ContractBroken, build
 from snacker.check import Violation, contract_violations
-from snacker.extraction import signed_hf_url, update_products_at
+from snacker.extraction import scanned_codes, signed_hf_url, update_products_at
 from snacker.schema import schema_json
-from snacker.scans import normalise_scans
 from snacker.storage import S3_SCHEME, S3Bucket, fetch
 
 RAW_HELP = "Raw scanner data directory, containing scans/."
@@ -89,8 +88,7 @@ def main() -> None:
 
 def run_extraction(raw: str, food: str, products: str, archive: str | None, *, force: bool) -> None:
     """Extract from local, Hugging Face or S3 inputs, to a local or S3 products table."""
-    with tempfile.TemporaryDirectory(prefix="snacker-") as scratch:
-        codes = normalise_scans(fetch(raw, Path(scratch) / "raw", S3Bucket))["code"].unique().to_list()
+    codes = scanned_codes(raw, S3Bucket)
     update = update_products_at(
         food, codes, products, archive=archive, force=force, open_bucket=S3Bucket, resolve_hf=signed_hf_url
     )

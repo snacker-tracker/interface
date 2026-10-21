@@ -7,7 +7,6 @@ requires-python = ">=3.13"
 dependencies = [
     "boto3>=1.43.116",
     "jsonschema>=4.26.0",
-    "marimo>=0.25.2",
     "polars>=2.0.0",
     "pydantic>=2.14.1",
 ]
@@ -21,9 +20,10 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
+    "marimo>=0.25.2",
     "mypy>=2.4.0",
     "pytest>=9.1.1",
-    "types-boto3[s3]>=1.43.116",
+    "types-boto3[lambda,s3]>=1.43.116",
     "types-jsonschema>=4.26.0.20261006",
 ]
 

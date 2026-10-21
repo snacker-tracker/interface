@@ -50,6 +50,19 @@ data "aws_iam_policy_document" "build" {
     resources = ["arn:aws:s3:::${var.raw_bucket}", "arn:aws:s3:::${var.raw_bucket}/*"]
   }
 
+  # fetch lists the key to tell an object from a prefix, and without ListBucket a missing
+  # key reads as 403, not 404.
+  statement {
+    sid       = "FindProducts"
+    actions   = ["s3:ListBucket"]
+    resources = ["arn:aws:s3:::${local.working_bucket}"]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["${local.products_key}*"]
+    }
+  }
+
   statement {
     sid       = "ReadProducts"
     actions   = ["s3:GetObject"]
@@ -105,6 +118,19 @@ data "aws_iam_policy_document" "extraction" {
     sid       = "ReadRawEvents"
     actions   = ["s3:ListBucket", "s3:GetObject"]
     resources = ["arn:aws:s3:::${var.raw_bucket}", "arn:aws:s3:::${var.raw_bucket}/*"]
+  }
+
+  # fetch lists the key to tell an object from a prefix, and without ListBucket a missing
+  # key reads as 403, not 404.
+  statement {
+    sid       = "FindArchiveAndProducts"
+    actions   = ["s3:ListBucket"]
+    resources = ["arn:aws:s3:::${local.working_bucket}"]
+    condition {
+      test     = "StringLike"
+      variable = "s3:prefix"
+      values   = ["${local.archive_key}*", "${local.products_key}*"]
+    }
   }
 
   statement {

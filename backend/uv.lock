@@ -1086,16 +1086,16 @@ source = { editable = "." }
 dependencies = [
     { name = "boto3" },
     { name = "jsonschema" },
-    { name = "marimo" },
     { name = "polars" },
     { name = "pydantic" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "marimo" },
     { name = "mypy" },
     { name = "pytest" },
-    { name = "types-boto3", extra = ["s3"] },
+    { name = "types-boto3", extra = ["lambda", "s3"] },
     { name = "types-jsonschema" },
 ]
 
@@ -1103,16 +1103,16 @@ dev = [
 requires-dist = [
     { name = "boto3", specifier = ">=1.43.116" },
     { name = "jsonschema", specifier = ">=4.26.0" },
-    { name = "marimo", specifier = ">=0.25.2" },
     { name = "polars", specifier = ">=2.0.0" },
     { name = "pydantic", specifier = ">=2.14.1" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "marimo", specifier = ">=0.25.2" },
     { name = "mypy", specifier = ">=2.4.0" },
     { name = "pytest", specifier = ">=9.1.1" },
-    { name = "types-boto3", extras = ["s3"], specifier = ">=1.43.116" },
+    { name = "types-boto3", extras = ["lambda", "s3"], specifier = ">=1.43.116" },
     { name = "types-jsonschema", specifier = ">=4.26.0.20261006" },
 ]
 
@@ -1151,8 +1151,20 @@ wheels = [
 ]
 
 [package.optional-dependencies]
+lambda = [
+    { name = "types-boto3-lambda" },
+]
 s3 = [
     { name = "types-boto3-s3" },
+]
+
+[[package]]
+name = "types-boto3-lambda"
+version = "1.43.114"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e1/0b/d07af3fc3a97494dc8d6cbecdbee574d1b274508163af3367a91e22f3187/types_boto3_lambda-1.43.114.tar.gz", hash = "sha256:6a14ccb7b99f3211bd4ea58b525c170d7d7cf98c32fbf94a8127bfe2fff004f9", size = 53274, upload-time = "2026-10-14T19:39:31.992Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b2/fd/f606094121200d09f0c0dd13b6fd35b0923ef13f6b4aa0809ccb0636c867/types_boto3_lambda-1.43.114-py3-none-any.whl", hash = "sha256:5cd5072d8cd52ae4584e9b541e882114b89c7ce7677a734d16bd8c270aa32978", size = 61699, upload-time = "2026-10-14T19:39:30.472Z" },
 ]
 
 [[package]]
