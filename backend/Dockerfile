@@ -1,6 +1,6 @@
 # The Lambda image for both functions (aws-deployment ticket 04). The handler picks the job:
 # snacker.handlers.build_handler (the default) or snacker.handlers.extract_handler.
-FROM public.ecr.aws/lambda/python:3.13
+FROM public.ecr.aws/lambda/python:3.14
 
 # From PyPI rather than ghcr.io/astral-sh/uv, whose pulls can fail authentication.
 RUN pip install --no-cache-dir uv==0.13.4
