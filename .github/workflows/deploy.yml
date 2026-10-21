@@ -37,7 +37,7 @@ jobs:
       # Selected before init: each CI role can reach only its own environment's state.
       TF_WORKSPACE: ${{ inputs.environment }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: arn:aws:iam::132218943709:role/snacker-tracker-${{ inputs.environment }}-ci
