@@ -1,7 +1,7 @@
 # Dev always runs master, and prod runs what dev ran once approved (aws-deployment tickets 07 and
-# 08, ADRs 0005 and 0006). A push to master tests, builds the image once, deploys dev, then waits
-# for the prod environment's reviewers to deploy the same image and frontend build to prod. A
-# pull request tests and shows the dev plan.
+# 08, ADRs 0005 and 0006). A push to master tests and builds the backend image and the frontend
+# side by side, each once, deploys dev, then waits for the prod environment's reviewers to deploy
+# the same image and frontend build to prod. A pull request tests and shows the dev plan.
 name: pipeline
 
 on:
@@ -92,7 +92,7 @@ jobs:
   # Built once per commit; prod promotes this digest and never builds its own.
   image:
     if: github.event_name == 'push'
-    needs: [backend, frontend]
+    needs: [backend]
     runs-on: ubuntu-26.04
     environment: dev
     permissions:
@@ -114,7 +114,7 @@ jobs:
           echo "Image for ${GITHUB_SHA}: \`$image_uri\`" >> "$GITHUB_STEP_SUMMARY"
 
   dev:
-    needs: [image]
+    needs: [image, frontend]
     uses: ./.github/workflows/deploy.yml
     permissions:
       contents: read

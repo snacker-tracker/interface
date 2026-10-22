@@ -1,6 +1,10 @@
 # Deploys one commit's image and frontend build to an environment (aws-deployment tickets 07 and
-# 08): apply the main configuration, which points both functions at the image's digest, run one
-# build, then publish the frontend outside data/. Called by pipeline.yml.
+# 08), as two jobs side by side: the backend applies the main configuration, which points both
+# functions at the image's digest, and runs one build; the frontend publishes outside data/. Both
+# start together, so one approval of a protected environment releases both. Called by pipeline.yml.
+#
+# Neither waits for the other, so for the minute or so a contract bump takes to land, pages say
+# the data and interface are out of step (PRD §7.3) until the other job finishes.
 name: deploy
 
 on:
@@ -18,20 +22,23 @@ on:
 permissions:
   contents: read
 
+env:
+  AWS_REGION: ap-southeast-1
+  ENVIRONMENT: ${{ inputs.environment }}
+  CI_ROLE: arn:aws:iam::132218943709:role/snacker-tracker-${{ inputs.environment }}-ci
+
 jobs:
-  deploy:
+  backend:
     runs-on: ubuntu-26.04
     environment: ${{ inputs.environment }}
     # One deploy per environment at a time; a newer one waits rather than cancelling one half done.
     concurrency:
-      group: deploy-${{ inputs.environment }}
+      group: deploy-${{ inputs.environment }}-backend
       cancel-in-progress: false
     permissions:
       contents: read
       id-token: write
     env:
-      AWS_REGION: ap-southeast-1
-      ENVIRONMENT: ${{ inputs.environment }}
       IMAGE_URI: ${{ inputs.image_uri }}
       TF_IN_AUTOMATION: "1"
       # Selected before init: each CI role can reach only its own environment's state.
@@ -40,7 +47,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: aws-actions/configure-aws-credentials@v6
         with:
-          role-to-assume: arn:aws:iam::132218943709:role/snacker-tracker-${{ inputs.environment }}-ci
+          role-to-assume: ${{ env.CI_ROLE }}
           aws-region: ${{ env.AWS_REGION }}
       - uses: hashicorp/setup-terraform@v4
         with:
@@ -54,7 +61,6 @@ jobs:
           terraform init -input=false
           terraform apply -input=false -auto-approve -var-file="$ENVIRONMENT.tfvars" -var "image_uri=$IMAGE_URI"
           {
-            echo "site_bucket=$(terraform output -raw site_bucket)"
             echo "build_function=$(terraform output -raw build_function)"
             echo "extract_function=$(terraform output -raw extract_function)"
           } >> "$GITHUB_OUTPUT"
@@ -64,8 +70,7 @@ jobs:
             echo "- https://$(terraform output -raw distribution_domain)"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # A build on the new image, so the data matches its contract version before the frontend
-      # expecting it goes out.
+      # A build on the new image, so the data is built to its contract version.
       - name: Build the data
         env:
           BUILD_FUNCTION: ${{ steps.terraform.outputs.build_function }}
@@ -79,9 +84,27 @@ jobs:
           cat build.json; echo
           if [ "$error" != "None" ]; then echo "the build failed: $error" >&2; exit 1; fi
 
+  frontend:
+    runs-on: ubuntu-26.04
+    environment: ${{ inputs.environment }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}-frontend
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      # Named by the admin configuration (infra/admin, ADR 0005), so no terraform is needed here.
+      SITE_BUCKET: snacker-tracker-${{ inputs.environment }}-site
+    steps:
+      - uses: actions/checkout@v7
+      - uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: ${{ env.CI_ROLE }}
+          aws-region: ${{ env.AWS_REGION }}
       - uses: actions/download-artifact@v8
         with:
           name: frontend-${{ github.sha }}
           path: frontend/dist
       - name: Publish the frontend
-        run: frontend/scripts/sync-site.sh "${{ steps.terraform.outputs.site_bucket }}"
+        run: frontend/scripts/sync-site.sh "$SITE_BUCKET"
