@@ -12,13 +12,14 @@ resource "aws_cloudwatch_log_group" "extract" {
 
 # No reserved concurrency of 1 yet: the account's limit is 10, all of which AWS keeps unreserved.
 # A build takes under a minute every 15, and publishing corrects itself (ADR 0004).
+# Peaks around 680 MB; CPU grows with memory, so a smaller size also means a slower build.
 resource "aws_lambda_function" "build" {
   function_name = local.build_function
   role          = var.build_role_arn
   package_type  = "Image"
   image_uri     = var.image_uri
   architectures = ["x86_64"]
-  memory_size   = 2048
+  memory_size   = 768
   timeout       = 900
 
   environment {
