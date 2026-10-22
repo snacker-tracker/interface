@@ -53,3 +53,9 @@ variable "log_retention_days" {
   type    = number
   default = 30
 }
+
+variable "access_log_retention_days" {
+  description = "How long the CloudWatch log group keeps CloudFront's access logs (ADR 0010); the bucket keeps them longer."
+  type        = number
+  default     = 30
+}

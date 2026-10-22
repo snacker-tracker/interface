@@ -26,3 +26,8 @@ output "distribution_domain" {
   description = "The distribution's own cloudfront.net name, to check before the hostnames point at it."
   value       = aws_cloudfront_distribution.site.domain_name
 }
+
+output "access_log_group" {
+  description = "Query it with Logs Insights in us-east-1."
+  value       = aws_cloudwatch_log_group.access_logs.name
+}

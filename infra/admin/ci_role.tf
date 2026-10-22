@@ -45,6 +45,7 @@ resource "aws_iam_policy" "ci" {
   for_each = {
     workloads = data.aws_iam_policy_document.ci_workloads.json
     edge      = data.aws_iam_policy_document.ci_edge.json
+    logs      = data.aws_iam_policy_document.ci_access_logs.json
     guards    = data.aws_iam_policy_document.ci_guards.json
   }
   name   = "${local.prefix}-ci-${each.key}"
@@ -97,7 +98,7 @@ data "aws_iam_policy_document" "ci_workloads" {
       "logs:DeleteRetentionPolicy", "logs:TagResource", "logs:UntagResource",
       "logs:ListTagsForResource", "logs:TagLogGroup", "logs:ListTagsLogGroup",
     ]
-    resources = ["${local.log_group_arn}/${local.prefix}-*"]
+    resources = ["${local.log_group_arn}/${local.prefix}-*", local.access_log_group_arn]
   }
 
   # Bucket and object policies, ACLs and public access are denied in ci_guards.
@@ -249,6 +250,56 @@ data "aws_iam_policy_document" "ci_edge" {
       variable = "route53:ChangeResourceRecordSetsNormalizedRecordNames"
       values   = flatten([for name in var.hostnames : [name, "_*.${name}"]])
     }
+  }
+}
+
+# --- CloudFront access log delivery (ADR 0010) ---
+
+data "aws_iam_policy_document" "ci_access_logs" {
+  # Lets this account's log delivery read the distribution's logs. It grants no principal access to
+  # anything: where the logs may land is still decided by the policies in access_logs.tf.
+  statement {
+    sid       = "VendDistributionLogs"
+    actions   = ["cloudfront:AllowVendedLogDeliveryForResource"]
+    resources = ["arn:aws:cloudfront::${local.account}:distribution/*"]
+    condition {
+      test     = "StringEquals"
+      variable = "aws:ResourceTag/${local.project_tag.variable}"
+      values   = [local.project_tag.value]
+    }
+  }
+
+  # No delivery destination policies: those are only for cross-account delivery, and are permissions.
+  # Delivery IDs are generated, so deliveries can't be scoped by name.
+  statement {
+    sid = "Deliveries"
+    actions = [
+      "logs:PutDeliverySource", "logs:GetDeliverySource", "logs:DeleteDeliverySource",
+      "logs:PutDeliveryDestination", "logs:GetDeliveryDestination", "logs:DeleteDeliveryDestination",
+      "logs:CreateDelivery", "logs:GetDelivery", "logs:DeleteDelivery", "logs:UpdateDeliveryConfiguration",
+      "logs:TagResource", "logs:UntagResource", "logs:ListTagsForResource",
+    ]
+    resources = [
+      "${local.log_delivery_arn}:delivery-source:${local.prefix}-*",
+      "${local.log_delivery_arn}:delivery-destination:${local.prefix}-*",
+      "${local.log_delivery_arn}:delivery:*",
+    ]
+  }
+
+  # Delivery reads the destinations' policies to check it may write; it never changes them here.
+  statement {
+    sid = "ReadDeliveries"
+    actions = [
+      "logs:DescribeDeliverySources", "logs:DescribeDeliveryDestinations", "logs:DescribeDeliveries",
+      "logs:DescribeConfigurationTemplates", "logs:DescribeResourcePolicies",
+    ]
+    resources = ["*"]
+  }
+
+  statement {
+    sid       = "ReadAccessLogsBucketPolicy"
+    actions   = ["s3:GetBucketPolicy"]
+    resources = [local.access_logs_bucket_arn]
   }
 }
 

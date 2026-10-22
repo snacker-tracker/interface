@@ -19,6 +19,13 @@ locals {
   role_arn          = "arn:aws:iam::${local.account}:role"
   github_oidc       = "arn:aws:iam::${local.account}:oidc-provider/token.actions.githubusercontent.com"
   main_state_object = "env:/${local.env}/${var.main_state_key}"
+
+  # Access logs (ADR 0010). CloudFront's log delivery is set up in us-east-1 whatever the bucket's Region.
+  access_logs_bucket     = "${local.prefix}-access-logs"
+  access_logs_bucket_arn = "arn:aws:s3:::${local.access_logs_bucket}"
+  access_logs_s3_prefix  = "cloudfront"
+  log_delivery_arn       = "arn:aws:logs:us-east-1:${local.account}"
+  access_log_group_arn   = "${local.log_delivery_arn}:log-group:/aws/vendedlogs/cloudfront/${local.prefix}-*"
 }
 
 resource "terraform_data" "workspace" {

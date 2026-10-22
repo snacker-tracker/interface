@@ -49,3 +49,9 @@ variable "main_state_key" {
   type        = string
   default     = "snacker-tracker-interface"
 }
+
+variable "access_log_retention_days" {
+  description = "How long the access-log bucket keeps CloudFront's logs (ADR 0010)."
+  type        = number
+  default     = 90
+}
