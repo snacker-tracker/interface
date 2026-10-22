@@ -93,3 +93,21 @@ _Avoid_: down, dead, inactive
 **Heartbeat**:
 A periodic sign of life from a scanner, carrying its app version.
 _Avoid_: ping, health check
+
+### Site usage
+
+**Interaction**:
+One recorded thing a visitor did on the site, such as viewing a page or choosing a period. Not a scan: the two are never mixed.
+_Avoid_: event, hit, tracked event
+
+**Page view**:
+An interaction recording that a visitor opened a page: the index, a code's page or the scanners page. Choosing a location or period on the page they're already on isn't a page view.
+_Avoid_: screen, screen view
+
+**Visitor**:
+A browser the site recognises across visits by a random identifier it was given. One person on two browsers is two visitors; it says nothing about who they are.
+_Avoid_: user, person, customer
+
+**Visit**:
+A visitor's run of interactions with no gap longer than 30 minutes; a longer gap starts a new visit, even in the same tab.
+_Avoid_: session
