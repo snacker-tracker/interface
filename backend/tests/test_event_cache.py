@@ -171,11 +171,21 @@ def test_scans_alone_are_loaded_without_reading_heartbeats(buckets: dict[str, Fa
     assert all(not key.startswith("raw/data/scanner/heartbeats/") for key in buckets["raw"].gets)
 
 
-def test_a_raw_location_with_no_scans_stops_the_build(buckets: dict[str, FakeBucket]) -> None:
+def test_a_raw_location_with_nothing_in_it_stops_the_build(buckets: dict[str, FakeBucket]) -> None:
     buckets["raw"].objects.clear()
 
     with pytest.raises(FileNotFoundError, match="raw/data/scanner"):
         load(buckets)
+
+
+def test_heartbeats_without_any_scans_yet_still_build(buckets: dict[str, FakeBucket]) -> None:
+    del buckets["raw"].objects["raw/data/scanner/scans/2026/10/21/a"]
+
+    codes, heartbeats = load(buckets)
+    codes_again, _ = load(buckets)
+
+    assert codes == codes_again == []
+    assert heartbeats == [("kitchen", "2026-10-21T03:00:00+00:00")]
 
 
 def test_a_local_raw_directory_and_cache_directory_work_as_buckets_do(tmp_path: Path) -> None:

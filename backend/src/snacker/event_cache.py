@@ -45,14 +45,12 @@ class Kind:
     folder: str
     normalise: Callable[[Path], pl.DataFrame]
     merge: Callable[[pl.DataFrame], pl.DataFrame]
-    required: bool
-    """Whether finding none at all means a wrong raw location."""
 
 
 # Delivery is at-least-once and the margin reads files again, so a scan is one event id.
-SCANS = Kind("scans", normalise_scans, lambda scans: scans.unique("event_id", keep="first", maintain_order=True), True)
+SCANS = Kind("scans", normalise_scans, lambda scans: scans.unique("event_id", keep="first", maintain_order=True))
 # The scanners pages use only each scanner's latest heartbeat.
-HEARTBEATS = Kind("heartbeats", normalise_heartbeats, latest_heartbeats, False)
+HEARTBEATS = Kind("heartbeats", normalise_heartbeats, latest_heartbeats)
 
 
 @dataclass(frozen=True)
@@ -76,6 +74,10 @@ def load_events(
         return Events(scans=scans, heartbeats=heartbeats, raw_files_read=-1)
     scans, scans_read = load(SCANS, raw, cache=cache, version=version, open_bucket=open_bucket, save=save)
     heartbeats, heartbeats_read = load(HEARTBEATS, raw, cache=cache, version=version, open_bucket=open_bucket, save=save)
+    # The newest raw file is always within the margin, so a run that reads nothing found an
+    # empty location: a wrong one, whose build would publish an empty site over the real one.
+    if scans_read + heartbeats_read == 0:
+        raise FileNotFoundError(f"nothing in {raw}")
     return Events(scans=scans, heartbeats=heartbeats, raw_files_read=scans_read + heartbeats_read)
 
 
@@ -101,8 +103,6 @@ def load(
     cached = read_cache(cache_bucket, cache_key, version) if version is not None else None
     if cached is None or cached.watermark is None:
         listed = raw_bucket.modified(folder)
-        if kind.required and not listed:
-            raise FileNotFoundError(f"nothing in {raw.rstrip('/')}/{kind.folder}")
         since = None
     else:
         day_before = (cached.watermark - timedelta(days=1)).strftime("%Y/%m/%d/")
