@@ -19,7 +19,6 @@ locals {
   site_bucket_arn   = "arn:aws:s3:::${local.site_bucket}"
   role_arn          = "arn:aws:iam::${local.account}:role"
   github_oidc       = "arn:aws:iam::${local.account}:oidc-provider/token.actions.githubusercontent.com"
-  main_state_object = "env:/${local.env}/${var.main_state_key}"
 
   # Access logs (ADR 0010). CloudFront's log delivery is set up in us-east-1 whatever the bucket's Region.
   access_logs_bucket     = "${local.prefix}-access-logs"
