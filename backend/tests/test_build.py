@@ -356,6 +356,30 @@ def test_scanners_are_listed_under_their_location_and_every_location_above_it(
     assert names("thailand:test") == ["test-bench"]
 
 
+def test_a_scanner_that_moved_is_listed_only_where_its_latest_heartbeat_puts_it(
+    raw_dir: Path, out_dir: Path
+) -> None:
+    write_events(raw_dir, "scans/2026/09/23/delivery", [
+        live_scan("8850999220000", time="2026-09-23T06:00:00Z", location="thailand:bangkok:main-kitchen"),
+        live_scan("8850999220000", time="2026-09-23T06:01:00Z", location="thailand:bangkok:3f-pantry"),
+    ])
+    write_events(raw_dir, "heartbeats/2026/09/23/delivery", [
+        heartbeat_v2(time="2026-09-23T06:00:00Z", device_name="mover", location="thailand:bangkok:main-kitchen"),
+        heartbeat_v2(time="2026-09-24T06:00:00Z", device_name="mover", location="thailand:bangkok:3f-pantry"),
+    ])
+
+    run_build(raw_dir, out_dir)
+
+    def listed(location: str) -> list[tuple[str, str]]:
+        scanners = read_json(out_dir, f"data/scanners/by-location/{location}.json")["scanners"]
+        return [(scanner["name"], scanner["location"]) for scanner in scanners]
+
+    assert listed("thailand:bangkok:3f-pantry") == [("mover", "thailand:bangkok:3f-pantry")]
+    assert listed("thailand:bangkok:main-kitchen") == []
+    assert listed("thailand:bangkok") == [("mover", "thailand:bangkok:3f-pantry")]
+    assert listed("all") == [("mover", "thailand:bangkok:3f-pantry")]
+
+
 def test_without_heartbeats_every_location_lists_no_scanners(raw_dir: Path, out_dir: Path) -> None:
     write_events(raw_dir, "scans/2026/09/23/delivery", [live_scan("8850999220000", time="2026-09-23T06:00:00Z")])
 

@@ -27,7 +27,7 @@ from snacker.contract import (
     product_path,
     scanners_path,
 )
-from snacker.heartbeats import normalise_heartbeats, scanner_statuses
+from snacker.heartbeats import latest_heartbeats, normalise_heartbeats, scanner_statuses
 from snacker.locations import Locations
 from snacker.products import product_files, with_products
 from snacker.scan_summary import healthiest_and_least_healthy, nutri_score_distribution, period_days, summarise, top_scans
@@ -132,7 +132,7 @@ def write_data(
             ),
         )
 
-    heartbeats = normalise_heartbeats(raw_dir)
+    heartbeats = latest_heartbeats(normalise_heartbeats(raw_dir))
     for location in locations.selectable():
         write_json(
             data_dir / scanners_path(location),

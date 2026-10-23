@@ -78,17 +78,18 @@ def normalise_heartbeats(raw_dir: Path) -> pl.DataFrame:
     return heartbeats.select(HEARTBEATS_SCHEMA.names()).cast(HEARTBEATS_SCHEMA)
 
 
+def latest_heartbeats(heartbeats: pl.DataFrame) -> pl.DataFrame:
+    """Each scanner's latest heartbeat, ordered by name. A scanner is at the location its
+    latest heartbeat names, so filter by location only after this."""
+    return heartbeats.sort("sent_at", descending=True).unique("scanner", keep="first").sort("scanner")
+
+
 def scanner_statuses(heartbeats: pl.DataFrame, scans: pl.DataFrame) -> list[ScannerStatus]:
     """Each scanner as its latest heartbeat describes it, with its last scan, ordered by name.
 
     `scans` are all scans, with products attached (see products.with_products): a scanner's
     last scan is found by API key wherever it happened.
     """
-    latest_heartbeats = (
-        heartbeats.sort("sent_at", descending=True)
-        .unique("scanner", keep="first")
-        .sort("scanner")
-    )
     last_scans = (
         scans.filter(pl.col("api_key").is_not_null())
         .sort("scanned_at", descending=True)
@@ -99,7 +100,7 @@ def scanner_statuses(heartbeats: pl.DataFrame, scans: pl.DataFrame) -> list[Scan
             "product",
         )
     )
-    rows = latest_heartbeats.join(last_scans, on="api_key", how="left", maintain_order="left")
+    rows = latest_heartbeats(heartbeats).join(last_scans, on="api_key", how="left", maintain_order="left")
     return [
         ScannerStatus(
             name=row["scanner"],

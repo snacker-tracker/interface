@@ -83,7 +83,7 @@ _Avoid_: local time
 ### Hardware
 
 **Scanner**:
-An internet-connected barcode scanner placed at a location. A scanner is known once it has sent a heartbeat. Its scans are the ones sent with the same API key as its heartbeats, so each scanner has its own key.
+An internet-connected barcode scanner placed at a location: the one its latest heartbeat names, so a scanner that moves is no longer at its old location. A scanner is known once it has sent a heartbeat. Its scans are the ones sent with the same API key as its heartbeats, so each scanner has its own key.
 _Avoid_: device, reader
 
 **Offline**:
