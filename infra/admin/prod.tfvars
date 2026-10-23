@@ -1,1 +1,1 @@
-raw_bucket      = "snacker-tracker-prod"
+raw_bucket = "snacker-tracker-prod"

@@ -8,12 +8,6 @@ variable "raw_bucket" {
   type        = string
 }
 
-variable "ecr_repository_name" {
-  description = "The shared repository for the backend image (ADR 0006). Created by the dev workspace until it moves out of this repo."
-  type        = string
-  default     = "snacker-tracker-lambda/interface"
-}
-
 variable "access_log_retention_days" {
   description = "How long the access-log bucket keeps CloudFront's logs (ADR 0010)."
   type        = number
