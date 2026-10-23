@@ -51,16 +51,23 @@ data "aws_iam_policy_document" "build" {
   }
 
   # fetch lists the key to tell an object from a prefix, and without ListBucket a missing
-  # key reads as 403, not 404.
+  # key reads as 403, not 404. The event cache is found the same way.
   statement {
-    sid       = "FindProducts"
+    sid       = "FindProductsAndCache"
     actions   = ["s3:ListBucket"]
     resources = ["arn:aws:s3:::${local.working_bucket}"]
     condition {
       test     = "StringLike"
       variable = "s3:prefix"
-      values   = ["${local.products_key}*"]
+      values   = ["${local.products_key}*", "${local.cache_prefix}*"]
     }
+  }
+
+  # The scans and heartbeats earlier builds read; only the build writes them (ADR 0011).
+  statement {
+    sid       = "WriteCache"
+    actions   = ["s3:GetObject", "s3:PutObject"]
+    resources = ["arn:aws:s3:::${local.working_bucket}/${local.cache_prefix}*"]
   }
 
   statement {
@@ -113,7 +120,8 @@ resource "aws_iam_role_policy" "extraction" {
 }
 
 data "aws_iam_policy_document" "extraction" {
-  # The scanned codes come from the raw scans, as with `snacker extract-products --raw`.
+  # The scanned codes come from the raw scans, as with `snacker extract-products --raw`: those
+  # newer than the scans cache, or all of them when it's missing or stale.
   statement {
     sid       = "ReadRawEvents"
     actions   = ["s3:ListBucket", "s3:GetObject"]
@@ -121,16 +129,23 @@ data "aws_iam_policy_document" "extraction" {
   }
 
   # fetch lists the key to tell an object from a prefix, and without ListBucket a missing
-  # key reads as 403, not 404.
+  # key reads as 403, not 404. The event cache is found the same way.
   statement {
-    sid       = "FindArchiveAndProducts"
+    sid       = "FindArchiveProductsAndCache"
     actions   = ["s3:ListBucket"]
     resources = ["arn:aws:s3:::${local.working_bucket}"]
     condition {
       test     = "StringLike"
       variable = "s3:prefix"
-      values   = ["${local.archive_key}*", "${local.products_key}*"]
+      values   = ["${local.archive_key}*", "${local.products_key}*", "${local.cache_prefix}*"]
     }
+  }
+
+  # The scanned codes come from the scans cache the build that started this one wrote (ADR 0011).
+  statement {
+    sid       = "ReadCache"
+    actions   = ["s3:GetObject"]
+    resources = ["arn:aws:s3:::${local.working_bucket}/${local.cache_prefix}*"]
   }
 
   statement {

@@ -12,6 +12,7 @@ locals {
   extract_function  = "${local.prefix}-extract"
   products_key      = "products.parquet"
   archive_key       = "snacker-archive.csv"
+  cache_prefix      = "cache/"
   ecr_repository    = "arn:aws:ecr:${var.region}:${local.account}:repository/${var.ecr_repository_name}"
   function_arn      = "arn:aws:lambda:${var.region}:${local.account}:function"
   log_group_arn     = "arn:aws:logs:${var.region}:${local.account}:log-group:/aws/lambda"

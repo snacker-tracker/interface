@@ -40,7 +40,7 @@ Names come from the workspace: `snacker-tracker-<env>-*`.
 ## Names the main configuration must use
 
 The policies are written against these, so the main configuration has to create them under exactly these names:
-- the working bucket `snacker-tracker-<env>-working`, holding `products.parquet` and `snacker-archive.csv`;
+- the working bucket `snacker-tracker-<env>-working`, holding `products.parquet`, `snacker-archive.csv` and the event cache under `cache/` (ADR 0011);
 - the functions `snacker-tracker-<env>-build` and `snacker-tracker-<env>-extract`;
 - the schedule `snacker-tracker-<env>-*` in the default group;
 - the state key `snacker-tracker-interface` (so `env:/<env>/snacker-tracker-interface`);

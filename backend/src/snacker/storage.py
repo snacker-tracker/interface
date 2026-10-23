@@ -4,6 +4,7 @@ import hashlib
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import TYPE_CHECKING, Protocol
 
@@ -31,6 +32,10 @@ class Bucket(Protocol):
 
     def etags(self, prefix: str) -> dict[str, str]:
         """Every key under `prefix`, with its ETag (no quotes)."""
+        ...
+
+    def modified(self, prefix: str, *, start_after: str = "") -> dict[str, datetime]:
+        """Every key under `prefix` that sorts after `start_after`, with when it was last modified."""
         ...
 
     def get(self, key: str) -> bytes: ...
@@ -131,6 +136,12 @@ class S3Bucket:
         pages = self.client.get_paginator("list_objects_v2").paginate(Bucket=self.name, Prefix=prefix)
         return {item["Key"]: item["ETag"].strip('"') for page in pages for item in page.get("Contents", [])}
 
+    def modified(self, prefix: str, *, start_after: str = "") -> dict[str, datetime]:
+        pages = self.client.get_paginator("list_objects_v2").paginate(
+            Bucket=self.name, Prefix=prefix, StartAfter=start_after
+        )
+        return {item["Key"]: item["LastModified"] for page in pages for item in page.get("Contents", [])}
+
     def get(self, key: str) -> bytes:
         return self.client.get_object(Bucket=self.name, Key=key)["Body"].read()
 
@@ -147,3 +158,37 @@ class S3Bucket:
             )
             if errors := reply.get("Errors"):
                 raise RuntimeError(f"s3://{self.name}: could not delete {errors}")
+
+
+class DirectoryBucket:
+    """A Bucket over a local directory, keyed by each file's path below it, for local runs."""
+
+    def __init__(self, root: Path) -> None:
+        self.root = root
+
+    def _files(self, prefix: str) -> list[str]:
+        if not self.root.is_dir():
+            return []
+        keys = (p.relative_to(self.root).as_posix() for p in self.root.rglob("*") if p.is_file())
+        return sorted(key for key in keys if key.startswith(prefix))
+
+    def etags(self, prefix: str) -> dict[str, str]:
+        return {key: hashlib.md5((self.root / key).read_bytes()).hexdigest() for key in self._files(prefix)}
+
+    def modified(self, prefix: str, *, start_after: str = "") -> dict[str, datetime]:
+        return {
+            key: datetime.fromtimestamp((self.root / key).stat().st_mtime, UTC)
+            for key in self._files(prefix) if key > start_after
+        }
+
+    def get(self, key: str) -> bytes:
+        return (self.root / key).read_bytes()
+
+    def put(self, key: str, body: bytes, *, content_type: str, cache_control: str) -> None:
+        path = self.root / key
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(body)
+
+    def delete(self, keys: list[str]) -> None:
+        for key in keys:
+            (self.root / key).unlink()

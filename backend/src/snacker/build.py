@@ -1,4 +1,4 @@
-"""The build: raw scanner events in, the static JSON tree read by the frontend out."""
+"""The build: normalised scans and heartbeats in, the static JSON tree read by the frontend out."""
 
 import json
 import shutil
@@ -27,18 +27,18 @@ from snacker.contract import (
     product_path,
     scanners_path,
 )
-from snacker.heartbeats import latest_heartbeats, normalise_heartbeats, scanner_statuses
+from snacker.heartbeats import latest_heartbeats, scanner_statuses
 from snacker.locations import Locations
 from snacker.products import product_files, with_products
 from snacker.scan_summary import healthiest_and_least_healthy, nutri_score_distribution, period_days, summarise, top_scans
-from snacker.scans import normalise_scans
 from snacker.storage import Bucket, Published, publish_to_bucket
 from snacker.timestamps import UTC_TIMESTAMP_FORMAT
 
 
 def build(
     *,
-    raw_dir: Path,
+    scans: pl.DataFrame,
+    heartbeats: pl.DataFrame,
     products_parquet: Path,
     out_dir: Path,
     generated_at: datetime,
@@ -50,7 +50,9 @@ def build(
     """Write the static JSON to `out_dir/data`, replacing what's there, but only if it keeps
     the output contract: otherwise raise ContractBroken and leave the previous data alone.
 
-    `generated_at` is when the data is built; every top-scans period ends then. With a `site`
+    `scans` and `heartbeats` are normalised (SCANS_SCHEMA, HEARTBEATS_SCHEMA); heartbeats need
+    hold only each scanner's latest. `generated_at` is when the data is built; every top-scans
+    period ends then. With a `site`
     bucket, the checked build goes to its data/ instead, and only `out_dir` stages it.
     """
     staging_dir = out_dir / ".data-building"
@@ -58,7 +60,8 @@ def build(
         shutil.rmtree(staging_dir)  # left by an earlier build that broke the contract
     write_data(
         staging_dir,
-        raw_dir=raw_dir,
+        scans=scans,
+        heartbeats=heartbeats,
         products_parquet=products_parquet,
         generated_at=generated_at,
         office_time_zones=office_time_zones,
@@ -96,7 +99,8 @@ def publish(staging_dir: Path, data_dir: Path) -> None:
 def write_data(
     data_dir: Path,
     *,
-    raw_dir: Path,
+    scans: pl.DataFrame,
+    heartbeats: pl.DataFrame,
     products_parquet: Path,
     generated_at: datetime,
     office_time_zones: Mapping[str, str],
@@ -106,7 +110,6 @@ def write_data(
     """Every file of the static JSON, under `data_dir`."""
     write_json(data_dir / meta_path(), MetaFile(generated_at=format_utc(generated_at), contract_version=CONTRACT_VERSION))
 
-    scans = normalise_scans(raw_dir)
     locations = Locations.from_scans(scans, office_time_zones)
     zoned_scans = locations.with_office_time_zones(scans)
     described_scans = with_products(zoned_scans, products_parquet)
@@ -132,13 +135,13 @@ def write_data(
             ),
         )
 
-    heartbeats = latest_heartbeats(normalise_heartbeats(raw_dir))
+    latest = latest_heartbeats(heartbeats)
     for location in locations.selectable():
         write_json(
             data_dir / scanners_path(location),
             ScannersFile(
                 location=location,
-                scanners=scanner_statuses(locations.within(heartbeats, location), described_scans),
+                scanners=scanner_statuses(locations.within(latest, location), described_scans),
             ),
         )
 

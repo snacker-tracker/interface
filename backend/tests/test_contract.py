@@ -16,7 +16,9 @@ from raw_events import backfill_scan, heartbeat_flat, heartbeat_v2, live_scan, w
 from snacker import scan_summary
 from snacker.build import ContractBroken, build
 from snacker.check import contract_violations
+from snacker.heartbeats import normalise_heartbeats
 from snacker.scan_summary import ScanSummary
+from snacker.scans import normalise_scans
 from snacker.schema import schema_errors, schema_json
 
 COMMITTED_SCHEMA = Path(__file__).parents[2] / "contract" / "static-json.schema.json"
@@ -398,7 +400,8 @@ def test_a_build_that_breaks_the_contract_is_not_published(
     monkeypatch.setattr(snacker.build, "summarise", summarise_losing_an_hour)
     with pytest.raises(ContractBroken) as broken:
         build(
-            raw_dir=raw_dir,
+            scans=normalise_scans(raw_dir),
+            heartbeats=normalise_heartbeats(raw_dir),
             out_dir=out_dir,
             products_parquet=products_parquet(raw_dir),
             generated_at=datetime(2026, 10, 20, tzinfo=UTC),

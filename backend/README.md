@@ -75,6 +75,32 @@ uv run snacker build --raw s3://snacker-tracker-dev/raw/data/scanner \
 - **The site bucket must use default S3 encryption (SSE-S3), not KMS.** With SSE-KMS an ETag
   isn't the file's MD5, so every file would look changed and be uploaded on every run.
 
+## The event cache
+
+`build` and `extract-products` take `--cache <dir | s3://…>` (ADR 0011). The cache holds two
+Parquet files: every scan, and each scanner's latest heartbeat. Each one records the code
+version that wrote it and a watermark, the newest `LastModified` of any raw file it has read.
+
+- **Later runs read only new raw files.** A run lists from the day folder before the watermark
+  and reads the files modified after the watermark minus 15 minutes. It reads that margin again
+  because Firehose names a file for its buffer's start but writes it when the buffer closes.
+- **A missing cache, or one from another code version, is rebuilt from every raw file.** The
+  CLI's version is the git commit. With uncommitted changes under `src/snacker`, it reads raw in
+  full and leaves the cache alone. In Lambda the version is the image digest, so each deploy
+  rebuilds the cache once.
+- **Only `build` writes the cache.**
+- **Raw files it won't see until the next rebuild:**
+  - files deleted from raw
+  - files written into a day folder older than the one before the watermark, such as a backfill
+
+  Delete the cache to force a rebuild.
+
+```sh
+uv run snacker build --raw s3://snacker-tracker-dev/raw/data/scanner \
+  --products s3://snacker-tracker-dev-working/products.parquet --out ../public-data \
+  --cache ../data/cache
+```
+
 ## The Lambda image
 
 One image runs both functions (`Dockerfile`, Python 3.13 on the AWS Lambda base image). The
@@ -97,6 +123,11 @@ Settings come from environment variables:
 | `SNACKER_SITE` | `s3://snacker-tracker-dev-site` |
 | `SNACKER_EXTRACT_FUNCTION` | `snacker-tracker-dev-extract` |
 | `SNACKER_FOOD` (optional) | `hf://datasets/openfoodfacts/product-database/food.parquet`, the default |
+| `SNACKER_CACHE` (optional) | `s3://snacker-tracker-dev-working/cache` |
+| `SNACKER_CODE_VERSION` (optional) | `sha256:…`, the image digest |
+
+With `SNACKER_CACHE` and `SNACKER_CODE_VERSION` set, the build reads raw events through the
+event cache (below), and the extraction function reads the scans cache without writing it.
 
 `scripts/run-image-locally.sh` builds the image and runs both handlers in the Lambda runtime
 emulator against real S3 (it needs Docker). Give the extraction function about 3 GB of memory:

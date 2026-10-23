@@ -11,8 +11,8 @@ from urllib.parse import urljoin
 
 import polars as pl
 
+from snacker.event_cache import load_scans
 from snacker.products import covers, read_archive, update_products
-from snacker.scans import normalise_scans
 from snacker.storage import Bucket, fetch, s3_location
 
 HF_SCHEME = "hf://"
@@ -68,10 +68,13 @@ def update_products_at(
     return ProductsUpdate(extracted=True, duplicated=duplicated, named=named)
 
 
-def scanned_codes(raw: str, open_bucket: Callable[[str], Bucket]) -> list[str]:
-    """Every scanned code in the raw events, a path or an s3:// prefix."""
-    with tempfile.TemporaryDirectory(prefix="snacker-") as scratch:
-        return normalise_scans(fetch(raw, Path(scratch) / "raw", open_bucket))["code"].unique().to_list()
+def scanned_codes(
+    raw: str, open_bucket: Callable[[str], Bucket], *, cache: str | None = None, version: str | None = None
+) -> list[str]:
+    """Every scanned code in the raw events, a path or an s3:// prefix, read through the scans
+    cache if there is one. Only the build writes the cache, so this never does (ADR 0011)."""
+    scans = load_scans(raw, cache=cache, version=version, open_bucket=open_bucket, save=False)
+    return scans["code"].unique().to_list()
 
 
 def fetched_table(products: str, local_dir: Path, open_bucket: Callable[[str], Bucket]) -> Path:

@@ -8,7 +8,9 @@ from typing import Any
 import polars as pl
 
 from snacker.build import build
+from snacker.heartbeats import normalise_heartbeats
 from snacker.products import OPENFOODFACTS_PRODUCT_PAGE, PRODUCTS_SCHEMA
+from snacker.scans import normalise_scans
 
 GENERATED_AT = datetime(2026, 10, 19, 12, 0, tzinfo=UTC)
 
@@ -50,7 +52,8 @@ def run_build(raw_dir: Path, out_dir: Path) -> None:
     if not products_parquet(raw_dir).exists():
         write_products(raw_dir, {})
     build(
-        raw_dir=raw_dir,
+        scans=normalise_scans(raw_dir),
+        heartbeats=normalise_heartbeats(raw_dir),
         out_dir=out_dir,
         products_parquet=products_parquet(raw_dir),
         generated_at=GENERATED_AT,

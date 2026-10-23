@@ -16,6 +16,8 @@ The margin exists because Firehose names each file after its buffer's start time
 - **Heartbeats:** only the latest heartbeat per scanner is kept.
 - **Scans:** rows from a raw key the cache already holds are replaced, not added, so no scan is counted twice.
 
+Listing starts at the day folder before the watermark, because Firehose files each object under the day it delivers it. A file written later into an older day folder, such as a backfill, is not read until the next rebuild. A deploy triggers one, or you can delete the cache.
+
 A watermark never sees a deleted raw file. A deleted scan file's scans stay in the cache until the next rebuild. A deleted heartbeat file matters only if it held a scanner's latest heartbeat. To remove scans, delete the raw file and then the cache.
 
 The cache records the code version that wrote it: the image digest in Lambda, or the git commit for the CLI, where a dirty tree never matches. A build from any other version rebuilds the cache from raw, which costs one full read per deploy. That way a change to the normalisers can't leave stale rows, and nobody has to remember to bump a version. The cache is always derivable from raw, so overlapping builds need no locking: whichever write lands last is correct, or the next build corrects it. Only the build writes the cache. The extract function reads it, and brings it up to date in memory when it is missing or stale.

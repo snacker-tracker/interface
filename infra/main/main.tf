@@ -14,6 +14,9 @@ locals {
     SNACKER_ARCHIVE          = "s3://${local.working_bucket}/snacker-archive.csv"
     SNACKER_SITE             = "s3://${local.site_bucket}"
     SNACKER_EXTRACT_FUNCTION = local.extract_function
+    # The scans and heartbeats earlier builds read, stamped with the image that wrote them (ADR 0011).
+    SNACKER_CACHE        = "s3://${local.working_bucket}/cache"
+    SNACKER_CODE_VERSION = split("@", var.image_uri)[1]
   }
 }
 
