@@ -77,11 +77,17 @@ resource "aws_acm_certificate" "site" {
   }
 }
 
+# Every environment's hostnames are in this public zone; aws-infra manages it.
+data "aws_route53_zone" "site" {
+  name         = "khanom.xyz"
+  private_zone = false
+}
+
 resource "aws_route53_record" "validation" {
   for_each = {
     for option in aws_acm_certificate.site.domain_validation_options : option.domain_name => option
   }
-  zone_id         = var.hosted_zone_id
+  zone_id         = data.aws_route53_zone.site.zone_id
   name            = each.value.resource_record_name
   type            = each.value.resource_record_type
   records         = [each.value.resource_record_value]
@@ -100,7 +106,7 @@ resource "aws_route53_record" "site" {
   for_each = var.serve_hostnames ? {
     for pair in setproduct(var.hostnames, ["A", "AAAA"]) : "${pair[0]} ${pair[1]}" => pair
   } : {}
-  zone_id = var.hosted_zone_id
+  zone_id = data.aws_route53_zone.site.zone_id
   name    = each.value[0]
   type    = each.value[1]
 

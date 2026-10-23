@@ -39,11 +39,6 @@ variable "serve_hostnames" {
   default     = true
 }
 
-variable "hosted_zone_id" {
-  type    = string
-  default = "Z0781732PCOBWRVFR9YS"
-}
-
 variable "build_schedule" {
   type    = string
   default = "rate(15 minutes)"
