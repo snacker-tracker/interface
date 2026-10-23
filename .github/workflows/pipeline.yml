@@ -16,7 +16,7 @@ env:
   AWS_REGION: ap-southeast-1
   # The dev CI role (infra/admin). It pushes the image in the dev environment; pull requests
   # assume it only to plan, without the state lock.
-  DEV_CI_ROLE: arn:aws:iam::132218943709:role/snacker-tracker-dev-ci
+  DEV_CI_ROLE: arn:aws:iam::132218943709:role/github-actions-interface-dev
 
 jobs:
   backend:
