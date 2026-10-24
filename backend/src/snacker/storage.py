@@ -16,6 +16,7 @@ from snacker.contract import meta_path
 
 if TYPE_CHECKING:
     from types_boto3_s3 import S3Client
+    from types_boto3_s3.type_defs import ObjectTypeDef
 
 S3_SCHEME = "s3://"
 DATA_PREFIX = "data/"
@@ -152,13 +153,13 @@ class S3Bucket:
         self.name = name
         self.client: "S3Client" = boto3.client("s3", config=Config(max_pool_connections=PARALLEL_REQUESTS))
 
-    def _list(self, prefix: str, start_after: str = "") -> list[dict]:
+    def _list(self, prefix: str, start_after: str = "") -> list["ObjectTypeDef"]:
         where = f"s3://{self.name}/{prefix}" + (f" starting after {start_after}" if start_after else "")
         log_s3("LIST", f"prefix {prefix}" + (f", start-after {start_after}" if start_after else ""))
-        items: list[dict] = []
+        items: list[ObjectTypeDef] = []
         pages = 0
         for page in self.client.get_paginator("list_objects_v2").paginate(
-            Bucket=self.name, Prefix=prefix, **({"StartAfter": start_after} if start_after else {})
+            Bucket=self.name, Prefix=prefix, StartAfter=start_after
         ):
             pages += 1
             items.extend(page.get("Contents", []))
