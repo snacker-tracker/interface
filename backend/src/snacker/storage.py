@@ -1,6 +1,7 @@
 """S3: fetching the build's inputs, and publishing a checked build to the site bucket (ADR 0004)."""
 
 import hashlib
+from collections import Counter
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
@@ -125,6 +126,25 @@ def publish_to_bucket(staging_dir: Path, bucket: Bucket) -> Published:
     return Published(uploaded=[*changed, *([meta_key] if meta is not None else [])], deleted=stale)
 
 
+S3_OPERATIONS: Counter[str] = Counter()
+"""S3 requests made since the last `report_s3_operations`, by operation type."""
+
+
+def report_s3_operations() -> dict[str, int]:
+    """Print the S3 requests tallied since the last report, then start a new tally."""
+    tally = dict(S3_OPERATIONS)
+    total = sum(tally.values())
+    by_type = "".join(f", {name} {count}" for name, count in sorted(tally.items()))
+    print(f"S3 operations: {total} total{by_type}")
+    S3_OPERATIONS.clear()
+    return tally
+
+
+def log_s3(operation: str, message: str) -> None:
+    S3_OPERATIONS[operation] += 1
+    print(f"S3 {operation} {message}")
+
+
 class S3Bucket:
     """A Bucket on S3, with credentials from the standard AWS environment or profile."""
 
@@ -132,23 +152,35 @@ class S3Bucket:
         self.name = name
         self.client: "S3Client" = boto3.client("s3", config=Config(max_pool_connections=PARALLEL_REQUESTS))
 
+    def _list(self, prefix: str, start_after: str = "") -> list[dict]:
+        where = f"s3://{self.name}/{prefix}" + (f" starting after {start_after}" if start_after else "")
+        log_s3("LIST", f"prefix {prefix}" + (f", start-after {start_after}" if start_after else ""))
+        items: list[dict] = []
+        pages = 0
+        for page in self.client.get_paginator("list_objects_v2").paginate(
+            Bucket=self.name, Prefix=prefix, **({"StartAfter": start_after} if start_after else {})
+        ):
+            pages += 1
+            items.extend(page.get("Contents", []))
+        print(f"S3 LIST returned {len(items)} objects in {pages} pages from {where}")
+        return items
+
     def etags(self, prefix: str) -> dict[str, str]:
-        pages = self.client.get_paginator("list_objects_v2").paginate(Bucket=self.name, Prefix=prefix)
-        return {item["Key"]: item["ETag"].strip('"') for page in pages for item in page.get("Contents", [])}
+        return {item["Key"]: item["ETag"].strip('"') for item in self._list(prefix)}
 
     def modified(self, prefix: str, *, start_after: str = "") -> dict[str, datetime]:
-        pages = self.client.get_paginator("list_objects_v2").paginate(
-            Bucket=self.name, Prefix=prefix, StartAfter=start_after
-        )
-        return {item["Key"]: item["LastModified"] for page in pages for item in page.get("Contents", [])}
+        return {item["Key"]: item["LastModified"] for item in self._list(prefix, start_after)}
 
     def get(self, key: str) -> bytes:
-        return self.client.get_object(Bucket=self.name, Key=key)["Body"].read()
+        body = self.client.get_object(Bucket=self.name, Key=key)["Body"].read()
+        log_s3("GET", f"s3://{self.name}/{key} ({len(body)} bytes)")
+        return body
 
     def put(self, key: str, body: bytes, *, content_type: str, cache_control: str) -> None:
         self.client.put_object(
             Bucket=self.name, Key=key, Body=body, ContentType=content_type, CacheControl=cache_control
         )
+        S3_OPERATIONS["PUT"] += 1
 
     def delete(self, keys: list[str]) -> None:
         for start in range(0, len(keys), DELETE_BATCH):
@@ -156,6 +188,7 @@ class S3Bucket:
             reply = self.client.delete_objects(
                 Bucket=self.name, Delete={"Objects": [{"Key": key} for key in batch], "Quiet": True}
             )
+            S3_OPERATIONS["DELETE"] += 1
             if errors := reply.get("Errors"):
                 raise RuntimeError(f"s3://{self.name}: could not delete {errors}")
 

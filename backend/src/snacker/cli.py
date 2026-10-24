@@ -20,7 +20,7 @@ from snacker.check import Violation, contract_violations
 from snacker.event_cache import load_events
 from snacker.extraction import scanned_codes, signed_hf_url, update_products_at
 from snacker.schema import schema_json
-from snacker.storage import S3_SCHEME, S3Bucket, fetch
+from snacker.storage import S3_SCHEME, S3Bucket, fetch, report_s3_operations
 
 RAW_HELP = "Raw scanner data directory, containing scans/."
 PRODUCTS_HELP = "The extracted products table (written by extract-products)."
@@ -81,6 +81,13 @@ def main() -> None:
     )
 
     args = parser.parse_args()
+    try:
+        dispatch(args)
+    finally:
+        report_s3_operations()
+
+
+def dispatch(args: argparse.Namespace) -> None:
     if args.command == "schema":
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(schema_json())

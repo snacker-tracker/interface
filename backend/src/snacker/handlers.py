@@ -15,7 +15,7 @@ from snacker.build import ContractBroken, build
 from snacker.event_cache import load_events
 from snacker.extraction import OPENFOODFACTS, fetched_table, scanned_codes, signed_hf_url, update_products_at
 from snacker.products import PRODUCTS_SCHEMA, covers
-from snacker.storage import Bucket, S3Bucket, s3_location
+from snacker.storage import Bucket, S3Bucket, report_s3_operations, s3_location
 
 
 @dataclass(frozen=True)
@@ -80,6 +80,8 @@ def build_handler(event: object, context: object) -> dict[str, object]:
         for violation in broken.violations[:50]:
             print(f"  {violation}")
         raise
+    finally:
+        report_s3_operations()
     print(
         f"Read {run.raw_files_read} raw files. Published to {settings.site}: uploaded {run.uploaded}, "
         f"deleted {run.deleted}; extraction {'started' if run.extraction_started else 'not needed'}"
@@ -90,11 +92,14 @@ def build_handler(event: object, context: object) -> dict[str, object]:
 def extract_handler(event: object, context: object) -> dict[str, object]:
     """The extraction function: look up the scanned codes the products table lacks."""
     settings = Settings.from_env()
-    codes = scanned_codes(settings.raw, S3Bucket, cache=settings.cache, version=settings.code_version)
-    update = update_products_at(
-        settings.food, codes, settings.products, archive=settings.archive,
-        open_bucket=S3Bucket, resolve_hf=signed_hf_url,
-    )
+    try:
+        codes = scanned_codes(settings.raw, S3Bucket, cache=settings.cache, version=settings.code_version)
+        update = update_products_at(
+            settings.food, codes, settings.products, archive=settings.archive,
+            open_bucket=S3Bucket, resolve_hf=signed_hf_url,
+        )
+    finally:
+        report_s3_operations()
     print(f"Looked up {len(codes)} scanned codes: {'wrote' if update.extracted else 'already covered by'} {settings.products}")
     return asdict(update)
 
