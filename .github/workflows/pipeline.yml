@@ -26,7 +26,7 @@ jobs:
         working-directory: backend
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.2
+      - uses: astral-sh/setup-uv@v10.3.3
         with:
           version: "0.13.6"
       - run: uv sync --locked
@@ -79,7 +79,7 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - uses: hashicorp/setup-terraform@v4
         with:
-          terraform_version: "v1.17.0"
+          terraform_version: "v1.17.1"
           terraform_wrapper: false
       - run: terraform init -input=false
       # Planned against the image dev runs now, so the plan shows only infrastructure changes.
