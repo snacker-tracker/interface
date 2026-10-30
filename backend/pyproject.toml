@@ -3,12 +3,13 @@ name = "snacker"
 version = "0.1.0"
 description = "Builds the static JSON behind the Snacker Tracker interface from raw scanner events."
 readme = "README.md"
-requires-python = ">=3.13"
+requires-python = ">=3.14"
 dependencies = [
     "boto3>=1.43.116",
     "jsonschema>=4.26.0",
     "polars>=2.0.0",
     "pydantic>=2.14.1",
+    "pytest-cov>=7.1.0",
 ]
 
 [project.scripts]
@@ -20,7 +21,6 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "marimo>=0.25.2",
     "mypy>=2.4.0",
     "pytest>=9.1.1",
     "types-boto3[lambda,s3]>=1.43.116",

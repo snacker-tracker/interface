@@ -103,7 +103,7 @@ uv run snacker build --raw s3://snacker-tracker-dev/raw/data/scanner \
 
 ## The Lambda image
 
-One image runs both functions (`Dockerfile`, Python 3.13 on the AWS Lambda base image). The
+One image runs both functions (`Dockerfile`, Python 3.14 on the AWS Lambda base image). The
 function's handler picks the job:
 
 - `snacker.handlers.build_handler` (the default command) builds and publishes `data/` to the site
