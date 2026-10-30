@@ -32,10 +32,15 @@ jobs:
       - run: uv sync --locked
       - run: uv run mypy
       - run: uv run pytest
+      # Uses steps run from the repo root, not working-directory; both lcov files hold paths
+      # relative to their own folder, and qlty merges the two tagged parts of the commit.
       - uses: qltysh/qlty-action/coverage@v2
         with:
           token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
-          files: reports/lcov.info
+          files: backend/reports/lcov.info
+          add-prefix: backend/
+          tag: backend
+          total-parts-count: 2
 
   frontend:
     runs-on: ubuntu-26.04
@@ -52,6 +57,13 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm test
+      - uses: qltysh/qlty-action/coverage@v2
+        with:
+          token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
+          files: frontend/reports/lcov.info
+          add-prefix: frontend/
+          tag: frontend
+          total-parts-count: 2
       - run: npm run build
       - uses: actions/upload-artifact@v7
         with:

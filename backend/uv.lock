@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 5
 requires-python = ">=3.14"
 resolution-markers = [
     "python_full_version >= '3.15'",
@@ -679,13 +679,13 @@ dependencies = [
     { name = "jsonschema" },
     { name = "polars" },
     { name = "pydantic" },
-    { name = "pytest-cov" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "mypy" },
     { name = "pytest" },
+    { name = "pytest-cov" },
     { name = "types-boto3", extra = ["lambda", "s3"] },
     { name = "types-jsonschema" },
 ]
@@ -696,13 +696,13 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.26.0" },
     { name = "polars", specifier = ">=2.0.0" },
     { name = "pydantic", specifier = ">=2.14.1" },
-    { name = "pytest-cov", specifier = ">=7.1.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "mypy", specifier = ">=2.4.0" },
     { name = "pytest", specifier = ">=9.1.1" },
+    { name = "pytest-cov", specifier = ">=7.1.0" },
     { name = "types-boto3", extras = ["lambda", "s3"], specifier = ">=1.43.116" },
     { name = "types-jsonschema", specifier = ">=4.26.0.20261006" },
 ]

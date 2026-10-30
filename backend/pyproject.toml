@@ -9,7 +9,6 @@ dependencies = [
     "jsonschema>=4.26.0",
     "polars>=2.0.0",
     "pydantic>=2.14.1",
-    "pytest-cov>=7.1.0",
 ]
 
 [project.scripts]
@@ -23,12 +22,14 @@ build-backend = "uv_build"
 dev = [
     "mypy>=2.4.0",
     "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
     "types-boto3[lambda,s3]>=1.43.116",
     "types-jsonschema>=4.26.0.20261006",
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "--cov=snacker --cov-report=term --cov-report=lcov:reports/lcov.info"
 
 [tool.mypy]
 strict = true
