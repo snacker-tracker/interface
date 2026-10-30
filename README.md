@@ -1,5 +1,8 @@
 # Snacker Tracker Interface
 
+[![Maintainability](https://qlty.sh/gh/snacker-tracker/projects/interface/maintainability.svg)](https://qlty.sh/gh/snacker-tracker/projects/interface)
+[![Code Coverage](https://qlty.sh/gh/snacker-tracker/projects/interface/coverage.svg)](https://qlty.sh/gh/snacker-tracker/projects/interface)
+
 A read-only web interface showing which snacks are taken from the office pantry.
 A Python build step turns raw scanner events into static JSON; a React app renders it.
 
