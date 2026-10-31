@@ -57,9 +57,12 @@ resource "aws_lambda_function_event_invoke_config" "extract" {
   maximum_retry_attempts = 0
 }
 
+# Off once the stepdag graph publishes the site (#124): the function stays, so turning this back
+# on is the rollback.
 resource "aws_scheduler_schedule" "build" {
   name                = local.build_function
   schedule_expression = var.build_schedule
+  state               = var.build_schedule_enabled ? "ENABLED" : "DISABLED"
 
   flexible_time_window {
     mode = "OFF"

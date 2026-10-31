@@ -44,6 +44,12 @@ variable "build_schedule" {
   default = "rate(15 minutes)"
 }
 
+variable "build_schedule_enabled" {
+  description = "Whether the legacy build runs on its schedule (and once per deploy). Off where the stepdag graph publishes the site (#124)."
+  type        = bool
+  default     = true
+}
+
 variable "log_retention_days" {
   type    = number
   default = 30

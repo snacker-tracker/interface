@@ -36,3 +36,8 @@ output "graph_state_machine" {
   description = "The graph's state machine ARN, or empty where the graph isn't enabled."
   value       = var.graph_enabled ? aws_sfn_state_machine.graph[0].arn : ""
 }
+
+output "build_schedule_enabled" {
+  description = "Whether the legacy build runs: deploy.yml builds the data once only when it does."
+  value       = var.build_schedule_enabled
+}

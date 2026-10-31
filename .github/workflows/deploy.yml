@@ -65,6 +65,7 @@ jobs:
           {
             echo "build_function=$(terraform output -raw build_function)"
             echo "extract_function=$(terraform output -raw extract_function)"
+            echo "build_schedule_enabled=$(terraform output -raw build_schedule_enabled)"
           } >> "$GITHUB_OUTPUT"
           {
             echo "Deployed \`$IMAGE_URI\` to $ENVIRONMENT"
@@ -72,8 +73,10 @@ jobs:
             echo "- https://$(terraform output -raw distribution_domain)"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      # A build on the new image, so the data is built to its contract version.
+      # A build on the new image, so the data is built to its contract version. Where the stepdag
+      # graph publishes the site instead (#124), its next scheduled run does that.
       - name: Build the data
+        if: steps.terraform.outputs.build_schedule_enabled == 'true'
         env:
           BUILD_FUNCTION: ${{ steps.terraform.outputs.build_function }}
           EXTRACT_FUNCTION: ${{ steps.terraform.outputs.extract_function }}

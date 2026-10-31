@@ -1,6 +1,7 @@
 # The stepdag graph (#117, #121): the roles its functions and state machine run as, and the
-# shadow site it publishes to until the switchover. The main configuration creates the graph from
-# the manifest (`infra/main/graph.manifest.json`) and only passes these roles.
+# shadow site it publishes to until the switchover (graph_publishes_to: the real site after it).
+# The main configuration creates the graph from the manifest (`infra/main/graph.manifest.json`)
+# and only passes these roles.
 
 locals {
   graph_manifest      = jsondecode(file("${path.module}/../main/graph.manifest.json"))
@@ -8,9 +9,11 @@ locals {
   graph_state_machine = "arn:aws:states:${var.region}:${local.account}:stateMachine:${local.prefix}-graph"
   shadow_bucket       = "${local.prefix}-shadow"
   shadow_bucket_arn   = "arn:aws:s3:::${local.shadow_bucket}"
-  graph_raw_prefix    = "raw/data/scanner/"
-  tables_prefix       = "tables/"
-  files_prefix        = "files/"
+  # Where the graph publishes its data/ tree: the shadow bucket until the switchover (#124).
+  graph_site_arn   = var.graph_publishes_to == "real" ? local.site_bucket_arn : local.shadow_bucket_arn
+  graph_raw_prefix = "raw/data/scanner/"
+  tables_prefix    = "tables/"
+  files_prefix     = "files/"
 }
 
 # --- The shadow site: the graph's data/ tree, beside the legacy build's real one ---
@@ -105,9 +108,9 @@ data "aws_iam_policy_document" "graph" {
   }
 
   statement {
-    sid       = "ListShadowData"
+    sid       = "ListSiteData"
     actions   = ["s3:ListBucket"]
-    resources = [local.shadow_bucket_arn]
+    resources = [local.graph_site_arn]
     condition {
       test     = "StringLike"
       variable = "s3:prefix"
@@ -116,9 +119,9 @@ data "aws_iam_policy_document" "graph" {
   }
 
   statement {
-    sid       = "PublishShadowData"
+    sid       = "PublishSiteData"
     actions   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
-    resources = ["${local.shadow_bucket_arn}/data/*"]
+    resources = ["${local.graph_site_arn}/data/*"]
   }
 
   statement {
