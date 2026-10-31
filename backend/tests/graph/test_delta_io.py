@@ -4,7 +4,7 @@ from pathlib import Path
 
 import polars as pl
 
-from scans_example.delta_io import DeltaIO, Merge
+from snacker.graph.delta_io import DeltaIO, Merge
 from stepdag import RunContext
 
 

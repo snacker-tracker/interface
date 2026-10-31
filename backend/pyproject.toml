@@ -6,10 +6,15 @@ readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
     "boto3>=1.43.116",
+    "deltalake>=1.0.0",
     "jsonschema>=4.26.0",
     "polars>=2.0.0",
     "pydantic>=2.14.1",
+    "stepdag",
 ]
+
+[tool.uv.sources]
+stepdag = { path = "../stepdag", editable = true }
 
 [project.scripts]
 snacker = "snacker.cli:main"

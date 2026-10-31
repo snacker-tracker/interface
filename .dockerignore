@@ -1,16 +1,12 @@
-# Only the stepdag scans example's image builds from the repo root
-# (stepdag/examples/scans/Dockerfile); the context is just what it copies.
-# (backend/Dockerfile builds from backend/ and uses backend/.dockerignore.)
+# The one Lambda image builds from the repo root (backend/Dockerfile); the context is just what
+# it copies.
 *
 !backend/pyproject.toml
+!backend/uv.lock
 !backend/README.md
 !backend/src
 !stepdag/pyproject.toml
 !stepdag/README.md
 !stepdag/src
-!stepdag/examples/scans/pyproject.toml
-!stepdag/examples/scans/uv.lock
-!stepdag/examples/scans/README.md
-!stepdag/examples/scans/src
 **/__pycache__
 **/*.pyc

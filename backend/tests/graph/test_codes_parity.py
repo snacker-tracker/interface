@@ -5,12 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from scans_example.graph import defs
+from snacker.graph.definitions import defs
 from stepdag import run
-from tests.food_parquet import food, write_archive, write_food
-from tests.raw_events import backfill_scan, live_scan, write_raw
-from tests.snacker_oracle import differences, files_under, snacker_tree
-from tests.test_site_parity import NOW, ZONES, site
+from graph.food_parquet import food, write_archive, write_food
+from graph.raw_events import backfill_scan, live_scan, write_raw
+from graph.snacker_oracle import differences, files_under, snacker_tree
+from graph.test_site_parity import NOW, ZONES, site
 
 __all__ = ["site"]
 

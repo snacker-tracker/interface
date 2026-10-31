@@ -12,8 +12,8 @@ from pathlib import Path
 
 import polars as pl
 
-from scans_example import site
-from scans_example.raw import RawFile, RawSource
+from snacker.graph import site
+from snacker.graph.raw import RawFile, RawSource
 from snacker.contract import ScannersFile, scanners_path
 from snacker.heartbeats import HEARTBEATS_SCHEMA as SNACKER_HEARTBEATS_SCHEMA
 from snacker.heartbeats import latest_heartbeats, normalise_heartbeats, scanner_statuses

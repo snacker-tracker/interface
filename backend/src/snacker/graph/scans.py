@@ -11,7 +11,7 @@ from pathlib import Path
 
 import polars as pl
 
-from scans_example.raw import RawFile, RawSource
+from snacker.graph.raw import RawFile, RawSource
 from snacker.scans import SCANS_SCHEMA as SNACKER_SCANS_SCHEMA
 from snacker.scans import normalise_scans
 

@@ -14,7 +14,7 @@ set -a; . ./.env; set +a
 export AWS_REGION="${AWS_REGION:-ap-southeast-1}"
 
 tag="snacker-lambda:$(git rev-parse HEAD)"
-docker build --platform linux/amd64 -t "$tag" .
+docker build --platform linux/amd64 --provenance=false -f Dockerfile -t "$tag" ..
 docker image ls "$tag" --format 'image {{.Repository}}:{{.Tag}} is {{.Size}}'
 
 scratch="snacker-tracker-scratch-image-$(date +%s)"

@@ -11,7 +11,7 @@ from typing import Any
 
 import polars as pl
 
-from scans_example import site
+from snacker.graph import site
 from snacker.config import RECENT_SCANS_LIMIT, TOP_SCANS_LIMIT
 from snacker.contract import index_path
 from snacker.scan_summary import healthiest_and_least_healthy, nutri_score_distribution, period_days, summarise, top_scans

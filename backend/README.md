@@ -1,6 +1,12 @@
 # snacker (backend)
 
 Build step that turns raw scanner events into the static JSON read by the frontend.
+
+It's mid-move onto stepdag (#117). `snacker.graph` is the same build as a stepdag graph
+(`snacker.graph.definitions:defs`), deployed by hand from `infra/stepdag-scans-dev/` and
+proving parity against the build below, which still runs the site. `uv run pytest` covers both;
+`tests/graph/` holds the graph's tests. Run the graph locally with
+`uv run stepdag run snacker.graph.definitions:defs` and the `SCANS_*` variables its assets read.
 See `PRD.md` at the repo root for the data contract. Its shapes are defined in
 `src/snacker/contract.py`; after changing them, rerun `snacker schema` to update the
 committed JSON Schema (a test fails until you do).

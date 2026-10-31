@@ -5,7 +5,7 @@ from pathlib import Path
 
 import polars as pl
 
-from scans_example import site
+from snacker.graph import site
 from snacker.config import RECENT_SCANS_LIMIT
 from snacker.contract import CodeScansFile, ProductFile, code_scans_path, product_path
 from snacker.products import product_files as snacker_product_files

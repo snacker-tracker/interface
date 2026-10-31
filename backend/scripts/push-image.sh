@@ -14,8 +14,8 @@ repository_name=snacker-tracker-lambda/interface
 registry="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_REGION.amazonaws.com"
 repository="$registry/$repository_name"
 sha="$(git rev-parse HEAD)"
-if [ -n "$(git status --porcelain -- .)" ]; then
-  echo "backend/ has uncommitted changes; commit them so the tag matches what's built" >&2
+if [ -n "$(git status --porcelain -- . ../stepdag ../.dockerignore)" ]; then
+  echo "backend/ or stepdag/ has uncommitted changes; commit them so the tag matches what's built" >&2
   exit 1
 fi
 
@@ -29,7 +29,8 @@ if image_digest="$(digest)"; then
 else
   aws ecr get-login-password | docker login --username AWS --password-stdin "$registry" >&2
   # Lambda wants a single-platform image manifest, not an index with attestations.
-  docker build --platform linux/amd64 --provenance=false -t "$repository:$sha" . >&2
+  # From the repo root, so the image can hold stepdag/ (the root .dockerignore trims the context).
+  docker build --platform linux/amd64 --provenance=false -f Dockerfile -t "$repository:$sha" .. >&2
   docker push "$repository:$sha" >&2
   image_digest="$(digest)"
 fi

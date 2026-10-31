@@ -5,9 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from scans_example.graph import defs
+from snacker.graph.definitions import defs
 from stepdag.cli import main
-from tests.raw_events import live_scan, write_raw
+from graph.raw_events import live_scan, write_raw
 
 
 def test_stepdag_run_builds_the_tables_in_a_local_directory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -15,7 +15,7 @@ def test_stepdag_run_builds_the_tables_in_a_local_directory(monkeypatch: pytest.
     monkeypatch.setenv("SCANS_RAW", str(tmp_path / "raw"))
     monkeypatch.setenv("SCANS_TABLES", str(tmp_path / "tables"))
 
-    assert main(["run", "scans_example.graph:defs"]) == 0
+    assert main(["run", "snacker.graph.definitions:defs"]) == 0
 
     out = json.loads(capsys.readouterr().out)
     assert set(out["computed"]) == set(defs.names)

@@ -8,7 +8,7 @@ variable "log_retention_days" {
   default = 14
 }
 
-# <repository URL>@<digest>, pushed by hand (README.md). Empty only for the ECR-only first apply.
+# <repository URL>@<digest>: the one image CI pushes to the shared repository (README.md).
 variable "image_uri" {
   type    = string
   default = ""

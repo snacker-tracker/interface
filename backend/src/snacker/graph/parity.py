@@ -8,7 +8,7 @@ from typing import Any
 
 import polars as pl
 
-from scans_example import site
+from snacker.graph import site
 from snacker.build import write_data
 from snacker.config import RECENT_SCANS_LIMIT, TOP_SCANS_LIMIT
 

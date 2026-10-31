@@ -1,5 +1,6 @@
-# The scans example on Step Functions, as container-image Lambdas (scans ticket 05). Everything
-# per asset comes from manifest.json (`stepdag manifest scans_example.graph:defs`): nothing here
+# The graph (snacker.graph) on Step Functions, as container-image Lambdas: the stepdag scans
+# example's stack (scans ticket 05), applied by hand until #121 replaces it. Everything
+# per asset comes from manifest.json (`stepdag manifest snacker.graph.definitions:defs`): nothing here
 # names an asset.
 
 locals {

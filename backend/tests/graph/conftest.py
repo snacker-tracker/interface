@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from tests.food_parquet import food, write_archive, write_food
+from graph.food_parquet import food, write_archive, write_food
 
 
 @pytest.fixture(autouse=True)

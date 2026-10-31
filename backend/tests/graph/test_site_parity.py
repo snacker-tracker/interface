@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pytest
 
-from scans_example.graph import defs
+from snacker.graph.definitions import defs
 from stepdag import run
 from stepdag.manifest import render
 from stepdag.assets import Bindings
-from tests.food_parquet import food, write_archive, write_food
-from tests.raw_events import backfill_scan, live_scan, write_raw
-from tests.snacker_oracle import differences, files_under, snacker_tree
+from graph.food_parquet import food, write_archive, write_food
+from graph.raw_events import backfill_scan, live_scan, write_raw
+from graph.snacker_oracle import differences, files_under, snacker_tree
 
 NOW = datetime(2026, 10, 19, 12, 0, tzinfo=UTC)
 ZONES = {"thailand": "Asia/Bangkok", "japan": "Asia/Tokyo"}
@@ -100,7 +100,7 @@ def test_every_locations_index_matches_snackers_build(site: Path, raw: Path, inp
 
 
 def test_the_index_sections_run_in_parallel() -> None:
-    states = render(defs, "scans_example.graph:defs")["state_machine"]["States"]
+    states = render(defs, "snacker.graph.definitions:defs")["state_machine"]["States"]
 
     sections = {"top_scans", "top_unknown_scans", "healthiest_and_least_healthy", "nutri_score_distribution", "period_days", "daily_and_recent"}
     parallel = [{branch["StartAt"] for branch in state["Branches"]} for state in states.values() if state["Type"] == "Parallel"]

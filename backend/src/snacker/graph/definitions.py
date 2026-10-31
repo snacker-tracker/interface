@@ -1,4 +1,5 @@
-"""The scans example's graph: real Snacker scans into Delta tables.
+"""Snacker's backend as a stepdag graph: raw scanner events into Delta tables and the site's data
+tree (the stepdag scans example until #118).
 
 stepdag has no way to give an asset an outside resource, so the raw events' location comes from
 `$SCANS_RAW` (a directory, or `s3://bucket/prefix/`), and the tables' root from `$SCANS_TABLES`.
@@ -13,19 +14,19 @@ import polars as pl
 import tempfile
 from pathlib import Path
 
-from scans_example import index, site
-from scans_example import parity as parity_module
-from scans_example.scanners import snacker_heartbeats
+from snacker.graph import index, site
+from snacker.graph import parity as parity_module
+from snacker.graph.scanners import snacker_heartbeats
 from snacker.contract import LocationsFile, SelectableLocation, locations_path
 from snacker.products import with_products
-from scans_example import products as products_module
-from scans_example import codes
-from scans_example.checks import every_scan_has_a_code_and_a_time
-from scans_example.delta_io import DeltaIO, Merge
-from scans_example.openfoodfacts import files_at, openfoodfacts_source
-from scans_example.raw import raw_source
-from scans_example.scans import read_scans
-from scans_example import scanners as scanners_module
+from snacker.graph import products as products_module
+from snacker.graph import codes
+from snacker.graph.checks import every_scan_has_a_code_and_a_time
+from snacker.graph.delta_io import DeltaIO, Merge
+from snacker.graph.openfoodfacts import files_at, openfoodfacts_source
+from snacker.graph.raw import raw_source
+from snacker.graph.scans import read_scans
+from snacker.graph import scanners as scanners_module
 from stepdag import UNCHANGED, Definitions, RunContext, asset
 from stepdag.assets import Bindings
 from stepdag.json_io import DirectoryStore, FixedJson, RunJson, S3Store, Store

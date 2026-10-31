@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "definitions": "scans_example.graph:defs",
+  "definitions": "snacker.graph.definitions:defs",
   "roles": [
     "default"
   ],
@@ -12,7 +12,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs"
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs"
       }
     },
     "scans": {
@@ -22,7 +22,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "scans"
       }
     },
@@ -33,7 +33,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "openfoodfacts_copy"
       }
     },
@@ -44,7 +44,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "products"
       }
     },
@@ -55,7 +55,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "scanned"
       }
     },
@@ -66,7 +66,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "locations_file"
       }
     },
@@ -77,7 +77,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "top_scans"
       }
     },
@@ -88,7 +88,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "top_unknown_scans"
       }
     },
@@ -99,7 +99,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "healthiest_and_least_healthy"
       }
     },
@@ -110,7 +110,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "nutri_score_distribution"
       }
     },
@@ -121,7 +121,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "period_days"
       }
     },
@@ -132,7 +132,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "daily_and_recent"
       }
     },
@@ -143,7 +143,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "code_pages"
       }
     },
@@ -154,7 +154,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "product_files"
       }
     },
@@ -165,7 +165,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "heartbeats"
       }
     },
@@ -176,7 +176,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "scanners"
       }
     },
@@ -187,7 +187,7 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "site_tree"
       }
     },
@@ -198,13 +198,13 @@
       "ephemeral_storage": 512,
       "role": "default",
       "environment": {
-        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "parity"
       }
     }
   },
   "state_machine": {
-    "Comment": "stepdag graph scans_example.graph:defs",
+    "Comment": "stepdag graph snacker.graph.definitions:defs",
     "StartAt": "plan",
     "States": {
       "plan": {

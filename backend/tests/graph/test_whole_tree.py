@@ -7,13 +7,13 @@ from typing import Any
 
 import pytest
 
-from scans_example import site as site_module
-from scans_example.graph import defs
+from snacker.graph import site as site_module
+from snacker.graph.definitions import defs
 from stepdag import CheckFailed, run
 from stepdag.assets import Bindings
-from tests.food_parquet import food, write_archive, write_food
-from tests.raw_events import backfill_scan, heartbeat_flat, heartbeat_v2, live_scan, with_api_key, write_heartbeats, write_raw
-from tests.snacker_oracle import files_under, snacker_tree
+from graph.food_parquet import food, write_archive, write_food
+from graph.raw_events import backfill_scan, heartbeat_flat, heartbeat_v2, live_scan, with_api_key, write_heartbeats, write_raw
+from graph.snacker_oracle import files_under, snacker_tree
 
 NOW = datetime(2026, 10, 19, 12, 0, tzinfo=UTC)
 ZONES = {"thailand": "Asia/Bangkok", "japan": "Asia/Tokyo"}

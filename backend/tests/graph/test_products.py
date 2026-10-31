@@ -12,12 +12,12 @@ import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
 
-from scans_example.graph import defs
+from snacker.graph.definitions import defs
 from snacker.products import PRODUCTS_SCHEMA, extract_products, read_archive
 from stepdag import run
 from stepdag.assets import Bindings
-from tests.food_parquet import food, write_archive, write_food
-from tests.raw_events import backfill_scan, live_scan, write_raw
+from graph.food_parquet import food, write_archive, write_food
+from graph.raw_events import backfill_scan, live_scan, write_raw
 
 
 @pytest.fixture

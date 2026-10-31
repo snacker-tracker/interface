@@ -5,10 +5,10 @@ from typing import Any
 
 import pytest
 
-from scans_example.graph import defs
+from snacker.graph.definitions import defs
 from stepdag import run
 from stepdag.assets import Bindings
-from tests.food_parquet import food, write_food
+from graph.food_parquet import food, write_food
 
 
 @pytest.fixture
@@ -78,7 +78,7 @@ def test_a_forced_run_copies_again(io: Bindings) -> None:
 
 
 def test_a_copy_that_fails_partway_leaves_no_file(io: Bindings, openfoodfacts: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from scans_example import openfoodfacts as source_module
+    from snacker.graph import openfoodfacts as source_module
 
     class Broken:
         def __init__(self, path: Path) -> None:

@@ -8,10 +8,10 @@ from typing import Any
 import polars as pl
 import pytest
 
-from scans_example.graph import defs, scans
+from snacker.graph.definitions import defs, scans
 from stepdag import Definitions, Pointer, asset, run
 from stepdag.assets import Bindings
-from tests.raw_events import live_scan, write_raw
+from graph.raw_events import live_scan, write_raw
 
 
 @pytest.fixture
