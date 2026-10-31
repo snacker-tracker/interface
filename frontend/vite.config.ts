@@ -7,7 +7,8 @@ import { buildStampFrom } from './src/buildStamp.ts'
 // The backend build (`snacker build --out ../public-data`) writes the static JSON
 // the app reads. Serving that folder as Vite's public dir makes it available at
 // /data/... in dev and copies it into dist/ on `vite build`. SNACKER_PUBLIC_DATA
-// serves another folder, such as the stepdag graph's shadow tree (`npm run dev:graph`).
+// serves another folder, such as what the stepdag graph built, with its latest run
+// (`npm run dev:graph`, which shows it at /pipeline).
 export default defineConfig(({ mode }) => ({
   plugins: [react()],
   publicDir: process.env.SNACKER_PUBLIC_DATA ?? '../public-data',

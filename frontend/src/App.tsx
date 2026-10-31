@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { createBrowserRouter, Link, Outlet, useLocation } from 'react-router'
 import { RouterProvider } from 'react-router/dom'
 
@@ -8,6 +9,7 @@ import { CONTRACT_VERSION, type MetaFile } from './contract'
 import { metaDataPath, useJson } from './data'
 import { CodePage } from './pages/CodePage'
 import { IndexPage } from './pages/IndexPage'
+import { PipelinePage } from './pages/PipelinePage'
 import { ScannersPage } from './pages/ScannersPage'
 
 function Layout() {
@@ -48,17 +50,20 @@ function OutOfStep({ dataVersion }: { dataVersion: number | undefined }) {
   )
 }
 
-const router = createBrowserRouter([
+const routes = [
   {
     element: <Layout />,
     children: [
       { path: '/', element: <IndexPage /> },
       { path: '/codes/:code', element: <CodePage /> },
       { path: '/scanners', element: <ScannersPage /> },
+      { path: '/pipeline', element: <PipelinePage /> },
     ],
   },
-])
+]
 
 export default function App() {
+  // Made on mount, so it starts at the current URL; tests mount the app once per URL.
+  const [router] = useState(() => createBrowserRouter(routes))
   return <RouterProvider router={router} />
 }

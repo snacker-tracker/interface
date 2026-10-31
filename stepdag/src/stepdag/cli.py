@@ -1,14 +1,17 @@
-"""`stepdag run` runs a graph in this process; `stepdag manifest` renders what Terraform deploys."""
+"""`stepdag run` runs a graph in this process; `stepdag manifest` renders what Terraform deploys;
+`stepdag report` writes a deployed graph's latest finished run as a run file (`stepdag.report`)."""
 
 import argparse
 import importlib
 import json
 import sys
 from collections.abc import Sequence
+from pathlib import Path
 
 from stepdag.assets import Definitions
 from stepdag.execution import CheckFailed, PlanFailed, StepFailed, run
 from stepdag.manifest import render
+from stepdag.report import latest_finished, report
 
 
 def load_definitions(reference: str) -> Definitions:
@@ -39,10 +42,29 @@ def main(argv: Sequence[str] | None = None) -> int:
     manifest_command = commands.add_parser("manifest", help="print the manifest Terraform deploys")
     manifest_command.add_argument("definitions", help="module:attribute of the graph's Definitions, as the Lambdas import it")
 
+    report_command = commands.add_parser("report", help="write a deployed graph's latest finished run as a run file")
+    report_command.add_argument("definitions", help="module:attribute of the graph's Definitions, as the Lambdas import it")
+    report_command.add_argument("--state-machine", required=True, help="the state machine's ARN")
+    report_command.add_argument("--execution", help="report this execution (its name) instead of the newest finished one")
+    report_command.add_argument("--out", help="write the run file here instead of to stdout")
+
     args = parser.parse_args(argv)
     definitions = load_definitions(args.definitions)
     if args.command == "manifest":
         print(json.dumps(render(definitions, args.definitions), indent=2))
+        return 0
+    if args.command == "report":
+        import boto3
+
+        # The ARN names the region (arn:aws:states:<region>:…), so none needs configuring.
+        client = boto3.client("stepfunctions", region_name=args.state_machine.split(":")[3])
+        execution, history = latest_finished(client, args.state_machine, args.execution)
+        run_file = json.dumps(report(definitions, args.definitions, execution, history), indent=2)
+        if args.out:
+            Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+            Path(args.out).write_text(run_file + "\n")
+        else:
+            print(run_file)
         return 0
     io_managers = definitions.bindings(args.env)
     try:
