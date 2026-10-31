@@ -1,0 +1,707 @@
+{
+  "version": 1,
+  "definitions": "scans_example.graph:defs",
+  "roles": [
+    "default"
+  ],
+  "functions": {
+    "_plan": {
+      "handler": "stepdag.aws.plan_handler",
+      "memory": 256,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs"
+      }
+    },
+    "scans": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 2048,
+      "timeout": 300,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "scans"
+      }
+    },
+    "openfoodfacts_copy": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 1024,
+      "timeout": 900,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "openfoodfacts_copy"
+      }
+    },
+    "products": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 3008,
+      "timeout": 900,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "products"
+      }
+    },
+    "scanned": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 1024,
+      "timeout": 300,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "scanned"
+      }
+    },
+    "locations_file": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "locations_file"
+      }
+    },
+    "top_scans": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "top_scans"
+      }
+    },
+    "top_unknown_scans": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "top_unknown_scans"
+      }
+    },
+    "healthiest_and_least_healthy": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "healthiest_and_least_healthy"
+      }
+    },
+    "nutri_score_distribution": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "nutri_score_distribution"
+      }
+    },
+    "period_days": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "period_days"
+      }
+    },
+    "daily_and_recent": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "daily_and_recent"
+      }
+    },
+    "code_pages": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 1024,
+      "timeout": 300,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "code_pages"
+      }
+    },
+    "product_files": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "product_files"
+      }
+    },
+    "heartbeats": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 1024,
+      "timeout": 900,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "heartbeats"
+      }
+    },
+    "scanners": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "scanners"
+      }
+    },
+    "site_tree": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 2048,
+      "timeout": 600,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "site_tree"
+      }
+    },
+    "parity": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 2048,
+      "timeout": 600,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "scans_example.graph:defs",
+        "STEPDAG_ASSET": "parity"
+      }
+    }
+  },
+  "state_machine": {
+    "Comment": "stepdag graph scans_example.graph:defs",
+    "StartAt": "plan",
+    "States": {
+      "plan": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::lambda:invoke",
+        "Parameters": {
+          "FunctionName": "${function_prefix}_plan",
+          "Payload": {
+            "config.$": "$",
+            "run_id.$": "$$.Execution.Name",
+            "started_at.$": "$$.Execution.StartTime"
+          }
+        },
+        "OutputPath": "$.Payload",
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+          }
+        ],
+        "Next": "level 1: heartbeats, openfoodfacts_copy, scans"
+      },
+      "level 1: heartbeats, openfoodfacts_copy, scans": {
+        "Type": "Parallel",
+        "Branches": [
+          {
+            "StartAt": "heartbeats",
+            "States": {
+              "heartbeats": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}heartbeats",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "openfoodfacts_copy",
+            "States": {
+              "openfoodfacts_copy": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}openfoodfacts_copy",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "scans",
+            "States": {
+              "scans": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}scans",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          }
+        ],
+        "Next": "level 2: products"
+      },
+      "level 2: products": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::lambda:invoke",
+        "Parameters": {
+          "FunctionName": "${function_prefix}products",
+          "Payload.$": "$"
+        },
+        "OutputPath": "$.Payload",
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+          }
+        ],
+        "Next": "level 3: scanned"
+      },
+      "level 3: scanned": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::lambda:invoke",
+        "Parameters": {
+          "FunctionName": "${function_prefix}scanned",
+          "Payload.$": "$"
+        },
+        "OutputPath": "$.Payload",
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+          }
+        ],
+        "Next": "level 4: code_pages, daily_and_recent, healthiest_and_least_healthy, locations_f"
+      },
+      "level 4: code_pages, daily_and_recent, healthiest_and_least_healthy, locations_f": {
+        "Type": "Parallel",
+        "Branches": [
+          {
+            "StartAt": "code_pages",
+            "States": {
+              "code_pages": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}code_pages",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "daily_and_recent",
+            "States": {
+              "daily_and_recent": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}daily_and_recent",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "healthiest_and_least_healthy",
+            "States": {
+              "healthiest_and_least_healthy": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}healthiest_and_least_healthy",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "locations_file",
+            "States": {
+              "locations_file": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}locations_file",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "nutri_score_distribution",
+            "States": {
+              "nutri_score_distribution": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}nutri_score_distribution",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "period_days",
+            "States": {
+              "period_days": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}period_days",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "product_files",
+            "States": {
+              "product_files": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}product_files",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "scanners",
+            "States": {
+              "scanners": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}scanners",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "top_scans",
+            "States": {
+              "top_scans": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}top_scans",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "top_unknown_scans",
+            "States": {
+              "top_unknown_scans": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}top_unknown_scans",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          }
+        ],
+        "Next": "level 5: site_tree"
+      },
+      "level 5: site_tree": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::lambda:invoke",
+        "Parameters": {
+          "FunctionName": "${function_prefix}site_tree",
+          "Payload.$": "$"
+        },
+        "OutputPath": "$.Payload",
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+          }
+        ],
+        "Next": "level 6: parity"
+      },
+      "level 6: parity": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::lambda:invoke",
+        "Parameters": {
+          "FunctionName": "${function_prefix}parity",
+          "Payload.$": "$"
+        },
+        "OutputPath": "$.Payload",
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+          }
+        ],
+        "End": true
+      }
+    }
+  }
+}

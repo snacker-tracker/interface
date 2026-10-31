@@ -1,0 +1,254 @@
+{
+  "version": 1,
+  "definitions": "hello:defs",
+  "roles": [
+    "default"
+  ],
+  "functions": {
+    "_plan": {
+      "handler": "stepdag.aws.plan_handler",
+      "memory": 256,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "hello:defs"
+      }
+    },
+    "greeting": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "hello:defs",
+        "STEPDAG_ASSET": "greeting"
+      }
+    },
+    "counter": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "hello:defs",
+        "STEPDAG_ASSET": "counter"
+      }
+    },
+    "shout": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "hello:defs",
+        "STEPDAG_ASSET": "shout"
+      }
+    },
+    "word_count": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "hello:defs",
+        "STEPDAG_ASSET": "word_count"
+      }
+    },
+    "report": {
+      "handler": "stepdag.aws.asset_handler",
+      "memory": 512,
+      "timeout": 60,
+      "ephemeral_storage": 512,
+      "role": "default",
+      "environment": {
+        "STEPDAG_DEFINITIONS": "hello:defs",
+        "STEPDAG_ASSET": "report"
+      }
+    }
+  },
+  "state_machine": {
+    "Comment": "stepdag graph hello:defs",
+    "StartAt": "plan",
+    "States": {
+      "plan": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::lambda:invoke",
+        "Parameters": {
+          "FunctionName": "${function_prefix}_plan",
+          "Payload": {
+            "config.$": "$",
+            "run_id.$": "$$.Execution.Name",
+            "started_at.$": "$$.Execution.StartTime"
+          }
+        },
+        "OutputPath": "$.Payload",
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+          }
+        ],
+        "Next": "level 1: counter, greeting"
+      },
+      "level 1: counter, greeting": {
+        "Type": "Parallel",
+        "Branches": [
+          {
+            "StartAt": "counter",
+            "States": {
+              "counter": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}counter",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "greeting",
+            "States": {
+              "greeting": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}greeting",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          }
+        ],
+        "Next": "level 2: shout, word_count"
+      },
+      "level 2: shout, word_count": {
+        "Type": "Parallel",
+        "Branches": [
+          {
+            "StartAt": "shout",
+            "States": {
+              "shout": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}shout",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          },
+          {
+            "StartAt": "word_count",
+            "States": {
+              "word_count": {
+                "Type": "Task",
+                "Resource": "arn:aws:states:::lambda:invoke",
+                "Parameters": {
+                  "FunctionName": "${function_prefix}word_count",
+                  "Payload.$": "$"
+                },
+                "OutputPath": "$.Payload",
+                "Retry": [
+                  {
+                    "ErrorEquals": [
+                      "Lambda.ServiceException",
+                      "Lambda.AWSLambdaException",
+                      "Lambda.SdkClientException",
+                      "Lambda.TooManyRequestsException"
+                    ],
+                    "IntervalSeconds": 2,
+                    "MaxAttempts": 2,
+                    "BackoffRate": 2.0
+                  }
+                ],
+                "End": true
+              }
+            }
+          }
+        ],
+        "Next": "level 3: report"
+      },
+      "level 3: report": {
+        "Type": "Task",
+        "Resource": "arn:aws:states:::lambda:invoke",
+        "Parameters": {
+          "FunctionName": "${function_prefix}report",
+          "Payload.$": "$"
+        },
+        "OutputPath": "$.Payload",
+        "Retry": [
+          {
+            "ErrorEquals": [
+              "Lambda.ServiceException",
+              "Lambda.AWSLambdaException",
+              "Lambda.SdkClientException",
+              "Lambda.TooManyRequestsException"
+            ],
+            "IntervalSeconds": 2,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+          }
+        ],
+        "End": true
+      }
+    }
+  }
+}

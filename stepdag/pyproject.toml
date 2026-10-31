@@ -1,0 +1,32 @@
+[project]
+name = "stepdag"
+version = "0.1.0"
+description = "Runs a graph of assets as a Step Functions workflow, one Lambda per asset."
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "boto3>=1.43.116",
+]
+
+[project.scripts]
+stepdag = "stepdag.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "moto[s3]>=5.1.0",
+    "mypy>=2.4.0",
+    "pytest>=9.1.1",
+    "types-boto3[s3]>=1.43.116",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests", "examples/hello"]

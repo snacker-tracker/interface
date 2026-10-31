@@ -28,3 +28,6 @@ reports/
 *.tfplan
 *.plan.txt
 *.plan.json
+
+# stepdag: local runs of a graph
+.stepdag/

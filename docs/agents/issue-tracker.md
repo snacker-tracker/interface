@@ -52,9 +52,14 @@ Used by `/wayfinder`. The **map** is a single issue with **child** issues as tic
 - **Claim**: `gh issue edit <n> --add-assignee @me`, the session's first write.
 - **Resolve**: `gh issue comment <n> --body "<answer>"`, then `gh issue close <n>`, then append a context pointer (gist + link) to the map's Decisions-so-far.
 
-## Before GitHub
+## Local issues, imported later
 
-Until 2026-10-21 issues lived as markdown under `.scratch/<feature>/` and were imported as they stood. That's why older commits and ADRs say "ticket 06". Their imported issues:
+Issues lived as markdown under `.scratch/<feature>/` twice, and were imported as they stood each time. That's why some commits, ADRs and issue bodies say "ticket 06".
+
+- **Until 2026-10-21.** Their imported issues are in the first table below.
+- **From 2026-10-30 to 2026-10-31**, for the stepdag experiment (#82 to #125). Each feature's `decisions.md` became a comment on its spec, and the tickets' dated comments became issue comments. Their imported issues are in the second table below.
+
+Until 2026-10-21:
 
 | Feature | Local | GitHub |
 | --- | --- | --- |
@@ -95,3 +100,52 @@ Until 2026-10-21 issues lived as markdown under `.scratch/<feature>/` and were i
 | `aws-deployment` | 06 | #36 |
 | `aws-deployment` | 07 | #37 |
 | `aws-deployment` | 08 | #38 |
+
+From 2026-10-30 to 2026-10-31:
+
+| Feature | Local | GitHub |
+| --- | --- | --- |
+| `stepdag` | spec | #82 |
+| `stepdag` | 01 | #83 |
+| `stepdag` | 02 | #84 |
+| `stepdag` | 03 | #85 |
+| `stepdag` | 04 | #86 |
+| `stepdag` | 05 | #87 |
+| `stepdag` | 06 | #88 |
+| `stepdag` | 07 | #89 |
+| `stepdag` | 08 | #90 |
+| `stepdag-scans` | spec | #91 |
+| `stepdag-scans` | 01 | #92 |
+| `stepdag-scans` | 02 | #93 |
+| `stepdag-scans` | 03 | #94 |
+| `stepdag-scans` | 04 | #95 |
+| `stepdag-scans` | 05 | #96 |
+| `stepdag-scans` | 06 | #97 |
+| `stepdag-scans-products` | spec | #98 |
+| `stepdag-scans-products` | 01 | #99 |
+| `stepdag-scans-products` | 02 | #100 |
+| `stepdag-scans-products` | 03 | #101 |
+| `stepdag-scans-products` | 04 | #102 |
+| `stepdag-scans-products` | 05 | #103 |
+| `stepdag-scans-products` | 06 | #104 |
+| `stepdag-snacker-parity` | spec | #105 |
+| `stepdag-snacker-parity` | 01 | #106 |
+| `stepdag-snacker-parity` | 02 | #107 |
+| `stepdag-snacker-parity` | 03 | #108 |
+| `stepdag-snacker-parity` | 04 | #109 |
+| `stepdag-snacker-parity` | 05 | #110 |
+| `stepdag-snacker-parity` | 06 | #111 |
+| `stepdag-snacker-parity` | 07 | #112 |
+| `stepdag-snacker-parity` | 08 | #113 |
+| `stepdag-snacker-parity` | 09 | #114 |
+| `stepdag-snacker-parity` | 10 | #115 |
+| `stepdag-scans-triggered` | idea | #116 |
+| `snacker-on-stepdag` | spec | #117 |
+| `snacker-on-stepdag` | 01 | #118 |
+| `snacker-on-stepdag` | 02 | #119 |
+| `snacker-on-stepdag` | 03 | #120 |
+| `snacker-on-stepdag` | 04 | #121 |
+| `snacker-on-stepdag` | 05 | #122 |
+| `snacker-on-stepdag` | 06 | #123 |
+| `snacker-on-stepdag` | 07 | #124 |
+| `snacker-on-stepdag` | 08 | #125 |
