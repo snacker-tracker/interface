@@ -1,7 +1,9 @@
 # Deploys one commit's image and frontend build to an environment (aws-deployment tickets 07 and
-# 08), as two jobs side by side: the backend applies the main configuration, which points both
-# functions at the image's digest, and runs one build; the frontend publishes outside data/. Both
-# start together, so one approval of a protected environment releases both. Called by pipeline.yml.
+# 08), as two jobs side by side: the backend applies the main configuration, which points every
+# function at the image's digest (the legacy build's two, and the stepdag graph's where it's
+# enabled, #121) and runs one legacy build; the graph runs on its own schedules. The frontend
+# publishes outside data/. Both start together, so one approval of a protected environment
+# releases both. Called by pipeline.yml.
 #
 # Neither waits for the other, so for the minute or so a contract bump takes to land, pages say
 # the data and interface are out of step (PRD §7.3) until the other job finishes.

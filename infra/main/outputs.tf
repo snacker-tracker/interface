@@ -31,3 +31,8 @@ output "access_log_group" {
   description = "Query it with Logs Insights in us-east-1."
   value       = aws_cloudwatch_log_group.access_logs.name
 }
+
+output "graph_state_machine" {
+  description = "The graph's state machine ARN, or empty where the graph isn't enabled."
+  value       = var.graph_enabled ? aws_sfn_state_machine.graph[0].arn : ""
+}

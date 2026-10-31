@@ -168,7 +168,7 @@ data "aws_iam_policy_document" "extraction" {
   }
 }
 
-# --- Scheduler: starts the build ---
+# --- Scheduler: starts the build, and the graph ---
 
 resource "aws_iam_role" "scheduler" {
   name               = "${local.prefix}-scheduler"
@@ -186,5 +186,12 @@ data "aws_iam_policy_document" "scheduler" {
     sid       = "StartBuild"
     actions   = ["lambda:InvokeFunction"]
     resources = ["${local.function_arn}:${local.build_function}", "${local.function_arn}:${local.build_function}:*"]
+  }
+
+  # The graph's schedules (graph.tf, #121).
+  statement {
+    sid       = "StartGraph"
+    actions   = ["states:StartExecution"]
+    resources = [local.graph_state_machine]
   }
 }

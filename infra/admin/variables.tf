@@ -13,3 +13,9 @@ variable "access_log_retention_days" {
   type        = number
   default     = 90
 }
+
+variable "graph_raw_bucket" {
+  description = "The raw scanner bucket the stepdag graph reads (read-only). Prod's in both environments: dev's has almost no events, so dev parity would prove nothing there (#121)."
+  type        = string
+  default     = "snacker-tracker-prod"
+}
