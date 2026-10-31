@@ -4,7 +4,8 @@ A temporary stack: the graph (`snacker.graph`) as it ran while it was the stepda
 #121 replaces it with the graph in `infra/admin` and `infra/main`, deployed by CI, and destroys this.
 
 Applied by hand, never CI. State: `env:/dev/stepdag-scans` in `snacker-tracker-aws-infra-tfstate`.
-Names: `stepdag-scans-dev-*`. Region `ap-southeast-1`.
+Names: `stepdag-scans-dev-*`, except the functions, `snacker-tracker-dev-graph-*`: the shared
+repository lets Lambda pull only for functions named `snacker-tracker-*`. Region `ap-southeast-1`.
 
 Every function runs the one Lambda image (`backend/Dockerfile`), which CI builds for each commit
 into the shared repository (ADR 0006), tagged with the commit SHA. Terraform sets each function's

@@ -6,7 +6,9 @@
 locals {
   env             = terraform.workspace
   prefix          = "stepdag-scans-${local.env}"
-  function_prefix = "${local.prefix}-"
+  # The shared image repository (ADR 0006) lets Lambda pull only for functions named
+  # snacker-tracker-*, so the functions are named for Snacker rather than the stack (#118).
+  function_prefix = "snacker-tracker-${local.env}-graph-"
   manifest        = jsondecode(file("${path.module}/manifest.json"))
 
   # Snacker's prod raw scanner events: read-only, never written.
