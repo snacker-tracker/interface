@@ -1,7 +1,8 @@
 # Dev always runs master, and prod runs what dev ran once approved (aws-deployment tickets 07 and
-# 08, ADRs 0005 and 0006). A push to master tests and builds the backend image and the frontend
-# side by side, each once, deploys dev, then waits for the prod environment's reviewers to deploy
-# the same image and frontend build to prod. A pull request tests and shows the dev plan.
+# 08, ADRs 0005 and 0006). A push to master tests backend and stepdag, then builds the one image,
+# and the frontend side by side, each once, deploys dev, then waits for the prod environment's
+# reviewers to deploy the same image and frontend build to prod. A pull request tests and shows the
+# dev plan.
 name: pipeline
 
 on:
@@ -41,6 +42,22 @@ jobs:
           add-prefix: backend/
           tag: backend
           total-parts-count: 2
+
+  # The image holds stepdag (#120): backend's graph runs on it, so its own suite gates the image.
+  # No coverage upload: qlty's parts are backend and frontend.
+  stepdag:
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: stepdag
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          version: "0.13.6"
+      - run: uv sync --locked
+      - run: uv run mypy
+      - run: uv run pytest
 
   frontend:
     runs-on: ubuntu-26.04
@@ -108,7 +125,7 @@ jobs:
   # Built once per commit; prod promotes this digest and never builds its own.
   image:
     if: github.event_name == 'push'
-    needs: [backend]
+    needs: [backend, stepdag]
     runs-on: ubuntu-26.04
     environment: dev
     permissions:
