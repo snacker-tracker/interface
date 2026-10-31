@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from snacker.graph import site as site_module
+from snacker import sections as site_module
 from snacker.graph.definitions import defs
 from stepdag import CheckFailed, run
 from stepdag.assets import Bindings

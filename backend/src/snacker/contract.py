@@ -5,7 +5,8 @@ row it holds is defined here once; the rest of the backend fills them in. See PR
 for the rules on which files exist.
 """
 
-from pathlib import PurePosixPath
+import json
+from pathlib import Path, PurePosixPath
 from typing import Literal, TypedDict, get_args
 from urllib.parse import quote
 
@@ -342,3 +343,9 @@ def path_segment(value: str) -> str:
     """A location or code as a file name: percent-encoded like JavaScript's
     encodeURIComponent, except that `:` stays readable (`thailand:bangkok`)."""
     return quote(value, safe="!*'():")
+
+
+def write_json(path: Path, content: ContractFile) -> None:
+    """Write a contract file as the build always has: UTF-8, indented by two, with a final newline."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(content, ensure_ascii=False, indent=2) + "\n")

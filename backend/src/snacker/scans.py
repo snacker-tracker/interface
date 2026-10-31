@@ -6,11 +6,13 @@ Two eras of scan events exist and are treated identically downstream:
   envelope `time` (when the event was reported) stands in for it
 """
 
+from datetime import datetime
 from pathlib import Path
 
 import polars as pl
 
 from snacker.events import read_events
+from snacker.raw import RAW_FILE_SCHEMA, RawEvents, deliveries, watermark
 from snacker.timestamps import require_timestamps, utc_timestamps
 
 SCANS_SCHEMA = pl.Schema({
@@ -22,6 +24,9 @@ SCANS_SCHEMA = pl.Schema({
     "origin": pl.String(),  # "backfill" | "live"; kept for debugging only
     "api_key": pl.String(),  # the scanner's API key; null for backfill (see docs/adr/0002)
 })
+
+SCANS_TABLE_SCHEMA = pl.Schema({**SCANS_SCHEMA, **RAW_FILE_SCHEMA})
+"""The scans table: each scan with the raw file it was first delivered in, for the watermark."""
 
 ORIGIN_BY_SOURCE = {"from-backup": "backfill", "scanner": "live"}
 
@@ -66,3 +71,39 @@ def normalise_scans(raw_dir: Path) -> pl.DataFrame:
         .cast(SCANS_SCHEMA)
         .unique("event_id", keep="first", maintain_order=True)
     )
+
+
+def read_scans(raw: RawEvents, files: dict[str, datetime]) -> pl.DataFrame:
+    """The scans in `files` (SCANS_TABLE_SCHEMA), by `normalise_scans`: one row per event, with the
+    file of the delivery it kept."""
+    if not files:
+        return SCANS_TABLE_SCHEMA.to_frame()
+    with raw.downloaded(files) as local:
+        scans = normalise_scans(local)
+        # The first delivery, as the normaliser keeps the first: it reads the same glob.
+        delivered = (
+            deliveries(local, "scans", files)
+            .unique("id", keep="first", maintain_order=True)
+            .rename({"id": "event_id"})
+        )
+    return scans.join(delivered, on="event_id", how="left", maintain_order="left").cast(SCANS_TABLE_SCHEMA)
+
+
+def new_scans(raw: RawEvents, table: pl.LazyFrame | None) -> pl.DataFrame | None:
+    """The scans the scans `table` lacks, read by ADR 0011's watermark rule (`snacker.raw`), or None
+    when there are none.
+
+    With no table, or one with no rows, every scan file is read and every scan returned. Otherwise
+    files inside the margin are read again, so scans already in the table are dropped.
+    """
+    since = watermark(table)
+    read = read_scans(raw, raw.since("scans", since))
+    if table is None or since is None:
+        return read
+    new = read.lazy().join(table.select("event_id"), on="event_id", how="anti").collect()
+    return None if new.is_empty() else new
+
+
+def from_table(table: pl.LazyFrame) -> pl.DataFrame:
+    """The scans table as `normalise_scans` makes it (SCANS_SCHEMA), without the raw file columns."""
+    return table.select(SCANS_SCHEMA.names()).collect().cast(SCANS_SCHEMA)

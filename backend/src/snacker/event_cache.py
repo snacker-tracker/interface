@@ -1,5 +1,8 @@
 """The scans and heartbeats a build reads, through a cache of what earlier builds read (ADR 0011).
 
+Legacy (#117): only the old build and extraction Lambdas use it. The graph's Delta tables, read by
+the same watermark rule (`snacker.raw`), replace it; it's deleted at the switchover (#125).
+
 Each cache is a Parquet file holding a normalised table, the code version that wrote it, and
 a watermark: the newest LastModified of any raw file it has read. A later build reads only the
 raw files modified since the watermark, less a margin, and merges them in. A cache that is

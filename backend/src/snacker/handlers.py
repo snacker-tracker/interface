@@ -1,5 +1,9 @@
 """The Lambda handlers: one image runs the build or the extraction, chosen by the handler
-(aws-deployment ticket 04). Settings come from environment variables."""
+(aws-deployment ticket 04). Settings come from environment variables.
+
+Legacy (#117): the old build and extraction Lambdas. The graph's functions run stepdag's handlers
+(`stepdag.aws`) on the same image instead; these are deleted at the switchover (#125).
+"""
 
 import os
 import tempfile

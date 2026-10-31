@@ -1,5 +1,7 @@
 """Timestamp formats used in the JSON output, and strict parsing of raw event timestamps."""
 
+from datetime import UTC, datetime
+
 import polars as pl
 
 UTC_TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
@@ -26,3 +28,8 @@ def require_timestamps(frame: pl.DataFrame, *, text: str, parsed: str) -> None:
     unparsed = frame.filter(pl.col(text).is_not_null() & pl.col(parsed).is_null())
     if not unparsed.is_empty():
         raise ValueError(f"timestamp without a timezone: {unparsed[text][0]!r}")
+
+
+def format_utc(moment: datetime) -> str:
+    """A moment as the JSON output's UTC timestamp."""
+    return moment.astimezone(UTC).strftime(UTC_TIMESTAMP_FORMAT)

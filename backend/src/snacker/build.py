@@ -1,9 +1,13 @@
-"""The build: normalised scans and heartbeats in, the static JSON tree read by the frontend out."""
+"""The build: normalised scans and heartbeats in, the static JSON tree read by the frontend out.
 
-import json
+Legacy (#117): the old build Lambda runs it, and the graph's `parity` asset uses `write_data` as
+its reference, so it's kept unchanged. `snacker.sections` and the graph (`snacker.graph`) replace
+it; it's deleted at the switchover (#125).
+"""
+
 import shutil
 from collections.abc import Mapping
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 
 import polars as pl
@@ -13,7 +17,6 @@ from snacker.config import OFFICE_TIME_ZONES, RECENT_SCANS_LIMIT, TOP_SCANS_LIMI
 from snacker.contract import (
     CONTRACT_VERSION,
     CodeScansFile,
-    ContractFile,
     IndexFile,
     LocationsFile,
     MetaFile,
@@ -26,13 +29,14 @@ from snacker.contract import (
     meta_path,
     product_path,
     scanners_path,
+    write_json,
 )
 from snacker.heartbeats import latest_heartbeats, scanner_statuses
 from snacker.locations import Locations
 from snacker.products import product_files, with_products
 from snacker.scan_summary import healthiest_and_least_healthy, nutri_score_distribution, period_days, summarise, top_scans
 from snacker.storage import Bucket, Published, publish_to_bucket
-from snacker.timestamps import UTC_TIMESTAMP_FORMAT
+from snacker.timestamps import format_utc
 
 
 def build(
@@ -177,12 +181,3 @@ def write_code_files(
                 recent=summary.recent,
             ),
         )
-
-
-def format_utc(moment: datetime) -> str:
-    return moment.astimezone(UTC).strftime(UTC_TIMESTAMP_FORMAT)
-
-
-def write_json(path: Path, content: ContractFile) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(content, ensure_ascii=False, indent=2) + "\n")

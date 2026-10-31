@@ -1,4 +1,5 @@
-"""Parity with Snacker's backend: Snacker's own build on a run's inputs, diffed with what the run published."""
+"""Parity with the legacy build: `snacker.build.write_data` on a run's inputs, diffed with what the run
+published. The only part of the graph that uses the legacy build; it goes with it (#125)."""
 
 import json
 import tempfile
@@ -8,9 +9,9 @@ from typing import Any
 
 import polars as pl
 
-from snacker.graph import site
 from snacker.build import write_data
-from snacker.config import RECENT_SCANS_LIMIT, TOP_SCANS_LIMIT
+from snacker.config import RECENT_SCANS_LIMIT, TOP_SCANS_LIMIT, office_time_zones
+from snacker.products import write_parquet
 
 
 def snackers_tree(scans: pl.DataFrame, heartbeats: pl.DataFrame, products: pl.LazyFrame, now: datetime) -> dict[str, bytes]:
@@ -21,9 +22,9 @@ def snackers_tree(scans: pl.DataFrame, heartbeats: pl.DataFrame, products: pl.La
             out,
             scans=scans,
             heartbeats=heartbeats,
-            products_parquet=site.snacker_products(products, Path(scratch) / "products.parquet"),
+            products_parquet=write_parquet(products, Path(scratch) / "products.parquet"),
             generated_at=now,
-            office_time_zones=site.office_time_zones(),
+            office_time_zones=office_time_zones(),
             recent_limit=RECENT_SCANS_LIMIT,
             top_limit=TOP_SCANS_LIMIT,
         )

@@ -10,11 +10,13 @@ The EventBridge envelope `time` is when the heartbeat arrived. A scanner's scans
 ones sent with the API key its heartbeats use (see docs/adr/0002).
 """
 
+from datetime import datetime
 from pathlib import Path
 import polars as pl
 
 from snacker.contract import LastScan, ScannerStatus
 from snacker.events import read_events
+from snacker.raw import RAW_FILE_SCHEMA, RawEvents, deliveries, watermark
 from snacker.timestamps import UTC_TIMESTAMP_FORMAT, require_timestamps, utc_timestamps
 
 HEARTBEATS_SCHEMA = pl.Schema({
@@ -24,6 +26,10 @@ HEARTBEATS_SCHEMA = pl.Schema({
     "sent_at": pl.Datetime("us", "UTC"),
     "api_key": pl.String(),
 })
+
+HEARTBEATS_TABLE_SCHEMA = pl.Schema({**HEARTBEATS_SCHEMA, **RAW_FILE_SCHEMA})
+"""The heartbeats table: each scanner's latest heartbeat, with the raw file it came from, for the
+watermark."""
 
 
 # The envelope fields heartbeats use, across all three payload shapes; a field a shape
@@ -114,3 +120,41 @@ def scanner_statuses(heartbeats: pl.DataFrame, scans: pl.DataFrame) -> list[Scan
         )
         for row in rows.iter_rows(named=True)
     ]
+
+
+def read_heartbeats(raw: RawEvents, files: dict[str, datetime]) -> pl.DataFrame:
+    """Every heartbeat in `files` (HEARTBEATS_TABLE_SCHEMA), by `normalise_heartbeats`, each with its raw file."""
+    if not files:
+        return HEARTBEATS_TABLE_SCHEMA.to_frame()
+    with raw.downloaded(files) as local:
+        heartbeats = normalise_heartbeats(local)
+        # Row for row: the normaliser reads the same glob, and neither drops nor reorders heartbeats.
+        delivered = deliveries(local, "heartbeats", files).drop("id")
+    if heartbeats.height != delivered.height:
+        raise AssertionError("the normaliser's rows don't line up with the raw files' lines")
+    return pl.concat([heartbeats, delivered], how="horizontal").cast(HEARTBEATS_TABLE_SCHEMA)
+
+
+def new_latest_heartbeats(raw: RawEvents, table: pl.LazyFrame | None) -> pl.DataFrame | None:
+    """Each scanner's latest heartbeat that is newer than its row in the heartbeats `table`, read by
+    ADR 0011's watermark rule (`snacker.raw`), or None when there are none.
+
+    With no table, every heartbeat file is read and every scanner returned; a table with no rows
+    reads every file too. Files inside the margin are read again, so a heartbeat no newer than the
+    scanner's row is dropped.
+    """
+    incoming = latest_heartbeats(read_heartbeats(raw, raw.since("heartbeats", watermark(table))))
+    if table is None:
+        return incoming
+    known = table.select("scanner", pl.col("sent_at").alias("known_sent_at")).collect()
+    new = (
+        incoming.join(known, on="scanner", how="left", maintain_order="left")
+        .filter(pl.col("known_sent_at").is_null() | (pl.col("sent_at") > pl.col("known_sent_at")))
+        .drop("known_sent_at")
+    )
+    return None if new.is_empty() else new
+
+
+def from_table(table: pl.LazyFrame) -> pl.DataFrame:
+    """The heartbeats table as `normalise_heartbeats` types it (HEARTBEATS_SCHEMA), without the raw file columns."""
+    return table.select(HEARTBEATS_SCHEMA.names()).collect().cast(HEARTBEATS_SCHEMA)

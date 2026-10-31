@@ -6,34 +6,30 @@ stepdag has no way to give an asset an outside resource, so the raw events' loca
 """
 
 import os
-from datetime import UTC, datetime, timedelta
+import tempfile
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 import polars as pl
 
-import tempfile
-from pathlib import Path
-
-from snacker.graph import index, site
+from snacker import heartbeats as heartbeats_module
+from snacker import products as products_module
+from snacker import scans as scans_module
+from snacker import sections
 from snacker.graph import parity as parity_module
-from snacker.graph.scanners import snacker_heartbeats
-from snacker.contract import LocationsFile, SelectableLocation, locations_path
-from snacker.products import with_products
-from snacker.graph import products as products_module
-from snacker.graph import codes
-from snacker.graph.checks import every_scan_has_a_code_and_a_time
+from snacker.graph.checks import every_scan_has_a_code_and_a_time, keeps_the_contract
 from snacker.graph.delta_io import DeltaIO, Merge
-from snacker.graph.openfoodfacts import files_at, openfoodfacts_source
-from snacker.graph.raw import raw_source
-from snacker.graph.scans import read_scans
-from snacker.graph import scanners as scanners_module
+from snacker.graph.site_io import SiteIO
+from snacker.openfoodfacts import files_at, openfoodfacts_source
+from snacker.raw import RawEvents
 from stepdag import UNCHANGED, Definitions, RunContext, asset
 from stepdag.assets import Bindings
 from stepdag.json_io import DirectoryStore, FixedJson, RunJson, S3Store, Store
 
 
 @asset(io_manager="delta", memory=2048, timeout=300, checks=[every_scan_has_a_code_and_a_time])
-def scans(*, previous: pl.LazyFrame | None) -> pl.DataFrame:
+def scans(*, previous: pl.LazyFrame | None) -> Any:
     """Every scan in the raw events, from both eras, by Snacker's normaliser, loaded incrementally
     by ADR 0011's rule.
 
@@ -43,15 +39,8 @@ def scans(*, previous: pl.LazyFrame | None) -> pl.DataFrame:
     read: Firehose can write a file after a later-named one. Scans already in the table are dropped,
     so the merge on event ID receives only new ones, and a run that finds none is skipped.
     """
-    source = raw_source(os.environ["SCANS_RAW"])
-    watermark = None if previous is None else previous.select(pl.col("source_last_modified").max()).collect().item()
-    if previous is None or watermark is None:
-        return read_scans(source, source.list("scans/"))
-    since = watermark - timedelta(minutes=15)
-    listed = source.list("scans/", start_after="scans/" + (watermark - timedelta(days=1)).strftime("%Y/%m/%d/"))
-    read = read_scans(source, [f for f in listed if f.last_modified > since])
-    new = read.lazy().join(previous.select("event_id"), on="event_id", how="anti").collect()
-    return UNCHANGED if new.is_empty() else new
+    new = scans_module.new_scans(RawEvents.at(os.environ["SCANS_RAW"]), previous)
+    return UNCHANGED if new is None else new
 
 
 @asset(io_manager="fixed_json", memory=1024, timeout=900)
@@ -88,7 +77,7 @@ def products(scans: pl.LazyFrame, copy: dict[str, Any], *, previous: pl.LazyFram
     """
     if previous is not None and products_module.is_current(previous, scans, copy["revision"]):
         return UNCHANGED
-    return products_module.extract(scans, copy, os.environ["SCANS_ARCHIVE"])
+    return products_module.extract_from_copy(scans, copy, os.environ["SCANS_ARCHIVE"])
 
 
 def _json_store(tables: str) -> Store:
@@ -117,7 +106,7 @@ def bindings() -> Bindings:
         ),
         "fixed_json": FixedJson(_json_store(tables)),
         "run_json": RunJson(_json_store(tables)),
-        "site": site.SiteIO(os.environ["SCANS_SITE"]),
+        "site": SiteIO(os.environ["SCANS_SITE"]),
     }
 
 
@@ -125,68 +114,67 @@ def bindings() -> Bindings:
 def scanned(scans: pl.LazyFrame, products: pl.LazyFrame) -> pl.DataFrame:
     """Every scan with its office time zone and scanned product, as Snacker's build describes them.
     A location with no office time zone fails here, as it stops Snacker's build."""
-    snacker = site.snacker_scans(scans)
+    snacker = scans_module.from_table(scans)
     with tempfile.TemporaryDirectory() as scratch:
-        products_parquet = site.snacker_products(products, Path(scratch) / "products.parquet")
-        return with_products(site.locations_of(snacker).with_office_time_zones(snacker), products_parquet)
+        products_parquet = products_module.write_parquet(products, Path(scratch) / "products.parquet")
+        return products_module.with_products(sections.locations_of(snacker).with_office_time_zones(snacker), products_parquet)
 
 
 @asset(deps=["scanned"], io_manager="run_json")
-def locations_file(scanned: pl.LazyFrame) -> site.Bundle:
+def locations_file(scanned: pl.LazyFrame) -> sections.Bundle:
     """`locations.json`: every selectable location."""
-    locations = site.locations_of(site.described_scans(scanned))
-    return {locations_path().as_posix(): LocationsFile(locations=[SelectableLocation(id=loc) for loc in locations.selectable()])}
+    return sections.locations_file(scanned)
 
 
 # The index sections. Every period ends at the run's start time, as at Snacker's single `now`.
 
 
 @asset(deps=["scanned"], io_manager="run_json")
-def top_scans(scanned: pl.LazyFrame, *, context: RunContext) -> site.Bundle:
+def top_scans(scanned: pl.LazyFrame, *, context: RunContext) -> sections.Bundle:
     """Each index file's `location` and `top_scans`, for every selectable location."""
-    return index.top_scans_section(scanned, datetime.fromisoformat(context.started_at))
+    return sections.top_scans_section(scanned, datetime.fromisoformat(context.started_at))
 
 
 @asset(deps=["scanned"], io_manager="run_json")
-def top_unknown_scans(scanned: pl.LazyFrame, *, context: RunContext) -> site.Bundle:
+def top_unknown_scans(scanned: pl.LazyFrame, *, context: RunContext) -> sections.Bundle:
     """Each index file's `top_unknown_scans`."""
-    return index.top_unknown_scans_section(scanned, datetime.fromisoformat(context.started_at))
+    return sections.top_unknown_scans_section(scanned, datetime.fromisoformat(context.started_at))
 
 
 @asset(deps=["scanned"], io_manager="run_json")
-def healthiest_and_least_healthy(scanned: pl.LazyFrame, *, context: RunContext) -> site.Bundle:
+def healthiest_and_least_healthy(scanned: pl.LazyFrame, *, context: RunContext) -> sections.Bundle:
     """Each index file's `healthiest_and_least_healthy`."""
-    return index.healthiest_and_least_healthy_section(scanned, datetime.fromisoformat(context.started_at))
+    return sections.healthiest_and_least_healthy_section(scanned, datetime.fromisoformat(context.started_at))
 
 
 @asset(deps=["scanned"], io_manager="run_json")
-def nutri_score_distribution(scanned: pl.LazyFrame, *, context: RunContext) -> site.Bundle:
+def nutri_score_distribution(scanned: pl.LazyFrame, *, context: RunContext) -> sections.Bundle:
     """Each index file's `nutri_score_distribution`."""
-    return index.nutri_score_distribution_section(scanned, datetime.fromisoformat(context.started_at))
+    return sections.nutri_score_distribution_section(scanned, datetime.fromisoformat(context.started_at))
 
 
 @asset(deps=["scanned"], io_manager="run_json")
-def period_days(scanned: pl.LazyFrame, *, context: RunContext) -> site.Bundle:
+def period_days(scanned: pl.LazyFrame, *, context: RunContext) -> sections.Bundle:
     """Each index file's `period_days`."""
-    return index.period_days_section(scanned, datetime.fromisoformat(context.started_at))
+    return sections.period_days_section(scanned, datetime.fromisoformat(context.started_at))
 
 
 @asset(deps=["scanned"], io_manager="run_json")
-def daily_and_recent(scanned: pl.LazyFrame) -> site.Bundle:
+def daily_and_recent(scanned: pl.LazyFrame) -> sections.Bundle:
     """Each index file's `daily` and `recent` scans."""
-    return index.daily_and_recent_section(scanned)
+    return sections.daily_and_recent_section(scanned)
 
 
 @asset(deps=["scanned"], io_manager="run_json", memory=1024, timeout=300)
-def code_pages(scanned: pl.LazyFrame) -> site.Bundle:
+def code_pages(scanned: pl.LazyFrame) -> sections.Bundle:
     """Each scanned code's daily, hourly and recent scans, for every selectable location where it was scanned."""
-    return codes.code_pages(scanned)
+    return sections.code_pages(scanned)
 
 
 @asset(deps=["scanned", "products"], io_manager="run_json")
-def product_files(scanned: pl.LazyFrame, products: pl.LazyFrame) -> site.Bundle:
+def product_files(scanned: pl.LazyFrame, products: pl.LazyFrame) -> sections.Bundle:
     """Each scanned code's product file, with unknown products marked as such."""
-    return codes.product_files(scanned, products)
+    return sections.product_files(scanned, products)
 
 
 # A forced run reads every heartbeat file (about 12k): the default 60 s isn't enough.
@@ -195,14 +183,14 @@ def heartbeats(*, previous: pl.LazyFrame | None) -> Any:
     """Each scanner's latest heartbeat, by Snacker's normaliser, loaded incrementally by `scans`'
     watermark rule over the heartbeats folder (everything with no table, or in a forced run).
     Only heartbeats newer than a scanner's row are returned; a run that finds none is skipped."""
-    new = scanners_module.new_latest_heartbeats(raw_source(os.environ["SCANS_RAW"]), previous)
+    new = heartbeats_module.new_latest_heartbeats(RawEvents.at(os.environ["SCANS_RAW"]), previous)
     return UNCHANGED if new is None else new
 
 
 @asset(deps=["heartbeats", "scanned"], io_manager="run_json")
-def scanners(heartbeats: pl.LazyFrame, scanned: pl.LazyFrame) -> site.Bundle:
+def scanners(heartbeats: pl.LazyFrame, scanned: pl.LazyFrame) -> sections.Bundle:
     """Every selectable location's scanners file, each scanner with its last scan by API key (ADR 0002)."""
-    return scanners_module.scanners_files(heartbeats, scanned)
+    return sections.scanners_files(heartbeats, scanned)
 
 
 @asset(
@@ -219,30 +207,30 @@ def scanners(heartbeats: pl.LazyFrame, scanned: pl.LazyFrame) -> site.Bundle:
         "scanners",
     ],
     io_manager="site",
-    checks=[site.keeps_the_contract],
+    checks=[keeps_the_contract],
     # Stages the tree twice (the contract check, then publishing) and diff-publishes about 3,500 files.
     memory=2048,
     timeout=600,
 )
 def site_tree(
-    locations: site.Bundle,
-    top_scans: site.Bundle,
-    top_unknown_scans: site.Bundle,
-    healthiest_and_least_healthy: site.Bundle,
-    nutri_score_distribution: site.Bundle,
-    period_days: site.Bundle,
-    daily_and_recent: site.Bundle,
-    code_pages: site.Bundle,
-    product_files: site.Bundle,
-    scanners: site.Bundle,
+    locations: sections.Bundle,
+    top_scans: sections.Bundle,
+    top_unknown_scans: sections.Bundle,
+    healthiest_and_least_healthy: sections.Bundle,
+    nutri_score_distribution: sections.Bundle,
+    period_days: sections.Bundle,
+    daily_and_recent: sections.Bundle,
+    code_pages: sections.Bundle,
+    product_files: sections.Bundle,
+    scanners: sections.Bundle,
     *,
     context: RunContext,
 ) -> dict[str, Any]:
     """The whole site data tree: `meta.json`, then every section's bundle, merged into files.
     (stepdag passes parents positionally and counts them, so each section is its own parameter.)
     The index sections come in `IndexFile`'s key order, which the merge keeps in each index file."""
-    return site.merged([
-        site.meta(datetime.fromisoformat(context.started_at)),
+    return sections.merged([
+        sections.meta(datetime.fromisoformat(context.started_at)),
         locations,
         top_scans,
         top_unknown_scans,
@@ -264,7 +252,7 @@ def parity(
     """Snacker's own build on this run's inputs and start time, diffed with what `site_tree` published.
     A difference is recorded, never a failure, so the shadow site keeps updating while it's investigated."""
     now = datetime.fromisoformat(context.started_at)
-    snackers = parity_module.snackers_tree(site.snacker_scans(scans), snacker_heartbeats(heartbeats), products, now)
+    snackers = parity_module.snackers_tree(scans_module.from_table(scans), heartbeats_module.from_table(heartbeats), products, now)
     return parity_module.report(published, snackers)
 
 

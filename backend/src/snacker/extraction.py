@@ -1,5 +1,10 @@
 """Product extraction with its inputs and output wherever they live: OpenFoodFacts on Hugging
-Face or disk, the Snacker archive and the products table in S3 or on disk."""
+Face or disk, the Snacker archive and the products table in S3 or on disk.
+
+Legacy (#117): only the old extraction Lambda and `snacker extract-products` use it. The graph's
+`openfoodfacts_copy` and `products` assets (`snacker.openfoodfacts`, `snacker.products`) replace
+it; it's deleted at the switchover (#125).
+"""
 
 import http.client
 import os

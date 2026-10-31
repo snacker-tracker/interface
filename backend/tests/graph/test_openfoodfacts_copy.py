@@ -78,7 +78,7 @@ def test_a_forced_run_copies_again(io: Bindings) -> None:
 
 
 def test_a_copy_that_fails_partway_leaves_no_file(io: Bindings, openfoodfacts: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    from snacker.graph import openfoodfacts as source_module
+    from snacker import openfoodfacts as source_module
 
     class Broken:
         def __init__(self, path: Path) -> None:

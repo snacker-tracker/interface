@@ -6,6 +6,10 @@
         [--cache <cache dir | s3://…>]
     snacker check --out <output dir>
     snacker schema --out <schema file>
+
+`extract-products` and `build` are legacy (#117): they run the legacy path (`snacker.extraction`,
+`snacker.build`, `snacker.event_cache`), and go with it at the switchover (#125). Run the graph with
+`stepdag run snacker.graph.definitions:defs` instead.
 """
 
 import argparse

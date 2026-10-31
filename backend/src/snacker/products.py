@@ -10,14 +10,18 @@ is an unknown product and its details are null, apart from a name the archive ma
 """
 
 import re
+import tempfile
 from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, get_args
+from urllib.parse import unquote, urlparse
 
 import polars as pl
 
 from snacker.contract import GreenScore, NameSource, NovaGroup, NutriScore, Product, ProductFile
+from snacker.scans import SCANS_SCHEMA
+from snacker.storage import S3Bucket, fetch
 
 PRODUCTS_SCHEMA = pl.Schema({
     "code": pl.String(),
@@ -245,3 +249,51 @@ def product_files(products_parquet: Path) -> dict[str, ProductFile]:
         for row in products.iter_rows(named=True)
     }
 
+
+
+# The products table: the products parquet, extracted from a pinned copy of OpenFoodFacts's
+# food parquet (`snacker.openfoodfacts`), plus the copy's revision the rows came from. It's
+# stored as a Delta table, which keeps Enums as text; `write_parquet` restores them.
+
+PRODUCTS_TABLE_SCHEMA = pl.Schema({
+    **PRODUCTS_SCHEMA,
+    "revision": pl.String(),  # the copy's revision the row came from
+})
+
+
+def is_current(table: pl.LazyFrame, scans: pl.LazyFrame, revision: str) -> bool:
+    """Whether the products `table` came from this `revision` and already describes every scanned code."""
+    stale = table.filter(pl.col("revision") != revision).select("code").head(1).collect()
+    missing = scans.select("code").unique().join(table.select("code"), on="code", how="anti").head(1).collect()
+    return stale.is_empty() and missing.is_empty()
+
+
+def extract_from_copy(scans: pl.LazyFrame, copy: dict[str, Any], archive: str) -> pl.DataFrame:
+    """One row per distinct scanned code (PRODUCTS_TABLE_SCHEMA), by `extract_products` from the copy
+    `{uri, revision, …}` and the archive CSV at `archive` (a path, or an `s3://` URI, downloaded first)."""
+    codes = scans.select("code").unique().collect()["code"].to_list()
+    if not codes:
+        return PRODUCTS_TABLE_SCHEMA.to_frame()
+    with tempfile.TemporaryDirectory(prefix="archive-") as scratch:
+        snacker_archive = read_archive(fetch(archive, Path(scratch), S3Bucket))
+    products = extract_products(_local_path(copy["uri"]), codes, archive=snacker_archive)
+    return products.with_columns(revision=pl.lit(copy["revision"], pl.String()))
+
+
+def _local_path(uri: str) -> str:
+    """polars reads `s3://` URIs as they are, but a local file by its path, not its `file://` URI."""
+    parsed = urlparse(uri)
+    return unquote(parsed.path) if parsed.scheme == "file" else uri
+
+
+def write_parquet(table: pl.LazyFrame, path: Path) -> Path:
+    """Write the products `table` as the products parquet (PRODUCTS_SCHEMA, its Enums restored), for
+    the functions that read one."""
+    table.select(PRODUCTS_SCHEMA.names()).collect().cast(PRODUCTS_SCHEMA).write_parquet(path)
+    return path
+
+
+def described_from_table(table: pl.LazyFrame) -> pl.DataFrame:
+    """Scans described by `with_products`, from a table that keeps Enums as text, with their types
+    restored."""
+    return table.collect().cast(pl.Schema({**dict(SCANS_SCHEMA.items()), "product": SCANNED_PRODUCT}))
