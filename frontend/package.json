@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:graph": "aws s3 sync --delete s3://snacker-tracker-dev-shadow/data/ ../graph-data/data/ && SNACKER_PUBLIC_DATA=../graph-data vite",
     "build": "npm run contract:check && tsc -b && vite build",
     "lint": "npm run contract:check && oxlint",
     "contract": "node scripts/contract.mjs",

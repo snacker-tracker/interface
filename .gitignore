@@ -2,6 +2,8 @@
 /data/
 /datasets/
 /public-data/
+# The stepdag graph's shadow tree, copied by `npm run dev:graph` (frontend/).
+/graph-data/
 
 # Python
 __pycache__/
