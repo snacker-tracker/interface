@@ -9,7 +9,6 @@ import { CONTRACT_VERSION, type MetaFile } from './contract'
 import { metaDataPath, useJson } from './data'
 import { CodePage } from './pages/CodePage'
 import { IndexPage } from './pages/IndexPage'
-import { PipelinePage } from './pages/PipelinePage'
 import { ScannersPage } from './pages/ScannersPage'
 
 function Layout() {
@@ -57,7 +56,6 @@ const routes = [
       { path: '/', element: <IndexPage /> },
       { path: '/codes/:code', element: <CodePage /> },
       { path: '/scanners', element: <ScannersPage /> },
-      { path: '/pipeline', element: <PipelinePage /> },
     ],
   },
 ]

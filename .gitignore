@@ -2,7 +2,7 @@
 /data/
 /datasets/
 /public-data/
-# What the stepdag graph built and its latest run, copied by `npm run dev:graph` (frontend/).
+# What the stepdag graph published, copied by `npm run dev:graph` (frontend/).
 /graph-data/
 
 # Python
