@@ -33,10 +33,9 @@ jobs:
   backend:
     runs-on: ubuntu-26.04
     environment: ${{ inputs.environment }}
-    # One deploy per environment at a time; a newer one waits rather than cancelling one half done.
-    concurrency:
-      group: deploy-${{ inputs.environment }}-backend
-      cancel-in-progress: false
+    # No concurrency group: one held every newer deploy behind a run awaiting approval. So approve
+    # only the newest run (an older one deploys older code); overlapping applies take turns on the
+    # state lock.
     permissions:
       contents: read
       id-token: write
@@ -61,7 +60,7 @@ jobs:
         working-directory: infra/main
         run: |
           terraform init -input=false
-          terraform apply -input=false -auto-approve -var-file="$ENVIRONMENT.tfvars" -var "image_uri=$IMAGE_URI"
+          terraform apply -input=false -auto-approve -lock-timeout=15m -var-file="$ENVIRONMENT.tfvars" -var "image_uri=$IMAGE_URI"
           {
             echo "build_function=$(terraform output -raw build_function)"
             echo "extract_function=$(terraform output -raw extract_function)"
@@ -92,9 +91,6 @@ jobs:
   frontend:
     runs-on: ubuntu-26.04
     environment: ${{ inputs.environment }}
-    concurrency:
-      group: deploy-${{ inputs.environment }}-frontend
-      cancel-in-progress: false
     permissions:
       contents: read
       id-token: write
