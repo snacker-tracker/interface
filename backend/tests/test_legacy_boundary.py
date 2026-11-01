@@ -1,12 +1,12 @@
-"""The legacy build path (#117) is used only by itself, the CLI's commands for it, and the graph's
-parity asset, so deleting it at the switchover (#125) touches nothing else."""
+"""The legacy build path (#117) is used only by itself and the CLI's commands for it, so deleting it
+(#125) touches nothing else."""
 
 import ast
 from pathlib import Path
 
 SRC = Path(__file__).parent.parent / "src"
 LEGACY = {"snacker.build", "snacker.event_cache", "snacker.extraction", "snacker.handlers"}
-MAY_IMPORT_LEGACY = LEGACY | {"snacker.cli", "snacker.graph.parity"}
+MAY_IMPORT_LEGACY = LEGACY | {"snacker.cli"}
 
 
 def module_name(path: Path) -> str:
@@ -25,7 +25,7 @@ def imported_modules(path: Path) -> set[str]:
     return names
 
 
-def test_only_the_legacy_path_cli_and_parity_import_the_legacy_modules() -> None:
+def test_only_the_legacy_path_and_cli_import_the_legacy_modules() -> None:
     importers = {
         module_name(path): sorted(imported_modules(path) & LEGACY)
         for path in SRC.rglob("*.py")

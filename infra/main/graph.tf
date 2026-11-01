@@ -3,8 +3,7 @@
 # snacker.graph.definitions:defs`, from backend/): nothing here names an asset. The functions run
 # the one image, as the legacy build's do; the admin configuration creates their roles.
 #
-# Until the switchover it publishes to the environment's shadow bucket, and its parity asset diffs
-# that with the legacy build's write_data on the same inputs (#122, #123).
+# It publishes to the environment's site bucket, or its shadow bucket (graph_publishes_to).
 
 locals {
   graph_manifest        = jsondecode(file("${path.module}/graph.manifest.json"))

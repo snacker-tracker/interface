@@ -17,7 +17,6 @@ from snacker import heartbeats as heartbeats_module
 from snacker import products as products_module
 from snacker import scans as scans_module
 from snacker import sections
-from snacker.graph import parity as parity_module
 from snacker.graph.checks import every_scan_has_a_code_and_a_time, keeps_the_contract
 from snacker.graph.delta_io import DeltaIO, Merge
 from snacker.graph.site_io import SiteIO
@@ -244,18 +243,6 @@ def site_tree(
     ])
 
 
-# Runs Snacker's whole build, then reads every published file (about 3,500) back.
-@asset(deps=["site_tree", "scans", "heartbeats", "products"], io_manager="run_json", memory=2048, timeout=600)
-def parity(
-    published: dict[str, bytes], scans: pl.LazyFrame, heartbeats: pl.LazyFrame, products: pl.LazyFrame, *, context: RunContext
-) -> dict[str, Any]:
-    """Snacker's own build on this run's inputs and start time, diffed with what `site_tree` published.
-    A difference is recorded, never a failure, so the shadow site keeps updating while it's investigated."""
-    now = datetime.fromisoformat(context.started_at)
-    snackers = parity_module.snackers_tree(scans_module.from_table(scans), heartbeats_module.from_table(heartbeats), products, now)
-    return parity_module.report(published, snackers)
-
-
 defs = Definitions(
     [
         scans,
@@ -274,7 +261,6 @@ defs = Definitions(
         heartbeats,
         scanners,
         site_tree,
-        parity,
     ],
     environments={"local": bindings, "lambda": bindings},
 )

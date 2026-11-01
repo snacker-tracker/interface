@@ -190,17 +190,6 @@
         "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
         "STEPDAG_ASSET": "site_tree"
       }
-    },
-    "parity": {
-      "handler": "stepdag.aws.asset_handler",
-      "memory": 2048,
-      "timeout": 600,
-      "ephemeral_storage": 512,
-      "role": "default",
-      "environment": {
-        "STEPDAG_DEFINITIONS": "snacker.graph.definitions:defs",
-        "STEPDAG_ASSET": "parity"
-      }
     }
   },
   "state_machine": {
@@ -661,29 +650,6 @@
         "Resource": "arn:aws:states:::lambda:invoke",
         "Parameters": {
           "FunctionName": "${function_prefix}site_tree",
-          "Payload.$": "$"
-        },
-        "OutputPath": "$.Payload",
-        "Retry": [
-          {
-            "ErrorEquals": [
-              "Lambda.ServiceException",
-              "Lambda.AWSLambdaException",
-              "Lambda.SdkClientException",
-              "Lambda.TooManyRequestsException"
-            ],
-            "IntervalSeconds": 2,
-            "MaxAttempts": 2,
-            "BackoffRate": 2.0
-          }
-        ],
-        "Next": "level 6: parity"
-      },
-      "level 6: parity": {
-        "Type": "Task",
-        "Resource": "arn:aws:states:::lambda:invoke",
-        "Parameters": {
-          "FunctionName": "${function_prefix}parity",
           "Payload.$": "$"
         },
         "OutputPath": "$.Payload",

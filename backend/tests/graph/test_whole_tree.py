@@ -1,4 +1,4 @@
-"""The whole site tree: byte-identical to Snacker's build, checked against the contract, and diffed by `parity`."""
+"""The whole site tree: byte-identical to Snacker's build, and checked against the contract."""
 
 import json
 from datetime import UTC, datetime
@@ -10,7 +10,6 @@ import pytest
 from snacker import sections as site_module
 from snacker.graph.definitions import defs
 from stepdag import CheckFailed, run
-from stepdag.assets import Bindings
 from graph.food_parquet import food, write_archive, write_food
 from graph.raw_events import backfill_scan, heartbeat_flat, heartbeat_v2, live_scan, with_api_key, write_heartbeats, write_raw
 from graph.snacker_oracle import files_under, snacker_tree
@@ -51,12 +50,6 @@ def theirs(raw: Path, openfoodfacts: Path, archive: Path) -> dict[str, bytes]:
     return snacker_tree(raw, openfoodfacts, archive, now=NOW, office_time_zones=ZONES)
 
 
-def report(io: Bindings, result: Any) -> dict[str, Any]:
-    pointer = result.pointers["parity"]
-    value: dict[str, Any] = io[pointer.io_manager].load(pointer)
-    return value
-
-
 def test_the_whole_tree_is_byte_identical_to_snackers_build(site: Path, raw: Path, openfoodfacts: Path, archive: Path) -> None:
     run(defs, defs.bindings("local"), started_at=NOW)
 
@@ -84,29 +77,3 @@ def test_a_tree_that_breaks_the_contract_fails_at_site_tree_and_publishes_nothin
 
     assert not site.exists()
 
-
-def test_parity_reports_no_differences_for_an_identical_tree(site: Path, raw: Path) -> None:
-    io = defs.bindings("local")
-
-    result = run(defs, io, started_at=NOW)
-
-    assert report(io, result) == {"identical": True, "only_ours": [], "only_snackers": [], "differing": []}
-
-
-def test_parity_names_a_changed_value_and_the_run_still_succeeds(site: Path, raw: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    write_tree = site_module.write_tree
-
-    def with_a_wrong_location(tree: dict[str, Any], root: Path) -> None:
-        # Change one value after the contract check passed, as a publishing bug would.
-        tree = {**tree, "locations.json": {"locations": [{"id": "all"}, {"id": "nowhere"}]}}
-        write_tree(tree, root)
-
-    io = defs.bindings("local")
-    monkeypatch.setattr(site_module, "write_tree", with_a_wrong_location)
-
-    result = run(defs, io, started_at=NOW)
-
-    parity = report(io, result)
-    assert parity["identical"] is False
-    assert [d["path"] for d in parity["differing"]] == ["locations.json"]
-    assert parity["differing"][0]["at"].startswith("$.locations[1]")

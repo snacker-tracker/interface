@@ -37,7 +37,7 @@ class SiteIO:
         return Pointer(asset, self.name, f"{self.location.rstrip('/')}/data/", {"generated_at": generated_at, "run_id": context.run_id})
 
     def load(self, pointer: Pointer) -> dict[str, bytes]:
-        """Every published file's bytes, by path under `data/`: what parity compares."""
+        """Every published file's bytes, by path under `data/`."""
         bucket = self._bucket()
         return {key.removeprefix("data/"): bucket.get(key) for key in bucket.etags("data/")}
 

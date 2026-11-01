@@ -9,7 +9,7 @@ Each section is built from `scanned`, every scan described with its office time 
 product (`snacker.products.with_products`), as a table that keeps Enums as text.
 
 The legacy build (`snacker.build.write_data`) builds the same tree in one pass; it's kept
-unchanged, as the parity reference, until the switchover (#117).
+unchanged, as the oracle tests' reference, until the old path is deleted (#125).
 """
 
 import tempfile

@@ -1,8 +1,8 @@
 """The build: normalised scans and heartbeats in, the static JSON tree read by the frontend out.
 
-Legacy (#117): the old build Lambda runs it, and the graph's `parity` asset uses `write_data` as
-its reference, so it's kept unchanged. `snacker.sections` and the graph (`snacker.graph`) replace
-it; it's deleted at the switchover (#125).
+Legacy (#117): the old build Lambda runs it, and the oracle tests use `write_data` as their
+reference, so it's kept unchanged. `snacker.sections` and the graph (`snacker.graph`) replace it;
+it's deleted with the old path (#125).
 """
 
 import shutil
