@@ -115,6 +115,20 @@ resource "aws_s3_bucket_lifecycle_configuration" "working" {
     }
   }
 
+  # run_json keeps a materialization per asset per run (about 400 MB a day in prod, almost all
+  # code_pages). Steps load their parents' by pointer within a run, and only a partial run re-emits
+  # an older one, so a week is plenty.
+  rule {
+    id     = "expire-run-json-materializations"
+    status = "Enabled"
+    filter {
+      prefix = "tables/json/runs/"
+    }
+    expiration {
+      days = 7
+    }
+  }
+
   rule {
     id     = "abort-incomplete-uploads"
     status = "Enabled"
