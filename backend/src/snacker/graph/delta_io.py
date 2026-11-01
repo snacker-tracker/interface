@@ -11,6 +11,12 @@ from deltalake.exceptions import TableNotFoundError
 from stepdag import Pointer, RunContext
 
 
+CHECKPOINT_EVERY = 10
+"""How many commits a table gets between checkpoints, so opening one reads at most this many commit
+files after its newest checkpoint. Tables written every run (`scanned`, `heartbeats`) open on
+about a dozen steps a run."""
+
+
 @dataclass(frozen=True)
 class Merge:
     """Upsert the asset's returned rows into its table, matching on `keys`.
@@ -81,6 +87,8 @@ class DeltaIO:
             )
         table = self._table(asset)
         assert table is not None
+        if table.version() % CHECKPOINT_EVERY == 0:
+            table.create_checkpoint()
         return self._pointer(asset, table.version(), context.run_id)
 
     def load(self, pointer: Pointer) -> pl.LazyFrame:

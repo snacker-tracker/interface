@@ -98,3 +98,29 @@ def test_a_conditional_merge_updates_a_matched_row_only_when_the_condition_holds
     merged = io.store(pl.DataFrame({"id": ["a", "b", "c"], "n": [9, 1, 3]}), "t", context("r2"))
 
     assert io.load(merged).collect().sort("id").to_dicts() == [{"id": "a", "n": 9}, {"id": "b", "n": 5}, {"id": "c", "n": 3}]
+
+
+def commits_after_the_last_checkpoint(table: Path) -> int:
+    """How many commit files opening the table reads after its newest checkpoint (Delta's log format)."""
+    log = table / "_delta_log"
+    checkpoints = [int(p.name.split(".")[0]) for p in log.glob("*.checkpoint.parquet")]
+    newest = max(checkpoints, default=-1)
+    return sum(1 for p in log.glob("*.json") if int(p.stem) > newest)
+
+
+def test_a_table_written_every_run_is_checkpointed_and_old_pointers_still_load(tmp_path: Path) -> None:
+    from snacker.graph.delta_io import CHECKPOINT_EVERY
+
+    io = DeltaIO(str(tmp_path), merges={"merged": Merge(keys=["id"])})
+    first = {
+        "overwritten": io.store(pl.DataFrame({"id": ["r0"]}), "overwritten", context("r0")),
+        "merged": io.store(pl.DataFrame({"id": ["r0"]}), "merged", context("r0")),
+    }
+    for n in range(1, 3 * CHECKPOINT_EVERY):
+        for name in first:
+            io.store(pl.DataFrame({"id": [f"r{n}"]}), name, context(f"r{n}"))
+
+    for name, pointer in first.items():
+        assert commits_after_the_last_checkpoint(tmp_path / name) < CHECKPOINT_EVERY
+        assert io.load(pointer).collect()["id"].to_list() == ["r0"]
+    assert io.load(io.latest("merged")).collect().height == 3 * CHECKPOINT_EVERY  # type: ignore[arg-type]
