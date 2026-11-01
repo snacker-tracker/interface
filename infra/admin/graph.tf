@@ -1,5 +1,5 @@
-# The stepdag graph (#117, #121): the roles its functions and state machine run as, and the
-# shadow site it publishes to until the switchover (graph_publishes_to: the real site after it).
+# The stepdag graph (#117, #121): the roles its functions and state machine run as. It publishes
+# the environment's site.
 # The main configuration creates the graph from the manifest (`infra/main/graph.manifest.json`)
 # and only passes these roles.
 
@@ -7,44 +7,10 @@ locals {
   graph_manifest      = jsondecode(file("${path.module}/../main/graph.manifest.json"))
   graph_functions     = "${local.function_arn}:${local.prefix}-graph-*"
   graph_state_machine = "arn:aws:states:${var.region}:${local.account}:stateMachine:${local.prefix}-graph"
-  shadow_bucket       = "${local.prefix}-shadow"
-  shadow_bucket_arn   = "arn:aws:s3:::${local.shadow_bucket}"
-  # Where the graph publishes its data/ tree: the shadow bucket until the switchover (#124).
-  graph_site_arn   = var.graph_publishes_to == "real" ? local.site_bucket_arn : local.shadow_bucket_arn
-  graph_raw_prefix = "raw/data/scanner/"
-  tables_prefix    = "tables/"
-  files_prefix     = "files/"
-}
-
-# --- The shadow site: the graph's data/ tree, beside the legacy build's real one ---
-
-resource "aws_s3_bucket" "shadow" {
-  bucket = local.shadow_bucket
-}
-
-resource "aws_s3_bucket_public_access_block" "shadow" {
-  bucket                  = aws_s3_bucket.shadow.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_ownership_controls" "shadow" {
-  bucket = aws_s3_bucket.shadow.id
-  rule {
-    object_ownership = "BucketOwnerEnforced"
-  }
-}
-
-# SSE-S3, as the site bucket: publishing compares each file's MD5 with the object's ETag (ADR 0004).
-resource "aws_s3_bucket_server_side_encryption_configuration" "shadow" {
-  bucket = aws_s3_bucket.shadow.id
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
+  graph_site_arn      = local.site_bucket_arn
+  graph_raw_prefix    = "raw/data/scanner/"
+  tables_prefix       = "tables/"
+  files_prefix        = "files/"
 }
 
 # --- The functions: one role per manifest role, snacker-tracker-<env>-graph-<role> ---

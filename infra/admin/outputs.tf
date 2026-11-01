@@ -1,11 +1,3 @@
-output "build_role_arn" {
-  value = aws_iam_role.build.arn
-}
-
-output "extraction_role_arn" {
-  value = aws_iam_role.extraction.arn
-}
-
 output "scheduler_role_arn" {
   value = aws_iam_role.scheduler.arn
 }
@@ -32,6 +24,3 @@ output "graph_state_machine_role_arn" {
   value = aws_iam_role.graph_state_machine.arn
 }
 
-output "shadow_bucket" {
-  value = aws_s3_bucket.shadow.bucket
-}
