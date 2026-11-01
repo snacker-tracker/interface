@@ -72,6 +72,23 @@ jobs:
             echo "- https://$(terraform output -raw distribution_domain)"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Tags the image `<environment>-<UTC time>`, so the repository's lifecycle rules (aws-infra's
+      # ecr.tf) keep it while it's among this environment's latest deploys. The same manifest under
+      # a new tag, checked against the digest: tags are immutable, so this never moves one.
+      - name: Tag the deployed image
+        run: |
+          repository="${IMAGE_URI#*/}"
+          repository="${repository%@*}"
+          digest="${IMAGE_URI#*@}"
+          image() {
+            aws ecr batch-get-image --repository-name "$repository" --image-ids imageDigest="$digest" \
+              --query "images[0].$1" --output text
+          }
+          aws ecr put-image --repository-name "$repository" --image-digest "$digest" \
+            --image-tag "$ENVIRONMENT-$(date -u +%Y%m%dT%H%M%SZ)" \
+            --image-manifest "$(image imageManifest)" --image-manifest-media-type "$(image imageManifestMediaType)" \
+            --query image.imageId.imageTag --output text
+
       # A build on the new image, so the data is built to its contract version. Where the stepdag
       # graph publishes the site instead (#124), its next scheduled run does that.
       - name: Build the data
