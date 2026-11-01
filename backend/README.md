@@ -146,8 +146,12 @@ emulator against real S3 (it needs Docker). Give the extraction function about 3
 its peak is 1.4 GB, and Lambda's CPU grows with memory.
 
 `scripts/push-image.sh` pushes the image for the current commit to the shared ECR repository,
-tagged with the commit SHA, and prints its URI by digest. That URI is what the main Terraform
-configuration takes as `image_uri`. A commit that already has an image reuses it.
+tagged with the commit SHA (and in CI with its version, `MAJOR.MINOR.<run number>` from
+`pipeline.yml`), and prints its URI by digest. That URI is what the main Terraform configuration
+takes as `image_uri`. A commit that already has an image reuses it. The image's labels name its
+commit, version, build time and, in CI, the run that built it (`docker inspect`, or the image's
+config in ECR). Each deploy adds an
+`<environment>-<UTC time>` tag, which the repository's lifecycle rules keep (ADR 0006).
 
 ## Deploying
 

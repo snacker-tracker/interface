@@ -18,6 +18,9 @@ env:
   # The dev CI role (infra/admin). It pushes the image in the dev environment; pull requests
   # assume it only to plan, without the state lock.
   DEV_CI_ROLE: arn:aws:iam::132218943709:role/github-actions-interface-dev
+  # The image's version is MAJOR.MINOR.<this workflow's run number>; bump these by hand.
+  IMAGE_VERSION_MAJOR: 1
+  IMAGE_VERSION_MINOR: 0
 
 jobs:
   backend:
@@ -141,10 +144,12 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
       - name: Push the image
         id: image
+        env:
+          IMAGE_VERSION: ${{ env.IMAGE_VERSION_MAJOR }}.${{ env.IMAGE_VERSION_MINOR }}.${{ github.run_number }}
         run: |
           image_uri="$(backend/scripts/push-image.sh)"
           echo "image_uri=$image_uri" >> "$GITHUB_OUTPUT"
-          echo "Image for ${GITHUB_SHA}: \`$image_uri\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Image $IMAGE_VERSION for ${GITHUB_SHA}: \`$image_uri\`" >> "$GITHUB_STEP_SUMMARY"
 
   dev:
     needs: [image, frontend]
