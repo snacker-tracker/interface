@@ -74,7 +74,9 @@ def materialize(definitions: Definitions, name: str, pointers: Mapping[str, Poin
     a = definitions[name]
     io_manager = io_managers[a.io_manager]
     context = _context(definitions, name, run)
-    latest = io_manager.latest(name)
+    # Only asked for when it's needed: an asset that's selected, takes no `previous` and returns
+    # a value never reads it.
+    latest = io_manager.latest(name) if name not in run.selected or a.wants_previous else None
     if name not in run.selected:
         if latest is None:
             raise StepFailed(f"{name} isn't selected and has no materialization to re-emit")
@@ -89,6 +91,8 @@ def materialize(definitions: Definitions, name: str, pointers: Mapping[str, Poin
     if value is UNCHANGED:
         if context.force:
             raise StepFailed(f"{name} returned UNCHANGED in a forced run, which skips nothing")
+        if not a.wants_previous:
+            latest = io_manager.latest(name)
         if latest is None:
             raise StepFailed(f"{name} returned UNCHANGED but has no materialization to re-emit")
         return Outcome(latest, computed=False)

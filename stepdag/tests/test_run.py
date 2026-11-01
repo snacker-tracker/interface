@@ -377,3 +377,49 @@ def test_a_run_can_be_given_its_start_time() -> None:
 
     assert seen == ["2026-10-19T12:00:00+00:00"]
     assert result.run_id.startswith("local-20261019T120000-")
+
+
+class AskedForLatest(RunJson):
+    """`run_json`, recording each asset `latest()` is asked about."""
+
+    def __init__(self) -> None:
+        super().__init__(MemoryStore())
+        self.asked: list[str] = []
+
+    def latest(self, asset: str, partition: str | None = None) -> Any:
+        self.asked.append(asset)
+        return super().latest(asset, partition)
+
+
+def test_an_asset_that_takes_no_previous_and_returns_a_value_never_asks_for_its_latest() -> None:
+    @asset(io_manager="run_json")
+    def a() -> int:
+        return 1
+
+    @asset(deps=["a"], io_manager="run_json")
+    def b(n: int) -> int:
+        return n + 1
+
+    io = AskedForLatest()
+    defs = Definitions([a, b])
+    run(defs, {"run_json": io})
+    run(defs, {"run_json": io})
+
+    assert io.asked == []
+
+
+def test_an_asset_without_previous_that_returns_unchanged_re_emits_its_latest() -> None:
+    from stepdag import UNCHANGED
+
+    @asset(io_manager="run_json")
+    def a(*, context: RunContext) -> Any:
+        return UNCHANGED if context.config.get("skip") else 1
+
+    io = run_json()
+    defs = Definitions([a])
+    first = run(defs, io)
+
+    second = run(defs, io, config={"skip": True})
+
+    assert second.skipped == ["a"]
+    assert second.pointers["a"] == first.pointers["a"]
