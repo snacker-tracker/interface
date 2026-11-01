@@ -77,3 +77,23 @@ def test_a_tree_that_breaks_the_contract_fails_at_site_tree_and_publishes_nothin
 
     assert not site.exists()
 
+
+
+def test_a_tree_whose_sections_disagree_fails_at_site_tree_and_publishes_nothing(
+    site: Path, raw: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    merged = site_module.merged
+
+    def without_one_code_page(bundles: list[site_module.Bundle]) -> dict[str, Any]:
+        tree = merged(bundles)
+        # Not `all`'s, which the contract requires: Japan's index then counts a scan no code page has.
+        del tree["codes/333/by-location/japan.json"]
+        return tree
+
+    monkeypatch.setattr(site_module, "merged", without_one_code_page)
+
+    with pytest.raises(CheckFailed, match=r"site_tree.*index/by-location/japan\.json.*2026-10-18"):
+        run(defs, defs.bindings("local"), started_at=NOW)
+
+    assert not site.exists()
+

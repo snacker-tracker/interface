@@ -1,7 +1,8 @@
 """Blocking checks on the graph's assets: a check returns a failure message, or None to pass."""
 
 import tempfile
-from pathlib import Path
+from collections import Counter
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import polars as pl
@@ -33,3 +34,28 @@ def keeps_the_contract(tree: dict[str, Any], context: RunContext) -> str | None:
         return None
     shown = "; ".join(str(v) for v in violations[:5])
     return f"{len(violations)} contract violations: {shown}"
+
+
+def the_sections_agree(tree: dict[str, Any], context: RunContext) -> str | None:
+    """`site_tree`'s check that sections built apart count the same scans: each index file's daily
+    counts are, date by date, the sum of its location's code pages' (`daily_and_recent` against
+    `code_pages`). The contract only requires `all`'s code pages, so it misses a lost one."""
+    index: dict[str, tuple[str, Counter[str]]] = {}
+    code_pages: dict[str, Counter[str]] = {}
+    for path, content in tree.items():
+        parts = PurePosixPath(path).parts
+        if parts[:2] == ("index", "by-location"):
+            index[content["location"]] = (path, _by_date(content["daily"]))
+        elif parts[0] == "codes" and parts[2:3] == ("by-location",):
+            code_pages.setdefault(content["location"], Counter()).update(_by_date(content["daily"]))
+    problems = []
+    for location, (path, daily) in sorted(index.items()):
+        pages = code_pages.get(location, Counter())
+        for date in sorted(daily.keys() | pages.keys()):
+            if daily[date] != pages[date]:
+                problems.append(f"{path}: {date} counts {daily[date]} scans, its code pages {pages[date]}")
+    return "; ".join(problems[:5]) or None
+
+
+def _by_date(daily: list[Any]) -> Counter[str]:
+    return Counter({day["date"]: day["count"] for day in daily})

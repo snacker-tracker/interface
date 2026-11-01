@@ -17,7 +17,7 @@ from snacker import heartbeats as heartbeats_module
 from snacker import products as products_module
 from snacker import scans as scans_module
 from snacker import sections
-from snacker.graph.checks import every_scan_has_a_code_and_a_time, keeps_the_contract
+from snacker.graph.checks import every_scan_has_a_code_and_a_time, keeps_the_contract, the_sections_agree
 from snacker.graph.delta_io import DeltaIO, Merge
 from snacker.graph.site_io import SiteIO
 from snacker.openfoodfacts import files_at, openfoodfacts_source
@@ -206,7 +206,7 @@ def scanners(heartbeats: pl.LazyFrame, scanned: pl.LazyFrame) -> sections.Bundle
         "scanners",
     ],
     io_manager="site",
-    checks=[keeps_the_contract],
+    checks=[keeps_the_contract, the_sections_agree],
     # Stages the tree twice (the contract check, then publishing) and diff-publishes about 3,500 files.
     memory=2048,
     timeout=600,
