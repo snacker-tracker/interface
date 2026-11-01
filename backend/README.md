@@ -1,170 +1,98 @@
 # snacker (backend)
 
-Build step that turns raw scanner events into the static JSON read by the frontend.
+Turns raw scanner events into the static JSON read by the frontend, as a stepdag graph
+(`snacker.graph.definitions:defs`, #117): raw events into Delta tables, then each section of the
+site, then the whole tree, checked and published. `infra/main` (`graph.tf`) deploys it as one
+Lambda per asset in a Step Functions workflow, run every 30 minutes.
 
-It's mid-move onto stepdag (#117). `snacker.graph` is the same build as a stepdag graph
-(`snacker.graph.definitions:defs`), deployed with the rest of the backend from `infra/main`
-(`graph.tf`) and publishing to a shadow bucket while it proves parity against the build below,
-which still runs the site. `uv run pytest` covers both; `tests/graph/` holds the graph's tests.
-Run the graph locally with `uv run stepdag run snacker.graph.definitions:defs` and the `SCANS_*`
-variables its assets read. After changing an asset, render the manifest that `infra/main` and
-`infra/admin` read:
-
-```sh
-uv run stepdag manifest snacker.graph.definitions:defs > ../infra/main/graph.manifest.json
-```
 See `PRD.md` at the repo root for the data contract. Its shapes are defined in
 `src/snacker/contract.py`; after changing them, rerun `snacker schema` to update the
 committed JSON Schema (a test fails until you do).
 
 ```sh
-uv run snacker extract-products --raw ../data/raw/data/scanner \
-  --food ../data/openfoodfacts__product-database/food.parquet --products ../data/products.parquet \
-  --archive ../data/codes.csv
-uv run snacker build --raw ../data/raw/data/scanner --products ../data/products.parquet --out ../public-data
-uv run snacker check --out ../public-data     # build already does this
+scripts/build-local-data.sh                   # the graph over ../data, into ../public-data/data/
+uv run snacker check --out ../public-data     # the graph already does this
 uv run snacker schema --out ../contract/static-json.schema.json
 uv run pytest
 uv run mypy
 ```
 
-`--archive` is the Snacker archive, the previous Snacker Tracker's product names. It is
-merged only when the products table is written, so an extraction run without it leaves
-archive names out until the next one (`--force` redoes it).
+After changing an asset, render the manifest that `infra/main` and `infra/admin` read:
+
+```sh
+uv run stepdag manifest snacker.graph.definitions:defs > ../infra/main/graph.manifest.json
+```
+
+## Running the graph locally
+
+`scripts/build-local-data.sh` runs `stepdag run snacker.graph.definitions:defs` with the local
+bindings. The assets take their settings from the environment, which the script defaults to
+`../data`:
+
+| Variable | Default | What |
+| --- | --- | --- |
+| `SCANS_RAW` | `../data/raw/data/scanner` | The raw events, or an `s3://` prefix |
+| `SCANS_OPENFOODFACTS` | `../data/openfoodfacts__product-database/food.parquet` | OpenFoodFacts's `food.parquet`, or `hf` |
+| `SCANS_ARCHIVE` | `../data/codes.csv` | The Snacker archive: names for products OpenFoodFacts can't name |
+| `SCANS_TABLES` | `../data/tables` | The Delta tables, and the JSON IO manager's values under `json/` |
+| `SCANS_FILES` | `../data/files` | Where the OpenFoodFacts copy goes |
+| `SCANS_SITE` | `../public-data` | Where `data/` is published, or `s3://<site bucket>` |
+| `SCANS_OFFICE_TIME_ZONES` | `src/snacker/config.py`'s | JSON, for tests |
+
+Extra arguments go to `stepdag run`: `--force` reads every raw file again and rebuilds every
+table, and `--select <asset> --downstream` runs part of the graph. The tables persist, so a later
+run reads only the raw files modified since the newest one it has read, less 15 minutes (ADR
+0011): Firehose names a file for its buffer's start but writes it when the buffer closes. The
+first run copies `food.parquet` (8 GB) into `SCANS_FILES`; later ones copy it again only when
+asked for a download (`--config '{"download": true}'`) and the revision is new.
 
 Office time zones live in `src/snacker/config.py`: a map from location prefix to IANA
-time zone, where the longest prefix wins. A scanned location with no match stops the
-build, so add a line there when a scanner goes into a new office.
+time zone, where the longest prefix wins. A scanned location with no match fails the run at
+`scanned`, so add a line there when a scanner goes into a new office.
 
-`build` checks what it wrote against the whole output contract (PRD.md §7) before
-publishing it: if any file breaks it, the build lists each violation, exits non-zero and
-leaves the previous `data/` in place. The rejected build stays in `<out>/.data-building/`
-for inspection. A build that passes replaces `data/` entirely, so files a build no longer
-writes disappear.
+`site_tree` checks the whole tree against the output contract (PRD.md §7) before publishing it:
+if any file breaks it, the run fails with each violation and the previous `data/` stays as it was.
 
-## Extracting from Hugging Face and S3
+## Publishing to S3
 
-`--food` can be `hf://datasets/openfoodfacts/product-database/food.parquet`, so each extraction
-reads the latest OpenFoodFacts data without a local copy. `--raw`, `--archive` and `--products`
-can each be an `s3://` URI.
+With `SCANS_SITE=s3://<site bucket>`, publishing touches only `data/` (ADR 0004):
 
-```sh
-uv run snacker extract-products --raw s3://snacker-tracker-dev/raw/data/scanner \
-  --food hf://datasets/openfoodfacts/product-database/food.parquet \
-  --products s3://snacker-tracker-dev-working/products.parquet \
-  --archive s3://snacker-tracker-dev-working/snacker-archive.csv
-```
-
-- **The hf:// location is resolved once to its signed CDN URL, and Polars scans that.** Polars'
-  own `hf://` reads send every range request through Hugging Face's resolver, and one scan
-  exceeds its anonymous quota of 3,000 requests per 5 minutes (aws-deployment ticket 01).
-  `HF_TOKEN` is sent if it's set. A run takes about 2 minutes and 1.4 GB.
-- **A table that already covers every scanned code reads nothing from Hugging Face.**
-- **A products table not in S3 yet** is written there, as a first local extraction would be.
-
-## Building from and to S3
-
-`--raw` and `--products` can each be an `s3://` URI, and `--out` can be `s3://<site bucket>`.
-Credentials come from the standard AWS environment or profile.
-
-```sh
-uv run snacker build --raw s3://snacker-tracker-dev/raw/data/scanner \
-  --products s3://snacker-tracker-dev-working/products.parquet --out s3://snacker-tracker-dev-site
-```
-
-- **Inputs are copied to a temporary directory first,** 64 objects at a time. That's 5× faster
-  than globbing over S3 (aws-deployment ticket 01).
-- **The build is checked before anything is published,** as with a local build. A rejected
-  build is staged in a temporary directory, so it's listed but not kept for inspection.
-- **An `s3://` input with nothing under it stops the build.** Building from it would
-  publish an empty site over the real one.
-- **Publishing touches only `data/` in the site bucket** (ADR 0004):
-  - It uploads the files whose MD5 differs from the object's ETag, with
-    `Content-Type: application/json` and `Cache-Control: max-age=60`.
-  - It deletes the `data/` keys the build no longer writes.
-  - It writes `meta.json` last.
-  - It prints every key it uploaded or deleted.
+- It uploads the files whose MD5 differs from the object's ETag, with
+  `Content-Type: application/json` and `Cache-Control: max-age=60`.
+- It deletes the `data/` keys the tree no longer has.
+- It writes `meta.json` last.
 - **The site bucket must use default S3 encryption (SSE-S3), not KMS.** With SSE-KMS an ETag
   isn't the file's MD5, so every file would look changed and be uploaded on every run.
 
-## The event cache
-
-`build` and `extract-products` take `--cache <dir | s3://…>` (ADR 0011). The cache holds two
-Parquet files: every scan, and each scanner's latest heartbeat. Each one records the code
-version that wrote it and a watermark, the newest `LastModified` of any raw file it has read.
-
-- **Later runs read only new raw files.** A run lists from the day folder before the watermark
-  and reads the files modified after the watermark minus 15 minutes. It reads that margin again
-  because Firehose names a file for its buffer's start but writes it when the buffer closes.
-- **A missing cache, or one from another code version, is rebuilt from every raw file.** The
-  CLI's version is the git commit. With uncommitted changes under `src/snacker`, it reads raw in
-  full and leaves the cache alone. In Lambda the version is the image digest, so each deploy
-  rebuilds the cache once.
-- **Only `build` writes the cache.**
-- **Raw files it won't see until the next rebuild:**
-  - files deleted from raw
-  - files written into a day folder older than the one before the watermark, such as a backfill
-
-  Delete the cache to force a rebuild.
-
-```sh
-uv run snacker build --raw s3://snacker-tracker-dev/raw/data/scanner \
-  --products s3://snacker-tracker-dev-working/products.parquet --out ../public-data \
-  --cache ../data/cache
-```
-
 ## The Lambda image
 
-One image runs both functions (`Dockerfile`, Python 3.14 on the AWS Lambda base image). The
-function's handler picks the job:
-
-- `snacker.handlers.build_handler` (the default command) builds and publishes `data/` to the site
-  bucket. If any scanned code isn't in the products table, it then starts the extraction
-  function asynchronously. Those codes are unknown products until a later build reads the new
-  table. With no products table yet, every code is unknown.
-- `snacker.handlers.extract_handler` looks up the scanned codes in OpenFoodFacts and writes the
-  products table, as `extract-products` does.
-
-Settings come from environment variables:
-
-| Variable | Example |
-| --- | --- |
-| `SNACKER_RAW` | `s3://snacker-tracker-dev/raw/data/scanner` |
-| `SNACKER_PRODUCTS` | `s3://snacker-tracker-dev-working/products.parquet` |
-| `SNACKER_ARCHIVE` | `s3://snacker-tracker-dev-working/snacker-archive.csv` |
-| `SNACKER_SITE` | `s3://snacker-tracker-dev-site` |
-| `SNACKER_EXTRACT_FUNCTION` | `snacker-tracker-dev-extract` |
-| `SNACKER_FOOD` (optional) | `hf://datasets/openfoodfacts/product-database/food.parquet`, the default |
-| `SNACKER_CACHE` (optional) | `s3://snacker-tracker-dev-working/cache` |
-| `SNACKER_CODE_VERSION` (optional) | `sha256:…`, the image digest |
-
-With `SNACKER_CACHE` and `SNACKER_CODE_VERSION` set, the build reads raw events through the
-event cache (below), and the extraction function reads the scans cache without writing it.
-
-`scripts/run-image-locally.sh` builds the image and runs both handlers in the Lambda runtime
-emulator against real S3 (it needs Docker). Give the extraction function about 3 GB of memory:
-its peak is 1.4 GB, and Lambda's CPU grows with memory.
+One image runs every function (`Dockerfile`, Python 3.14 on the AWS Lambda base image):
+`stepdag.aws.plan_handler` plans a run, and `stepdag.aws.asset_handler` runs one asset's step,
+named by `STEPDAG_ASSET`. Terraform sets each function's handler, sizes and environment from
+the manifest, and the `SCANS_*` settings above from `graph.tf`.
 
 `scripts/push-image.sh` pushes the image for the current commit to the shared ECR repository,
 tagged with the short commit SHA (and in CI with its version, `MAJOR.MINOR.<run number>` from
 `pipeline.yml`), and prints its URI by digest. That URI is what the main Terraform configuration
 takes as `image_uri`. A commit that already has an image reuses it. The image's labels name its
 commit, version, build time and, in CI, the run that built it (`docker inspect`, or the image's
-config in ECR). Each deploy adds an
-`<environment>-<UTC time>` tag, which the repository's lifecycle rules keep (ADR 0006).
+config in ECR). Each deploy adds an `<environment>-<UTC time>` tag, which the repository's
+lifecycle rules keep (ADR 0006).
 
 ## Deploying
 
 `.github/workflows/pipeline.yml` runs on every push to `master`:
 
-1. Backend tests and mypy, frontend lint and build. A failure stops everything before it starts.
+1. Backend and stepdag tests and mypy, frontend lint and build. A failure stops everything before
+   it starts.
 2. `image`: `scripts/push-image.sh`, once per commit. The job summary records the digest.
 3. `dev`, then `prod` once a reviewer approves the `prod` environment. Both run
    `.github/workflows/deploy.yml` with the same digest and frontend build:
-   1. `terraform apply` of `infra/main` in the environment's workspace, which points both
-      functions at the digest.
-   2. One run of the build function, so `data/` matches the new contract version.
-   3. `frontend/scripts/sync-site.sh`, which uploads `dist/` outside `data/`.
+   1. `terraform apply` of `infra/main` in the environment's workspace, which points every
+      function at the digest, then tags the image as deployed there.
+   2. `frontend/scripts/sync-site.sh`, which uploads `dist/` outside `data/`.
+
+   The graph's next scheduled run publishes `data/` on the new image.
 
 A pull request runs the same checks and puts a dev `terraform plan`, against the image dev runs
 now, in its job summary. The plan takes no state lock. Only the dev CI role trusts pull requests.

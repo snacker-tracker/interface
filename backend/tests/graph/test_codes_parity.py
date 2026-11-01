@@ -1,6 +1,7 @@
-"""Code pages and product files, compared byte for byte with Snacker's own build on the same inputs and `now`."""
+"""Code pages and product files: the values Snacker's legacy build gave them on the same inputs and `now`."""
 
 import json
+from typing import Any
 from pathlib import Path
 
 import pytest
@@ -9,8 +10,8 @@ from snacker.graph.definitions import defs
 from stepdag import run
 from graph.food_parquet import food, write_archive, write_food
 from graph.raw_events import backfill_scan, live_scan, write_raw
-from graph.snacker_oracle import differences, files_under, snacker_tree
-from graph.test_site_parity import NOW, ZONES, site
+from graph.published import files_under
+from graph.test_site_parity import NOW, site
 
 __all__ = ["site"]
 
@@ -41,22 +42,38 @@ def inputs(openfoodfacts: Path, archive: Path) -> tuple[Path, Path]:
     return openfoodfacts, archive
 
 
-def code_files(tree: dict[str, bytes]) -> dict[str, bytes]:
-    return {path: data for path, data in tree.items() if path.startswith("codes/")}
+def page(site: Path, code: str, location: str) -> dict[str, Any]:
+    return dict(json.loads((site / "codes" / code / "by-location" / f"{location}.json").read_text()))
 
 
-def test_every_code_page_and_product_file_matches_snackers_build(site: Path, raw: Path, inputs: tuple[Path, Path]) -> None:
+def test_every_code_page_and_product_file_has_what_snackers_build_wrote(site: Path, raw: Path, inputs: tuple[Path, Path]) -> None:
     run(defs, defs.bindings("local"), started_at=NOW)
 
-    ours = files_under(site)
-    theirs = snacker_tree(raw, *inputs, now=NOW, office_time_zones=ZONES)
-
-    assert set(code_files(ours)) == set(code_files(theirs))
-    assert "codes/https:%2F%2Fqrco.de%2FbbAote/product.json" in ours
-    assert "codes/a%20%22quoted%22%20code/by-location/japan:tokyo.json" in ours
-    assert json.loads(ours["codes/999/product.json"])["known"] is False
-    assert json.loads(ours["codes/222/product.json"])["product"]["name_source"] == "snacker-archive"
-    assert differences(ours, theirs) == []
+    # Expected values from Snacker's legacy build on these inputs, before it was deleted (#125).
+    bangkok = ["all", "thailand", "thailand:bangkok", "thailand:bangkok:main-kitchen"]
+    tokyo = ["all", "japan", "japan:tokyo", "japan:tokyo:lobby"]
+    scanned_at = {
+        "111": ["all", "thailand", "thailand:bangkok", "thailand:bangkok:rooftop"],
+        "222": bangkok,
+        "333": tokyo,
+        "999": bangkok,
+        "a%20%22quoted%22%20code": tokyo,
+        "https:%2F%2Fqrco.de%2FbbAote": sorted({*bangkok, *tokyo}),
+    }
+    assert sorted(path for path in files_under(site) if path.startswith("codes/")) == sorted([
+        *(f"codes/{code}/product.json" for code in scanned_at),
+        *(f"codes/{code}/by-location/{location}.json" for code, where in scanned_at.items() for location in where),
+    ])
+    one = json.loads((site / "codes/111/product.json").read_text())
+    assert (one["known"], one["product"]["name"], one["product"]["brands"], one["product"]["nutri_score"]) == (True, "One one one", "Acme", "B")
+    assert json.loads((site / "codes/999/product.json").read_text())["known"] is False
+    assert json.loads((site / "codes/222/product.json").read_text())["product"]["name_source"] == "snacker-archive"
+    assert page(site, "111", "all")["daily"] == [{"date": "2019-03-01", "count": 1}, {"date": "2026-10-18", "count": 1}]
+    qr = page(site, "https:%2F%2Fqrco.de%2FbbAote", "all")
+    # One scan at 08:00 UTC in Bangkok (15:00 there), one at 07:00 UTC in Tokyo (16:00 there).
+    assert (qr["daily"], [h["hour"] for h in qr["hourly"] if h["count"]]) == ([{"date": "2026-10-18", "count": 2}], [15, 16])
+    quoted = page(site, "a%20%22quoted%22%20code", "japan:tokyo")
+    assert (quoted["daily"], [h["hour"] for h in quoted["hourly"] if h["count"]]) == ([{"date": "2026-10-19", "count": 1}], [0])
 
 
 def test_a_code_page_is_written_only_for_locations_where_the_code_was_scanned(site: Path, raw: Path, inputs: tuple[Path, Path]) -> None:

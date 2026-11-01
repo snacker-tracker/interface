@@ -8,8 +8,8 @@ section order, which keeps `IndexFile`'s key order.
 Each section is built from `scanned`, every scan described with its office time zone and scanned
 product (`snacker.products.with_products`), as a table that keeps Enums as text.
 
-The legacy build (`snacker.build.write_data`) builds the same tree in one pass; it's kept
-unchanged, as the oracle tests' reference, until the old path is deleted (#125).
+Sections replaced the legacy build's single pass (deleted in #125), whose output on the tests'
+inputs is still what the tests expect.
 """
 
 import tempfile

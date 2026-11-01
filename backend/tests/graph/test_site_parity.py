@@ -1,4 +1,4 @@
-"""The published site tree, compared byte for byte with Snacker's own build on the same inputs and `now`."""
+"""The published site's meta, locations and index files: the values Snacker's legacy build gave them on the same inputs and `now`."""
 
 import json
 from datetime import UTC, datetime
@@ -9,10 +9,8 @@ import pytest
 from snacker.graph.definitions import defs
 from stepdag import run
 from stepdag.manifest import render
-from stepdag.assets import Bindings
 from graph.food_parquet import food, write_archive, write_food
 from graph.raw_events import backfill_scan, live_scan, write_raw
-from graph.snacker_oracle import differences, files_under, snacker_tree
 
 NOW = datetime(2026, 10, 19, 12, 0, tzinfo=UTC)
 ZONES = {"thailand": "Asia/Bangkok", "japan": "Asia/Tokyo"}
@@ -76,27 +74,59 @@ def inputs(openfoodfacts: Path, archive: Path) -> tuple[Path, Path]:
     return openfoodfacts, archive
 
 
-def test_locations_and_meta_match_snackers_build(site: Path, raw: Path, inputs: tuple[Path, Path]) -> None:
-    io: Bindings = defs.bindings("local")
-    run(defs, io, started_at=NOW)
-
-    ours = files_under(site)
-    theirs = snacker_tree(raw, *inputs, now=NOW, office_time_zones=ZONES)
-
-    assert {"meta.json", "locations.json"} <= set(ours)
-    assert differences(ours, theirs) == []
+# Expected values from Snacker's legacy build on these inputs, before it was deleted (#125).
 
 
-def test_every_locations_index_matches_snackers_build(site: Path, raw: Path, inputs: tuple[Path, Path]) -> None:
+def test_locations_and_meta_are_what_snackers_build_wrote(site: Path, raw: Path, inputs: tuple[Path, Path]) -> None:
     run(defs, defs.bindings("local"), started_at=NOW)
 
-    ours = files_under(site)
-    theirs = snacker_tree(raw, *inputs, now=NOW, office_time_zones=ZONES)
+    assert json.loads((site / "meta.json").read_text()) == {"generated_at": "2026-10-19T12:00:00Z", "contract_version": 4}
+    assert [location["id"] for location in json.loads((site / "locations.json").read_text())["locations"]] == [
+        "all", "japan", "japan:tokyo", "japan:tokyo:lobby", "thailand", "thailand:bangkok", "thailand:bangkok:main-kitchen", "thailand:bangkok:rooftop",
+    ]
 
-    indexes = {path for path in theirs if path.startswith("index/")}
-    assert len(indexes) > 4  # all, both countries, cities and offices
-    assert indexes <= set(ours)
-    assert differences(ours, theirs) == []
+
+def top(site: Path, location: str, section: str) -> dict[str, list[tuple[str, int]]]:
+    """Each period's (code, count) rows in a location's index file."""
+    index = json.loads((site / "index" / "by-location" / f"{location}.json").read_text())
+    return {period: [(row["product"]["code"], row["count"]) for row in rows] for period, rows in index[section].items()}
+
+
+def test_each_periods_top_scans_count_the_scans_snackers_build_counted(site: Path, raw: Path, inputs: tuple[Path, Path]) -> None:
+    run(defs, defs.bindings("local"), started_at=NOW)
+
+    assert len(list((site / "index" / "by-location").iterdir())) == 8  # all, both countries, cities and offices
+    assert top(site, "all", "top_scans") == {
+        "today": [('666', 2), ('unknown-1', 1), ('444', 1), ('555', 1)],
+        "this-work-week": [('666', 2), ('unknown-1', 1), ('444', 1), ('555', 1)],
+        "last-7-days": [('666', 2), ('unknown-1', 2), ('444', 2), ('555', 2), ('222', 1), ('333', 1), ('111', 1), ('999', 1)],
+        "this-month": [('666', 2), ('unknown-1', 2), ('444', 2), ('555', 2), ('222', 1), ('333', 1), ('111', 1), ('999', 1), ('unknown-2', 1), ('888', 1)],
+        "last-30-days": [('666', 2), ('unknown-1', 2), ('444', 2), ('555', 2), ('999', 2), ('888', 2), ('222', 1), ('333', 1), ('111', 1), ('unknown-2', 1)],
+        "this-year": [('666', 2), ('unknown-1', 2), ('444', 2), ('555', 2), ('111', 2), ('999', 2), ('888', 2), ('222', 1), ('333', 1), ('unknown-2', 1)],
+        "last-365-days": [('444', 3), ('555', 3), ('666', 2), ('unknown-1', 2), ('111', 2), ('999', 2), ('888', 2), ('222', 1), ('333', 1), ('unknown-2', 1)],
+        "all-time": [('444', 3), ('555', 3), ('111', 3), ('666', 2), ('unknown-1', 2), ('999', 2), ('888', 2), ('222', 1), ('333', 1), ('unknown-2', 1)],
+    }
+    assert top(site, "all", "top_unknown_scans") == {
+        "today": [('unknown-1', 1)],
+        "this-work-week": [('unknown-1', 1)],
+        "last-7-days": [('unknown-1', 2), ('222', 1)],
+        "this-month": [('unknown-1', 2), ('222', 1), ('unknown-2', 1)],
+        "last-30-days": [('unknown-1', 2), ('222', 1), ('unknown-2', 1)],
+        "this-year": [('unknown-1', 2), ('222', 1), ('unknown-2', 1)],
+        "last-365-days": [('unknown-1', 2), ('222', 1), ('unknown-2', 1)],
+        "all-time": [('unknown-1', 2), ('222', 1), ('unknown-2', 1)],
+    }
+    # Tokyo's own day boundaries: Monday starts at 15:00 UTC on the 18th there.
+    assert top(site, "japan", "top_scans") == {
+        "today": [('555', 1)],
+        "this-work-week": [('555', 1)],
+        "last-7-days": [('555', 2), ('333', 1), ('unknown-1', 1)],
+        "this-month": [('555', 2), ('333', 1), ('unknown-1', 1), ('888', 1)],
+        "last-30-days": [('555', 2), ('888', 2), ('333', 1), ('unknown-1', 1)],
+        "this-year": [('555', 2), ('888', 2), ('333', 1), ('unknown-1', 1)],
+        "last-365-days": [('555', 2), ('888', 2), ('333', 1), ('unknown-1', 1)],
+        "all-time": [('555', 2), ('888', 2), ('333', 1), ('unknown-1', 1), ('000', 1)],
+    }
 
 
 def test_the_index_sections_run_in_parallel() -> None:
@@ -115,8 +145,4 @@ def test_a_location_with_no_office_time_zone_fails_at_scanned(site: Path, raw: P
         run(defs, defs.bindings("local"), started_at=NOW)
 
     assert not site.exists()
-
-
-def test_the_comparison_names_a_file_that_differs(tmp_path: Path) -> None:
-    assert differences({"a.json": b"1", "b.json": b"2"}, {"a.json": b"1", "b.json": b"3"}) == ["b.json"]
 

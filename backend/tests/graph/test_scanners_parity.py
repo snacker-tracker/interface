@@ -1,4 +1,4 @@
-"""Scanners files, from `heartbeats` and `scanned`, compared byte for byte with Snacker's own build."""
+"""Scanners files, from `heartbeats` and `scanned`: the scanners Snacker's legacy build listed on the same inputs."""
 
 import json
 from datetime import UTC, datetime
@@ -11,7 +11,6 @@ from stepdag import run
 from stepdag.assets import Bindings
 from graph.food_parquet import food, write_archive, write_food
 from graph.raw_events import backfill_scan, heartbeat_flat, heartbeat_flat_with_telemetry, heartbeat_v2, live_scan, with_api_key, write_heartbeats, write_raw
-from graph.snacker_oracle import differences, files_under, snacker_tree
 
 NOW = datetime(2026, 10, 19, 12, 0, tzinfo=UTC)
 ZONES = {"thailand": "Asia/Bangkok", "japan": "Asia/Tokyo"}
@@ -50,15 +49,17 @@ def inputs(openfoodfacts: Path, archive: Path) -> tuple[Path, Path]:
     return openfoodfacts, archive
 
 
-def scanners_files(files: dict[str, bytes]) -> dict[str, bytes]:
-    return {path: data for path, data in files.items() if path.startswith("scanners/")}
+def listed(site: Path, location: str) -> list[tuple[str, str, str, str, str | None]]:
+    """A location's scanners: name, location, app version, last seen and last scan's code."""
+    scanners = json.loads((site / "scanners" / "by-location" / f"{location}.json").read_text())["scanners"]
+    return [(s["name"], s["location"], s["app_version"], s["last_seen"], s["last_scan"] and s["last_scan"]["product"]["code"]) for s in scanners]
 
 
 def scanner_names(site: Path, location: str) -> list[str]:
     return [s["name"] for s in json.loads((site / "scanners" / "by-location" / f"{location}.json").read_text())["scanners"]]
 
 
-def test_every_scanners_file_matches_snackers_build(io: Bindings, site: Path, raw: Path, inputs: tuple[Path, Path]) -> None:
+def test_every_scanners_file_lists_what_snackers_build_listed(io: Bindings, site: Path, raw: Path, inputs: tuple[Path, Path]) -> None:
     write_heartbeats(raw, "2026/10/18", "a", [
         heartbeat_flat(time="2026-10-18T09:00:00Z", device_name="kitchen", api_key="key-kitchen"),
         heartbeat_flat_with_telemetry(time="2026-10-18T09:01:00Z", device_name="rooftop", location="thailand:bangkok:rooftop", api_key="key-rooftop"),
@@ -71,10 +72,21 @@ def test_every_scanners_file_matches_snackers_build(io: Bindings, site: Path, ra
 
     run(defs, io, started_at=NOW)
 
-    ours = files_under(site)
-    theirs = snacker_tree(raw, *inputs, now=NOW, office_time_zones=ZONES)
-    assert set(scanners_files(ours)) == set(scanners_files(theirs)) != set()
-    assert differences(ours, theirs) == []
+    # Expected values from Snacker's legacy build on these inputs, before it was deleted (#125).
+    idle = ("idle", "thailand:bangkok", "v0.1.42", "2026-10-19T09:00:00Z", None)
+    kitchen = ("kitchen", "thailand:bangkok:main-kitchen", "v0.1.43", "2026-10-19T09:00:00Z", "222")
+    lobby = ("lobby", "japan:tokyo:lobby", "v0.1.42", "2026-10-18T09:02:00Z", "333")
+    rooftop = ("rooftop", "thailand:bangkok:rooftop", "v0.1.36", "2026-10-18T09:01:00Z", "111")
+    assert {location: listed(site, location) for location in sorted(p.stem for p in (site / "scanners" / "by-location").iterdir())} == {
+        "all": [idle, kitchen, lobby, rooftop],
+        "japan": [lobby],
+        "japan:tokyo": [lobby],
+        "japan:tokyo:lobby": [lobby],
+        "thailand": [idle, kitchen, rooftop],
+        "thailand:bangkok": [idle, kitchen, rooftop],
+        "thailand:bangkok:main-kitchen": [kitchen],
+        "thailand:bangkok:rooftop": [rooftop],
+    }
 
 
 def test_a_scanner_that_moved_is_listed_only_at_its_latest_heartbeats_location(io: Bindings, site: Path, raw: Path, inputs: tuple[Path, Path]) -> None:
@@ -88,7 +100,6 @@ def test_a_scanner_that_moved_is_listed_only_at_its_latest_heartbeats_location(i
     assert scanner_names(site, "japan") == ["traveller"]
     assert scanner_names(site, "thailand") == []
     assert scanner_names(site, "all") == ["traveller"]
-    assert differences(files_under(site), snacker_tree(raw, *inputs, now=NOW, office_time_zones=ZONES)) == []
 
 
 def test_an_older_heartbeat_read_again_inside_the_margin_doesnt_replace_a_newer_one(io: Bindings, site: Path, raw: Path, inputs: tuple[Path, Path]) -> None:
@@ -106,7 +117,6 @@ def test_an_older_heartbeat_read_again_inside_the_margin_doesnt_replace_a_newer_
         ("kitchen", "japan:tokyo:lobby", "2026-10-19T08:59:00Z"),
         ("rooftop", "thailand:bangkok:main-kitchen", "2026-10-19T10:09:00Z"),
     ]
-    assert differences(files_under(site), snacker_tree(raw, *inputs, now=NOW, office_time_zones=ZONES)) == []
 
 
 def test_a_second_run_with_no_new_heartbeat_files_skips_heartbeats(io: Bindings, site: Path, raw: Path, inputs: tuple[Path, Path]) -> None:
@@ -139,4 +149,3 @@ def test_each_scanners_last_scan_is_the_latest_sent_with_its_api_key(io: Binding
     scanners = json.loads((site / "scanners" / "by-location" / "thailand:bangkok:main-kitchen.json").read_text())["scanners"]
     last_scans = {s["name"]: s["last_scan"] and (s["last_scan"]["product"]["code"], s["last_scan"]["scanned_at"]) for s in scanners}
     assert last_scans == {"left": ("111", "2026-10-19T08:00:00Z"), "right": ("333", "2026-10-19T07:00:00Z"), "silent": None}
-    assert differences(files_under(site), snacker_tree(raw, *inputs, now=NOW, office_time_zones=ZONES)) == []

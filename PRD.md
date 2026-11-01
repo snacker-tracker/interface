@@ -298,27 +298,24 @@ The backend's `check` module tests a built output against all of §7, and names 
 
 ### 8.1 Backend (`backend/`, Python, Polars, uv)
 
-The backend is a CLI with no running server and these commands:
+The backend is a stepdag graph (`snacker.graph.definitions:defs`, #117), one Lambda per asset in a Step Functions workflow, with no running server. It runs every 30 minutes, and downloads OpenFoodFacts again daily. Its assets:
 
-- `snacker extract-products --raw … --food … --products … [--archive …] [--force]`: `--archive` is the Snacker archive CSV. It is merged whenever the products table is written; without it, names come from OpenFoodFacts only. Codes the archive records twice are reported.
-- `snacker build --raw … --products … --out …`: it publishes only output that passes the contract check (§7.4). Otherwise it lists the violations and leaves the previous data in place.
-- `snacker check --out …`: runs the contract check on its own.
-- `snacker schema --out …`: regenerates `contract/static-json.schema.json`.
-
-Inside, each step is a named function with explicit inputs and outputs, so it can become a Dagster asset later:
-
-| Step (module) | Input | Output |
+| Asset | Parents | Value |
 |---|---|---|
-| Product extraction (`products`) | `food.parquet`, scanned codes, Snacker archive (optional) | `products.parquet`: one row per scanned code, with `known` false for unknown products, `name_source` naming where each name came from, and the product's grades |
-| Scan normalisation (`scans`) | raw scan files | scans table (R1) |
-| Heartbeat normalisation (`heartbeats`) | raw heartbeat files | heartbeats table, then scanner statuses (R6) |
-| Locations (`locations`) | scans, time zone map | selectable locations, scans within a location, office time zones |
-| Scan summary (`scan_summary`) | scans with office time zones and products | daily, hourly and recent (`summarise`); top scans (`top_scans`, R7); healthiest and least healthy products (`healthiest_and_least_healthy`, R8); period days (`period_days`, I1) |
-| Build (`build`) | raw files, products table, config, build time | JSON files (§7) |
+| `scans` | raw scan files | scans table (R1), read incrementally (ADR 0011) |
+| `heartbeats` | raw heartbeat files | each scanner's latest heartbeat (R6) |
+| `openfoodfacts_copy` | `food.parquet` | a copy, named by its revision |
+| `products` | `scans`, the copy, the Snacker archive | one row per scanned code, with `known` false for unknown products, `name_source` naming where each name came from, and the product's grades |
+| `scanned` | `scans`, `products` | every scan with its office time zone and product |
+| the sections (`top_scans`, `code_pages`, `scanners`, …) | `scanned` (and `heartbeats`, `products`) | each section's files or parts of files |
+| `site_tree` | every section | the whole tree (§7), published only if it passes the contract check (§7.4) |
 
-- `extract-products` reruns only when there are unseen codes, when the table predates a column change, or with `--force`. This keeps normal builds off the 8 GB file.
-- `build` runs the normalisation steps itself and never reads `food.parquet`. Codes scanned since the last extraction count as unknown products.
-- Configuration (`config.py`) holds the time zone prefix map, the recent-list size (25) and the top-scans size (10). Input and output paths are CLI arguments.
+The pure steps stay named functions with explicit inputs and outputs: locations (`locations`), scan summaries (`scan_summary`: daily, hourly and recent; top scans, R7; healthiest and least healthy, R8; period days, I1) and product extraction (`products`).
+
+The CLI keeps two commands: `snacker check --out …` runs the contract check on its own, and `snacker schema --out …` regenerates `contract/static-json.schema.json`.
+
+- `products` reads `food.parquet` only when there's no table yet, when the copy's revision changed, or when a scanned code is missing from it. This keeps normal runs off the 8 GB file.
+- Configuration (`config.py`) holds the time zone prefix map, the recent-list size (25) and the top-scans size (10). Input and output locations are the assets' `SCANS_*` environment variables.
 - Product images are hotlinked from OpenFoodFacts (docs/adr/0001).
 
 ### 8.2 Frontend (`frontend/`)

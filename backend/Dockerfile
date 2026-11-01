@@ -1,7 +1,5 @@
-# The one Lambda image (aws-deployment ticket 04; the graph joined it in #118). The handler picks
-# the job: snacker.handlers.build_handler (the default) or snacker.handlers.extract_handler for the
-# legacy build, and stepdag.aws.asset_handler or stepdag.aws.plan_handler for the graph, whose
-# Terraform sets each function's handler from the manifest.
+# The one Lambda image (aws-deployment ticket 04), running the stepdag graph (#118): every function
+# runs stepdag.aws.asset_handler or stepdag.aws.plan_handler, set from the manifest by Terraform.
 # Build context: the REPO ROOT, so the image can hold stepdag/ as well as backend/:
 #   docker build --platform linux/amd64 --provenance=false -f backend/Dockerfile .
 # The root .dockerignore keeps the context to the files copied here.
@@ -30,4 +28,4 @@ RUN uv pip install --system --no-cache --no-deps --target "${LAMBDA_TASK_ROOT}" 
 
 WORKDIR ${LAMBDA_TASK_ROOT}
 
-CMD ["snacker.handlers.build_handler"]
+CMD ["stepdag.aws.asset_handler"]

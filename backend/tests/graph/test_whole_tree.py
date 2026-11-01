@@ -1,4 +1,4 @@
-"""The whole site tree: byte-identical to Snacker's build, and checked against the contract."""
+"""The whole site tree: every file, the values Snacker's legacy build gave them, and checked against the contract."""
 
 import json
 from datetime import UTC, datetime
@@ -12,7 +12,7 @@ from snacker.graph.definitions import defs
 from stepdag import CheckFailed, run
 from graph.food_parquet import food, write_archive, write_food
 from graph.raw_events import backfill_scan, heartbeat_flat, heartbeat_v2, live_scan, with_api_key, write_heartbeats, write_raw
-from graph.snacker_oracle import files_under, snacker_tree
+from graph.published import files_under
 
 NOW = datetime(2026, 10, 19, 12, 0, tzinfo=UTC)
 ZONES = {"thailand": "Asia/Bangkok", "japan": "Asia/Tokyo"}
@@ -46,18 +46,42 @@ def raw(tmp_path: Path, openfoodfacts: Path, archive: Path) -> Path:
     return root
 
 
-def theirs(raw: Path, openfoodfacts: Path, archive: Path) -> dict[str, bytes]:
-    return snacker_tree(raw, openfoodfacts, archive, now=NOW, office_time_zones=ZONES)
-
-
-def test_the_whole_tree_is_byte_identical_to_snackers_build(site: Path, raw: Path, openfoodfacts: Path, archive: Path) -> None:
+def test_the_whole_tree_has_every_file_and_what_snackers_build_put_in_them(site: Path, raw: Path) -> None:
     run(defs, defs.bindings("local"), started_at=NOW)
 
-    ours = files_under(site)
-    expected = theirs(raw, openfoodfacts, archive)
-
-    assert sorted(ours) == sorted(expected)
-    assert [path for path in ours if ours[path] != expected[path]] == []
+    # Expected values from Snacker's legacy build on these inputs, before it was deleted (#125).
+    locations = ["all", "japan", "japan:tokyo", "japan:tokyo:lobby", "thailand", "thailand:bangkok", "thailand:bangkok:main-kitchen", "thailand:bangkok:rooftop"]
+    scanned_at = {
+        "111": ["all", "thailand", "thailand:bangkok", "thailand:bangkok:rooftop"],
+        "222": ["all", "thailand", "thailand:bangkok", "thailand:bangkok:main-kitchen"],
+        "333": ["all", "japan", "japan:tokyo", "japan:tokyo:lobby"],
+        "https:%2F%2Fqrco.de%2FbbAote": ["all", "thailand", "thailand:bangkok", "thailand:bangkok:main-kitchen"],
+    }
+    assert sorted(files_under(site)) == sorted([
+        "locations.json", "meta.json",
+        *(f"{kind}/by-location/{location}.json" for kind in ("index", "scanners") for location in locations),
+        *(f"codes/{code}/product.json" for code in scanned_at),
+        *(f"codes/{code}/by-location/{location}.json" for code, where in scanned_at.items() for location in where),
+    ])
+    index = json.loads((site / "index/by-location/all.json").read_text())
+    assert index["daily"] == [{"date": "2019-03-01", "count": 1}, {"date": "2026-10-18", "count": 3}, {"date": "2026-10-19", "count": 1}]
+    assert [(row["product"]["code"], row["location"], row["scanned_at"]) for row in index["recent"]] == [
+        ("https://qrco.de/bbAote", "thailand:bangkok:main-kitchen", "2026-10-19T01:00:00Z"),
+        ("222", "thailand:bangkok:main-kitchen", "2026-10-18T16:30:00Z"),
+        ("333", "japan:tokyo:lobby", "2026-10-18T05:00:00Z"),
+        ("111", "thailand:bangkok:rooftop", "2026-10-18T03:00:00Z"),
+        ("111", "thailand:bangkok", "2019-03-01T02:00:00Z"),
+    ]
+    scanners = json.loads((site / "scanners/by-location/all.json").read_text())["scanners"]
+    assert [(s["name"], s["location"], s["last_seen"], s["last_scan"]["product"]["code"]) for s in scanners] == [
+        ("rpi-pico-w-01", "thailand:bangkok:main-kitchen", "2026-10-19T11:00:00Z", "222"),
+        ("tokyo-1", "japan:tokyo:lobby", "2026-10-19T10:00:00Z", "333"),
+    ]
+    product = json.loads((site / "codes/222/product.json").read_text())
+    assert (product["known"], product["product"]["name"], product["product"]["name_source"]) == (False, "Two from the archive", "snacker-archive")
+    rooftop = json.loads((site / "codes/111/by-location/thailand:bangkok:rooftop.json").read_text())
+    assert rooftop["daily"] == [{"date": "2026-10-18", "count": 1}]
+    assert [hour["hour"] for hour in rooftop["hourly"] if hour["count"]] == [10]  # 03:00 UTC is 10:00 in Bangkok
 
 
 def test_a_tree_that_breaks_the_contract_fails_at_site_tree_and_publishes_nothing(

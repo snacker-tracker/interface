@@ -4,7 +4,7 @@
 [![Code Coverage](https://qlty.sh/gh/snacker-tracker/projects/interface/coverage.svg)](https://qlty.sh/gh/snacker-tracker/projects/interface)
 
 A read-only web interface showing which snacks are taken from the office pantry.
-A Python build step turns raw scanner events into static JSON; a React app renders it.
+A Python pipeline (a stepdag graph) turns raw scanner events into static JSON; a React app renders it.
 
 - `project.md`: the original brief
 - `PRD.md`: requirements and the static JSON contract
@@ -15,10 +15,11 @@ A Python build step turns raw scanner events into static JSON; a React app rende
 
 | Path | What it is |
 |---|---|
-| `backend/` | Python + Polars build CLI (`snacker build`), managed with uv |
+| `backend/` | The Python + Polars graph that builds the site's data, managed with uv |
+| `stepdag/` | The framework that runs it on Step Functions, one Lambda per asset |
 | `frontend/` | Vite + React + TypeScript app |
 | `data/` | Raw scanner events and OpenFoodFacts, copied locally (git-ignored) |
-| `public-data/` | Generated JSON, written by the build (git-ignored) |
+| `public-data/` | Generated JSON, written by the graph (git-ignored) |
 
 ## Running locally
 
@@ -28,15 +29,12 @@ Requires [uv](https://docs.astral.sh/uv/) and Node 22 (see `frontend/.nvmrc`).
 
    ```sh
    cd backend
-   uv run snacker extract-products --raw ../data/raw/data/scanner \
-     --food ../data/openfoodfacts__product-database/food.parquet --products ../data/products.parquet
-   uv run snacker build --raw ../data/raw/data/scanner --products ../data/products.parquet --out ../public-data
+   scripts/build-local-data.sh
    ```
 
-   `extract-products` looks up scanned codes in the 8 GB OpenFoodFacts file and saves a
-   small products table; it does nothing when every scanned code was already looked up
-   (`--force` redoes it). `build` writes `public-data/data/…`. Rerun both whenever the
-   raw data changes; codes scanned since the last extraction show as unknown products.
+   This runs the graph over the raw events in `data/`, and writes `public-data/data/…`. Rerun it
+   whenever the raw data changes: it reads only raw files newer than the last run's. The first
+   run copies the 8 GB OpenFoodFacts file into `data/files/`. See `backend/README.md`.
 
 2. Run the frontend:
 
