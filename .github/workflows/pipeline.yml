@@ -121,7 +121,7 @@ jobs:
       # Planned against the image dev runs now, so the plan shows only infrastructure changes.
       - name: terraform plan
         run: |
-          image_uri="$(aws lambda get-function --function-name snacker-tracker-dev-build --query Code.ImageUri --output text)"
+          image_uri="$(aws lambda get-function --function-name snacker-tracker-dev-graph-_plan --query Code.ImageUri --output text)"
           terraform plan -input=false -lock=false -no-color -var-file=dev.tfvars -var "image_uri=$image_uri" | tee plan.txt
           { echo '### Dev plan'; echo '```'; cat plan.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
 

@@ -3,13 +3,12 @@
 # snacker.graph.definitions:defs`, from backend/): nothing here names an asset. The functions run
 # the one image, as the legacy build's do; the admin configuration creates their roles.
 #
-# It publishes to the environment's site bucket, or its shadow bucket (graph_publishes_to).
+# It builds and publishes the environment's site.
 
 locals {
   graph_manifest        = jsondecode(file("${path.module}/graph.manifest.json"))
   graph_function_prefix = "${local.prefix}-graph-"
   graph_functions       = var.graph_enabled ? local.graph_manifest.functions : {}
-  graph_site_bucket     = var.graph_publishes_to == "real" ? local.site_bucket : "${local.prefix}-shadow"
 
   graph_settings = {
     SCANS_RAW = "s3://${var.graph_raw_bucket}/raw/data/scanner/"
@@ -18,7 +17,7 @@ locals {
     SCANS_FILES         = "s3://${local.working_bucket}/files/"
     SCANS_OPENFOODFACTS = "hf"
     SCANS_ARCHIVE       = "s3://${local.working_bucket}/snacker-archive.csv"
-    SCANS_SITE          = "s3://${local.graph_site_bucket}"
+    SCANS_SITE          = "s3://${local.site_bucket}"
   }
 
   graph_schedules = var.graph_enabled ? {

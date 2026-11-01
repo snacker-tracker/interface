@@ -1,12 +1,11 @@
 # Deploys one commit's image and frontend build to an environment (aws-deployment tickets 07 and
 # 08), as two jobs side by side: the backend applies the main configuration, which points every
-# function at the image's digest (the legacy build's two, and the stepdag graph's where it's
-# enabled, #121) and runs one legacy build; the graph runs on its own schedules. The frontend
-# publishes outside data/. Both start together, so one approval of a protected environment
-# releases both. Called by pipeline.yml.
+# function of the stepdag graph at the image's digest, and the graph's next scheduled run
+# publishes data/ on it. The frontend publishes outside data/. Both start together, so one
+# approval of a protected environment releases both. Called by pipeline.yml.
 #
-# Neither waits for the other, so for the minute or so a contract bump takes to land, pages say
-# the data and interface are out of step (PRD §7.3) until the other job finishes.
+# So after a contract bump, pages say the data and interface are out of step (PRD §7.3) until the
+# graph's next run, up to 30 minutes later.
 name: deploy
 
 on:
@@ -56,16 +55,10 @@ jobs:
           terraform_wrapper: false
 
       - name: terraform apply
-        id: terraform
         working-directory: infra/main
         run: |
           terraform init -input=false
           terraform apply -input=false -auto-approve -lock-timeout=15m -var-file="$ENVIRONMENT.tfvars" -var "image_uri=$IMAGE_URI"
-          {
-            echo "build_function=$(terraform output -raw build_function)"
-            echo "extract_function=$(terraform output -raw extract_function)"
-            echo "build_schedule_enabled=$(terraform output -raw build_schedule_enabled)"
-          } >> "$GITHUB_OUTPUT"
           {
             echo "Deployed \`$IMAGE_URI\` to $ENVIRONMENT"
             echo "- $(terraform output -raw site_url)"
@@ -88,22 +81,6 @@ jobs:
             --image-tag "$ENVIRONMENT-$(date -u +%Y%m%dT%H%M%SZ)" \
             --image-manifest "$(image imageManifest)" --image-manifest-media-type "$(image imageManifestMediaType)" \
             --query image.imageId.imageTag --output text
-
-      # A build on the new image, so the data is built to its contract version. Where the stepdag
-      # graph publishes the site instead (#124), its next scheduled run does that.
-      - name: Build the data
-        if: steps.terraform.outputs.build_schedule_enabled == 'true'
-        env:
-          BUILD_FUNCTION: ${{ steps.terraform.outputs.build_function }}
-          EXTRACT_FUNCTION: ${{ steps.terraform.outputs.extract_function }}
-        run: |
-          for function in "$BUILD_FUNCTION" "$EXTRACT_FUNCTION"; do
-            aws lambda wait function-updated-v2 --function-name "$function"
-          done
-          error="$(aws lambda invoke --function-name "$BUILD_FUNCTION" \
-            --cli-read-timeout 0 --query FunctionError --output text build.json)"
-          cat build.json; echo
-          if [ "$error" != "None" ]; then echo "the build failed: $error" >&2; exit 1; fi
 
   frontend:
     runs-on: ubuntu-26.04
