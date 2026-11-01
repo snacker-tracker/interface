@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build the Lambda image and push it to the shared ECR repository, tagged with the commit SHA
+# Build the Lambda image and push it to the shared ECR repository, tagged with the short commit SHA
 # (ADR 0006), and with $IMAGE_VERSION too when it's set (CI's MAJOR.MINOR.<run number>). Prints
 # only the image URI by digest on stdout, which the main configuration's image_uri takes. An image
 # already pushed for this commit is reused as it is: tags are immutable, and each commit is built
@@ -15,23 +15,24 @@ repository_name=snacker-tracker-lambda/interface
 registry="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.$AWS_REGION.amazonaws.com"
 repository="$registry/$repository_name"
 sha="$(git rev-parse HEAD)"
+tag="${sha:0:7}"
 if [ -n "$(git status --porcelain -- . ../stepdag ../.dockerignore)" ]; then
   echo "backend/ or stepdag/ has uncommitted changes; commit them so the tag matches what's built" >&2
   exit 1
 fi
 
 digest() {
-  aws ecr describe-images --repository-name "$repository_name" --image-ids imageTag="$sha" \
+  aws ecr describe-images --repository-name "$repository_name" --image-ids imageTag="$tag" \
     --query 'imageDetails[0].imageDigest' --output text 2>/dev/null
 }
 
 if image_digest="$(digest)"; then
-  echo "$repository:$sha is already pushed; reusing it" >&2
+  echo "$repository:$tag is already pushed; reusing it" >&2
 else
   aws ecr get-login-password | docker login --username AWS --password-stdin "$registry" >&2
   # Lambda wants a single-platform image manifest, not an index with attestations.
   # From the repo root, so the image can hold stepdag/ (the root .dockerignore trims the context).
-  tags=("$sha" ${IMAGE_VERSION:+"$IMAGE_VERSION"})
+  tags=("$tag" ${IMAGE_VERSION:+"$IMAGE_VERSION"})
   # OCI's labels, plus a link to the CI run that built it (GitHub Actions sets GITHUB_*).
   labels=(
     "org.opencontainers.image.revision=$sha"
