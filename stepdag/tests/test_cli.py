@@ -27,7 +27,7 @@ def test_stepdag_run_runs_the_hello_graph_into_a_local_directory(hello: Path, ca
     assert main(["run", "hello:defs"]) == 0
 
     assert report(capsys)["shout"] == "HELLO, WORLD!"
-    assert list(hello.glob("runs/*/report.json"))
+    assert list(hello.glob("runs/report/*.json"))
 
 
 def test_stepdag_run_takes_run_config(hello: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -63,12 +63,12 @@ def test_select_downstream_and_force_flags(hello: Path, capsys: pytest.CaptureFi
 
 def test_fail_check_fails_report_and_stores_nothing_for_it(hello: Path, capsys: pytest.CaptureFixture[str]) -> None:
     main(["run", "hello:defs"])
-    before = sorted(hello.glob("runs/*/report.json"))
+    before = sorted(hello.glob("runs/report/*.json"))
 
     assert main(["run", "hello:defs", "--config", '{"fail_check": true}']) == 1
 
     assert "CheckFailed: report failed its checks: counted" in capsys.readouterr().err
-    assert sorted(hello.glob("runs/*/report.json")) == before
+    assert sorted(hello.glob("runs/report/*.json")) == before
 
 
 def test_stepdag_manifest_prints_the_manifest(hello: Path, capsys: pytest.CaptureFixture[str]) -> None:

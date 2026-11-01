@@ -2,6 +2,7 @@
 
 import json
 import time
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Protocol
 from urllib.parse import unquote, urlparse
@@ -16,7 +17,9 @@ class Store(Protocol):
 
     def get(self, key: str) -> bytes | None: ...
 
-    def keys(self, prefix: str) -> list[str]: ...
+    def modified(self, prefix: str) -> dict[str, datetime]:
+        """The keys under `prefix`, with when each was last written."""
+        ...
 
     def uri(self, key: str) -> str: ...
 
@@ -26,15 +29,17 @@ class Store(Protocol):
 class MemoryStore:
     def __init__(self) -> None:
         self.objects: dict[str, bytes] = {}
+        self.written: dict[str, datetime] = {}
 
     def put(self, key: str, data: bytes) -> None:
         self.objects[key] = data
+        self.written[key] = datetime.now(UTC)
 
     def get(self, key: str) -> bytes | None:
         return self.objects.get(key)
 
-    def keys(self, prefix: str) -> list[str]:
-        return sorted(k for k in self.objects if k.startswith(prefix))
+    def modified(self, prefix: str) -> dict[str, datetime]:
+        return {k: t for k, t in self.written.items() if k.startswith(prefix)}
 
     def uri(self, key: str) -> str:
         return f"memory://{key}"
@@ -59,11 +64,15 @@ class DirectoryStore:
         path = self.root / key
         return path.read_bytes() if path.is_file() else None
 
-    def keys(self, prefix: str) -> list[str]:
+    def modified(self, prefix: str) -> dict[str, datetime]:
         if not self.root.is_dir():
-            return []
-        found = (p.relative_to(self.root).as_posix() for p in self.root.rglob("*") if p.is_file() and not p.name.startswith("."))
-        return sorted(k for k in found if k.startswith(prefix))
+            return {}
+        found = {
+            p.relative_to(self.root).as_posix(): datetime.fromtimestamp(p.stat().st_mtime, UTC)
+            for p in self.root.rglob("*")
+            if p.is_file() and not p.name.startswith(".")
+        }
+        return {k: t for k, t in found.items() if k.startswith(prefix)}
 
     def uri(self, key: str) -> str:
         return (self.root / key).resolve().as_uri()
@@ -91,11 +100,11 @@ class S3Store:
         body: bytes = response["Body"].read()
         return body
 
-    def keys(self, prefix: str) -> list[str]:
-        found: list[str] = []
+    def modified(self, prefix: str) -> dict[str, datetime]:
+        found: dict[str, datetime] = {}
         for page in self.client.get_paginator("list_objects_v2").paginate(Bucket=self.bucket, Prefix=self.prefix + prefix):
-            found.extend(item["Key"].removeprefix(self.prefix) for item in page.get("Contents", []))
-        return sorted(found)
+            found.update((item["Key"].removeprefix(self.prefix), item["LastModified"]) for item in page.get("Contents", []))
+        return found
 
     def uri(self, key: str) -> str:
         return f"s3://{self.bucket}/{self.prefix}{key}"
@@ -135,21 +144,29 @@ class _JsonIO:
 
 
 class RunJson(_JsonIO):
-    """Keeps each run's materialization under the run's ID, so overlapping runs never share a key.
+    """Keeps each run's materialization under the asset and the run's ID, so overlapping runs never
+    share a key.
 
-    `latest()` lists every run's materialization of the asset and returns the one stored last.
+    `latest()` lists the asset's materializations and reads only the last written. S3 times writes
+    to the second, so those written in the same second are all read and told apart by when each
+    was stored.
     """
 
     name = "run_json"
 
     def store(self, value: Any, asset: str, context: RunContext) -> Pointer:
-        return self._write(f"{self.prefix}runs/{context.run_id}/{asset}.json", value, asset, context)
+        return self._write(f"{self.prefix}runs/{asset}/{context.run_id}.json", value, asset, context)
 
     def latest(self, asset: str, partition: str | None = None) -> Pointer | None:
-        pointers = []
-        for key in self.backend.keys(f"{self.prefix}runs/"):
-            if key.endswith(f"/{asset}.json") and (stored := self._read(key)) is not None:
-                pointers.append(Pointer.from_json(stored["pointer"]))
+        written = self.backend.modified(f"{self.prefix}runs/{asset}/")
+        if not written:
+            return None
+        last = max(written.values())
+        pointers = [
+            Pointer.from_json(stored["pointer"])
+            for key, at in written.items()
+            if at == last and (stored := self._read(key)) is not None
+        ]
         return max(pointers, key=lambda p: int(p.metadata["stored_at_ns"]), default=None)
 
 

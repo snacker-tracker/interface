@@ -74,3 +74,20 @@ def test_fixed_json_keeps_one_materialization_per_asset(store: Store) -> None:
     assert io.latest("a") == second
     assert io.load(second) == 2
     assert io.latest("b") is None
+
+
+def test_run_json_latest_on_s3_is_one_list_and_one_get_however_many_runs_are_stored() -> None:
+    import time
+
+    with s3_bucket("values") as client:
+        io = RunJson(S3Store(client, "values", "graph/"))
+        for n in range(5):
+            io.store(n, "a", context(f"a{n}"))
+            io.store(n, "b", context(f"b{n}", asset="b"))
+        time.sleep(1.1)  # S3's last-modified times are to the second.
+        newest = io.store(9, "a", context("a9"))
+        calls: list[str] = []
+        client.meta.events.register("before-call.s3", lambda model, **_: calls.append(model.name))
+
+        assert io.latest("a") == newest
+        assert calls == ["ListObjectsV2", "GetObject"]

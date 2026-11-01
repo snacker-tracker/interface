@@ -43,16 +43,16 @@ def test_one_execution_materializes_all_six_assets(manifest: dict[str, Any]) -> 
     output = execute(manifest, {}, "first")
 
     assert stored("fixed/counter.json") == 1
-    assert stored("runs/first/report.json") == {"shout": "HELLO, WORLD!", "words": 2, "count": 1}
-    assert stored("runs/first/shout.json") == "HELLO, WORLD!"
-    assert output["pointers"]["report"]["uri"] == "s3://hello-values/runs/first/report.json"
+    assert stored("runs/report/first.json") == {"shout": "HELLO, WORLD!", "words": 2, "count": 1}
+    assert stored("runs/shout/first.json") == "HELLO, WORLD!"
+    assert output["pointers"]["report"]["uri"] == "s3://hello-values/runs/report/first.json"
 
 
 def test_a_second_execution_skips_greeting_and_counts_up(manifest: dict[str, Any]) -> None:
     execute(manifest, {}, "first")
     output = execute(manifest, {}, "second")
 
-    assert stored("runs/second/report.json")["count"] == 2
+    assert stored("runs/report/second.json")["count"] == 2
     assert output["pointers"]["greeting"]["metadata"]["run_id"] == "first"
 
 
@@ -64,8 +64,8 @@ def test_fail_check_fails_at_report_and_stores_nothing_for_it(manifest: dict[str
 
     assert failure.value.state == "level 3: report"
     assert failure.value.error == "CheckFailed"
-    assert stored("runs/failing/report.json") is None
-    assert stored("runs/failing/shout.json") == "HELLO, WORLD!"
+    assert stored("runs/report/failing.json") is None
+    assert stored("runs/shout/failing.json") == "HELLO, WORLD!"
 
 
 def test_force_resets_the_counter(manifest: dict[str, Any]) -> None:
@@ -74,7 +74,7 @@ def test_force_resets_the_counter(manifest: dict[str, Any]) -> None:
 
     execute(manifest, {"force": True}, "forced")
 
-    assert stored("runs/forced/report.json")["count"] == 1
+    assert stored("runs/report/forced.json")["count"] == 1
 
 
 def test_a_selection_is_planned_before_anything_runs(manifest: dict[str, Any]) -> None:
@@ -91,6 +91,6 @@ def test_a_selection_runs_only_what_it_names(manifest: dict[str, Any]) -> None:
 
     output = execute(manifest, {"select": ["counter"], "downstream": True, "name": "Ada"}, "partial")
 
-    assert stored("runs/partial/report.json") == {"shout": "HELLO, WORLD!", "words": 2, "count": 2}
-    assert stored("runs/partial/shout.json") is None
+    assert stored("runs/report/partial.json") == {"shout": "HELLO, WORLD!", "words": 2, "count": 2}
+    assert stored("runs/shout/partial.json") is None
     assert output["pointers"]["shout"]["metadata"]["run_id"] == "first"
