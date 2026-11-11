@@ -3,7 +3,7 @@
 # Build context: the REPO ROOT, so the image can hold stepdag/ as well as backend/:
 #   docker build --platform linux/amd64 --provenance=false -f backend/Dockerfile .
 # The root .dockerignore keeps the context to the files copied here.
-FROM public.ecr.aws/lambda/python:3.14
+FROM public.ecr.aws/lambda/python:3.15
 
 # From PyPI rather than ghcr.io/astral-sh/uv, whose pulls can fail authentication.
 RUN pip install --no-cache-dir uv==0.13.4
