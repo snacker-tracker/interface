@@ -11,11 +11,13 @@ terraform {
   # Each workspace's state is at env:/<workspace>/snacker-tracker-interface, the one key the CI
   # roles can reach (infra/admin).
   backend "s3" {
-    bucket       = "snacker-tracker-aws-infra-tfstate"
-    key          = "snacker-tracker-interface"
-    region       = "ap-southeast-1"
-    use_lockfile = true
+    bucket               = "lmacguire-terraform"
+    key                  = "terraform.tfstate"
+    workspace_key_prefix = "member-accounts/snacker-tracker/interface"
+    region               = "ap-southeast-1"
+    use_lockfile         = true
   }
+
 }
 
 # The organization's tag policy requires these keys, case included. The Project tag is also

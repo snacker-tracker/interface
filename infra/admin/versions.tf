@@ -13,7 +13,7 @@ terraform {
   backend "s3" {
     bucket               = "lmacguire-terraform"
     key                  = "terraform.tfstate"
-    workspace_key_prefix = "member-accounts/snacker-tracker/interface/main"
+    workspace_key_prefix = "member-accounts/snacker-tracker/interface-admin"
     region               = "ap-southeast-1"
     use_lockfile         = true
   }
