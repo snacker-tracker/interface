@@ -11,10 +11,11 @@ terraform {
   # Each workspace's state is at env:/<workspace>/snacker-tracker-interface-admin. The CI
   # roles can reach only the main configuration's key, never this one.
   backend "s3" {
-    bucket       = "snacker-tracker-aws-infra-tfstate"
-    key          = "snacker-tracker-interface-admin"
-    region       = "ap-southeast-1"
-    use_lockfile = true
+    bucket               = "lmacguire-terraform"
+    key                  = "terraform.tfstate"
+    workspace_key_prefix = "member-accounts/snacker-tracker/interface/main"
+    region               = "ap-southeast-1"
+    use_lockfile         = true
   }
 }
 
