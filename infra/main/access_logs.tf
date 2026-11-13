@@ -8,9 +8,10 @@ locals {
   # Client IP is kept for security and operations; user agent, X-Forwarded-For, cookies and
   # referrer aren't logged at all (ADR 0010).
   access_log_fields = [
-    "date", "time", "x-edge-location", "c-ip", "c-country", "asn",
+    "date", "time", "x-edge-location", "x-edge-request-id", "c-ip", "c-port", "c-country", "asn",
     "cs-method", "x-host-header", "cs-uri-stem", "cs-uri-query", "sc-status",
-    "sc-bytes", "cs-bytes", "time-taken", "x-edge-result-type", "cache-behavior-path-pattern",
+    "sc-bytes", "cs-bytes", "time-taken", "time-to-first-byte", "x-edge-result-type",
+    "cache-behavior-path-pattern", "ssl-protocol",
   ]
 }
 
