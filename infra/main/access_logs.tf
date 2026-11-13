@@ -75,8 +75,8 @@ resource "aws_cloudwatch_log_delivery" "access_logs_bucket" {
   depends_on = [aws_cloudwatch_log_delivery.access_log_group]
 }
 
-# The central access-log destination, in another account; the environment is in the path because
-# every environment delivers there.
+# The central access-log destination, in another account. Every environment delivers there; the
+# distribution ID tells them apart.
 resource "aws_cloudwatch_log_delivery" "central" {
   provider                 = aws.us_east_1
   delivery_source_name     = aws_cloudwatch_log_delivery_source.site.name
@@ -84,7 +84,7 @@ resource "aws_cloudwatch_log_delivery" "central" {
   record_fields            = local.access_log_fields
 
   s3_delivery_configuration {
-    suffix_path = "${local.env}/{distributionid}/{yyyy}/{MM}/{dd}/{HH}"
+    suffix_path = "{distributionid}/{yyyy}/{MM}/{dd}/{HH}"
   }
 
   depends_on = [aws_cloudwatch_log_delivery.access_logs_bucket]
