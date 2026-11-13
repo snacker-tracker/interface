@@ -74,3 +74,18 @@ resource "aws_cloudwatch_log_delivery" "access_logs_bucket" {
   # changed by two calls at once.
   depends_on = [aws_cloudwatch_log_delivery.access_log_group]
 }
+
+# The central access-log destination, in another account; the environment is in the path because
+# every environment delivers there.
+resource "aws_cloudwatch_log_delivery" "central" {
+  provider                 = aws.us_east_1
+  delivery_source_name     = aws_cloudwatch_log_delivery_source.site.name
+  delivery_destination_arn = "arn:aws:logs:us-east-1:307985306317:delivery-destination:access-logs-snacker-tracker"
+  record_fields            = local.access_log_fields
+
+  s3_delivery_configuration {
+    suffix_path = "${local.env}/{distributionid}/{yyyy}/{MM}/{dd}/{HH}"
+  }
+
+  depends_on = [aws_cloudwatch_log_delivery.access_logs_bucket]
+}
