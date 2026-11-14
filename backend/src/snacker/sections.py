@@ -42,7 +42,13 @@ from snacker.heartbeats import latest_heartbeats, scanner_statuses
 from snacker.locations import Locations
 from snacker.products import described_from_table, write_parquet
 from snacker.products import product_files as products_by_code
-from snacker.scan_summary import healthiest_and_least_healthy, nutri_score_distribution, period_days, summarise, top_scans
+from snacker.scan_summary import (
+    healthiest_and_least_healthy,
+    nutri_score_distribution,
+    period_days,
+    summarise,
+    top_scans,
+)
 from snacker.timestamps import format_utc
 
 Bundle = dict[str, Any]

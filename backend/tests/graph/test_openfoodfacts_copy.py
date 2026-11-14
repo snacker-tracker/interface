@@ -4,11 +4,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
-from snacker.graph.definitions import defs
 from stepdag import run
 from stepdag.assets import Bindings
+
 from graph.food_parquet import food, write_food
+from snacker.graph.definitions import defs
 
 
 @pytest.fixture

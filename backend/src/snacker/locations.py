@@ -23,7 +23,7 @@ class Locations:
     """The office time zone of each observed location."""
 
     @classmethod
-    def from_scans(cls, scans: pl.DataFrame, office_time_zones: Mapping[str, str]) -> "Locations":
+    def from_scans(cls, scans: pl.DataFrame, office_time_zones: Mapping[str, str]) -> Locations:
         """`office_time_zones` maps location prefixes to IANA time zones.
 
         Fails if a time zone name is unknown, or an observed location has no time zone.

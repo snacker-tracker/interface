@@ -6,10 +6,11 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from stepdag import Pointer, RunContext
+
 from snacker import sections
 from snacker.contract import meta_path
 from snacker.storage import Bucket, DirectoryBucket, S3Bucket, publish_to_bucket
-from stepdag import Pointer, RunContext
 
 
 class SiteIO:

@@ -7,11 +7,11 @@ from typing import Any
 
 import polars as pl
 import pytest
-
-from snacker.graph.definitions import defs, scans
 from stepdag import Definitions, Pointer, asset, run
 from stepdag.assets import Bindings
+
 from graph.raw_events import live_scan, write_raw
+from snacker.graph.definitions import defs, scans
 
 
 @pytest.fixture

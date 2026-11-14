@@ -5,12 +5,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-
-from snacker.graph.definitions import defs
 from stepdag import run
 from stepdag.manifest import render
+
 from graph.food_parquet import food, write_archive, write_food
 from graph.raw_events import backfill_scan, live_scan, write_raw
+from snacker.graph.definitions import defs
 
 NOW = datetime(2026, 10, 19, 12, 0, tzinfo=UTC)
 ZONES = {"thailand": "Asia/Bangkok", "japan": "Asia/Tokyo"}

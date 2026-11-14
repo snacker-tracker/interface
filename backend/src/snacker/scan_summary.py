@@ -5,9 +5,9 @@ Days are counted in each scan's office time zone, so the scans table must carry 
 plus each scan's scanned product as a `product` column (see products.with_products).
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
-from collections.abc import Callable
 from typing import Any, cast, get_args
 from zoneinfo import ZoneInfo
 
@@ -31,7 +31,6 @@ from snacker.contract import (
     TopScansByPeriod,
 )
 from snacker.timestamps import DATE_FORMAT, UTC_TIMESTAMP_FORMAT
-
 
 CALENDAR_PERIODS: dict[str, Callable[[date], date]] = {
     # Each maps today's office date to the period's first office date.

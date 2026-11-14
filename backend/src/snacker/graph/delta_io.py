@@ -7,9 +7,7 @@ from typing import Any
 import polars as pl
 from deltalake import DeltaTable
 from deltalake.exceptions import TableNotFoundError
-
 from stepdag import Pointer, RunContext
-
 
 CHECKPOINT_EVERY = 10
 """How many commits a table gets between checkpoints, so opening one reads at most this many commit

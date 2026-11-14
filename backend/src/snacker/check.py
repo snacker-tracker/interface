@@ -6,6 +6,7 @@ Three layers, each reported as violations by file:
 - invariants: rules across fields and files that a schema can't express
 """
 
+import itertools
 import json
 import re
 from collections.abc import Callable, Iterator
@@ -208,7 +209,7 @@ class _Output:
         except ValueError as error:
             yield Violation(path, f"daily: {error}")
             return
-        if any(later <= earlier for earlier, later in zip(dates, dates[1:])):
+        if any(later <= earlier for earlier, later in itertools.pairwise(dates)):
             yield Violation(path, "daily: dates aren't unique and oldest first")
         if any(day["count"] <= 0 for day in daily):
             yield Violation(path, "daily: lists a day without scans")

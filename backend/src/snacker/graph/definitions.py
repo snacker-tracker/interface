@@ -12,19 +12,23 @@ from pathlib import Path
 from typing import Any
 
 import polars as pl
+from stepdag import UNCHANGED, Definitions, RunContext, asset
+from stepdag.assets import Bindings
+from stepdag.json_io import DirectoryStore, FixedJson, RunJson, S3Store, Store
 
 from snacker import heartbeats as heartbeats_module
 from snacker import products as products_module
 from snacker import scans as scans_module
 from snacker import sections
-from snacker.graph.checks import every_scan_has_a_code_and_a_time, keeps_the_contract, the_sections_agree
+from snacker.graph.checks import (
+    every_scan_has_a_code_and_a_time,
+    keeps_the_contract,
+    the_sections_agree,
+)
 from snacker.graph.delta_io import DeltaIO, Merge
 from snacker.graph.site_io import SiteIO
 from snacker.openfoodfacts import files_at, openfoodfacts_source
 from snacker.raw import RawEvents
-from stepdag import UNCHANGED, Definitions, RunContext, asset
-from stepdag.assets import Bindings
-from stepdag.json_io import DirectoryStore, FixedJson, RunJson, S3Store, Store
 
 
 @asset(io_manager="delta", memory=2048, timeout=300, checks=[every_scan_has_a_code_and_a_time])
@@ -56,9 +60,12 @@ def openfoodfacts_copy(*, previous: dict[str, Any] | None, context: RunContext) 
     """
     source = openfoodfacts_source(os.environ["SCANS_OPENFOODFACTS"])
     files = files_at(os.environ["SCANS_FILES"])
-    if previous is not None and files.exists(previous["uri"]):
-        if not context.config.get("download") or source.revision() == previous["revision"]:
-            return UNCHANGED
+    if (
+        previous is not None
+        and files.exists(previous["uri"])
+        and (not context.config.get("download") or source.revision() == previous["revision"])
+    ):
+        return UNCHANGED
     revision = source.revision()
     stream = source.open()
     try:

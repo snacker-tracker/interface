@@ -4,6 +4,7 @@ period were of products of each Nutri-Score grade."""
 from datetime import UTC, datetime
 
 from scans_table import scan, scans_table
+
 from snacker.scan_summary import nutri_score_distribution
 
 # Wednesday 21 October 2026, 12:00 in Bangkok (UTC+7).

@@ -3,8 +3,8 @@
 from pathlib import Path
 
 import pytest
-
 from fake_bucket import FakeBucket, opener
+
 from snacker.storage import fetch
 
 

@@ -1,6 +1,7 @@
 """Tests at the Scan summary seam: a scans table in, daily counts and recent scan rows out."""
 
 from scans_table import scan, scans_table
+
 from snacker.scan_summary import summarise
 
 

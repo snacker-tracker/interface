@@ -19,7 +19,14 @@ from urllib.parse import unquote, urlparse
 
 import polars as pl
 
-from snacker.contract import GreenScore, NameSource, NovaGroup, NutriScore, Product, ProductFile
+from snacker.contract import (
+    GreenScore,
+    NameSource,
+    NovaGroup,
+    NutriScore,
+    Product,
+    ProductFile,
+)
 from snacker.scans import SCANS_SCHEMA
 from snacker.storage import S3Bucket, fetch
 

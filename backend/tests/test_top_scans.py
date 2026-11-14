@@ -3,8 +3,8 @@
 from datetime import UTC, datetime
 
 import pytest
-
 from scans_table import scan, scans_table
+
 from snacker.contract import PERIODS, Period
 from snacker.scan_summary import top_scans
 

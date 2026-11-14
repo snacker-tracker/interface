@@ -5,11 +5,11 @@ Snacker's normaliser rejects unknown sources and naive timestamps with its own `
 from pathlib import Path
 
 import pytest
-
-from snacker.graph.definitions import defs
 from stepdag import CheckFailed, run
 from stepdag.assets import Bindings
+
 from graph.raw_events import Event, backfill_scan, live_scan, write_raw
+from snacker.graph.definitions import defs
 
 
 @pytest.fixture

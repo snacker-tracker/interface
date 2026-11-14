@@ -4,10 +4,10 @@ import json
 from pathlib import Path
 
 import pytest
-
-from snacker.graph.definitions import defs
 from stepdag.cli import main
+
 from graph.raw_events import live_scan, write_raw
+from snacker.graph.definitions import defs
 
 
 def test_stepdag_run_builds_the_tables_in_a_local_directory(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:

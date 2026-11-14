@@ -3,8 +3,8 @@
 from pathlib import Path
 
 import polars as pl
-
 from food_parquet import food_product, image, write_food_parquet
+
 from snacker.products import extract_products, read_archive, update_products
 
 

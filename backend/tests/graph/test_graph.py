@@ -6,12 +6,12 @@ from typing import Any
 
 import polars as pl
 import pytest
-
-from snacker.graph.definitions import defs
-from snacker.scans import SCANS_SCHEMA, normalise_scans
 from stepdag import run
 from stepdag.assets import Bindings
+
 from graph.raw_events import backfill_scan, live_scan, write_raw
+from snacker.graph.definitions import defs
+from snacker.scans import SCANS_SCHEMA, normalise_scans
 
 
 @pytest.fixture

@@ -135,9 +135,9 @@ class S3Bucket:
 
     def __init__(self, name: str) -> None:
         self.name = name
-        self.client: "S3Client" = boto3.client("s3", config=Config(max_pool_connections=PARALLEL_REQUESTS))
+        self.client: S3Client = boto3.client("s3", config=Config(max_pool_connections=PARALLEL_REQUESTS))
 
-    def _list(self, prefix: str, start_after: str = "") -> list["ObjectTypeDef"]:
+    def _list(self, prefix: str, start_after: str = "") -> list[ObjectTypeDef]:
         where = f"s3://{self.name}/{prefix}" + (f" starting after {start_after}" if start_after else "")
         log_s3("LIST", f"prefix {prefix}" + (f", start-after {start_after}" if start_after else ""))
         items: list[ObjectTypeDef] = []

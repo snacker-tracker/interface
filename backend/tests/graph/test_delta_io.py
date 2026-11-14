@@ -3,9 +3,9 @@
 from pathlib import Path
 
 import polars as pl
+from stepdag import RunContext
 
 from snacker.graph.delta_io import DeltaIO, Merge
-from stepdag import RunContext
 
 
 def context(run_id: str, force: bool = False) -> RunContext:

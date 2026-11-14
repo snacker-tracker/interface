@@ -11,13 +11,13 @@ from typing import Any
 import polars as pl
 import pytest
 from polars.testing import assert_frame_equal
-
-from snacker.graph.definitions import defs
-from snacker.products import PRODUCTS_SCHEMA, extract_products, read_archive
 from stepdag import run
 from stepdag.assets import Bindings
+
 from graph.food_parquet import food, write_archive, write_food
 from graph.raw_events import backfill_scan, live_scan, write_raw
+from snacker.graph.definitions import defs
+from snacker.products import PRODUCTS_SCHEMA, extract_products, read_archive
 
 
 @pytest.fixture

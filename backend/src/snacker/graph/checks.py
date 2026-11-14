@@ -6,11 +6,11 @@ from pathlib import Path, PurePosixPath
 from typing import Any
 
 import polars as pl
+from stepdag.io import RunContext
 
 from snacker import sections
 from snacker.check import contract_violations
 from snacker.config import RECENT_SCANS_LIMIT, TOP_SCANS_LIMIT
-from stepdag.io import RunContext
 
 
 def every_scan_has_a_code_and_a_time(scans: pl.DataFrame, context: RunContext) -> str | None:

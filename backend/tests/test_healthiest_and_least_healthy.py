@@ -4,6 +4,7 @@ with a Nutri-Score scanned within each period, ranked by grade, then by scans.""
 from datetime import UTC, datetime
 
 from scans_table import scan, scans_table
+
 from snacker.scan_summary import healthiest_and_least_healthy
 
 # Wednesday 21 October 2026, 12:00 in Bangkok (UTC+7).

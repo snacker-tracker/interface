@@ -16,7 +16,13 @@ from pathlib import Path
 
 import polars as pl
 
-from snacker.storage import PARALLEL_REQUESTS, Bucket, DirectoryBucket, S3Bucket, s3_location
+from snacker.storage import (
+    PARALLEL_REQUESTS,
+    Bucket,
+    DirectoryBucket,
+    S3Bucket,
+    s3_location,
+)
 
 MARGIN = timedelta(minutes=15)
 """How far before the watermark a read goes again. Firehose names a file for its buffer's
@@ -36,7 +42,7 @@ class RawEvents:
     prefix: str = ""
 
     @classmethod
-    def at(cls, location: str, open_bucket: Callable[[str], Bucket] = S3Bucket) -> "RawEvents":
+    def at(cls, location: str, open_bucket: Callable[[str], Bucket] = S3Bucket) -> RawEvents:
         """A directory, or `s3://bucket/prefix/`."""
         s3 = s3_location(location)
         if s3 is None:

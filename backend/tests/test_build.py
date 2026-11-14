@@ -3,7 +3,6 @@
 from pathlib import Path
 
 import pytest
-
 from built_output import read_json, run_build, write_products
 from raw_events import (
     backfill_scan,

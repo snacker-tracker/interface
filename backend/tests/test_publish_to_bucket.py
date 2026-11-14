@@ -3,8 +3,8 @@
 from pathlib import Path
 
 import pytest
-
 from fake_bucket import FakeBucket, Put
+
 from snacker.storage import publish_to_bucket
 
 

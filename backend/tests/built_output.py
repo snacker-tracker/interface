@@ -10,8 +10,9 @@ from pathlib import Path
 from typing import Any
 
 from graph.food_parquet import food, write_archive, write_food
-from snacker.graph.definitions import defs
 from stepdag import run
+
+from snacker.graph.definitions import defs
 
 GENERATED_AT = datetime(2026, 10, 19, 12, 0, tzinfo=UTC)
 FRONT_IMAGE = re.compile(r"/(front_(\w+))\.(\d+)\.\d+\.jpg$")

@@ -7,9 +7,15 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-
 from built_output import run_build, write_products
-from raw_events import backfill_scan, heartbeat_flat, heartbeat_v2, live_scan, write_events
+from raw_events import (
+    backfill_scan,
+    heartbeat_flat,
+    heartbeat_v2,
+    live_scan,
+    write_events,
+)
+
 from snacker.check import contract_violations
 from snacker.schema import schema_errors, schema_json
 

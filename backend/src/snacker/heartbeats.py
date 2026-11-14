@@ -12,6 +12,7 @@ ones sent with the API key its heartbeats use (see docs/adr/0002).
 
 from datetime import datetime
 from pathlib import Path
+
 import polars as pl
 
 from snacker.contract import LastScan, ScannerStatus

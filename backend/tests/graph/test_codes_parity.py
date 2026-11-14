@@ -1,17 +1,17 @@
 """Code pages and product files: the values Snacker's legacy build gave them on the same inputs and `now`."""
 
 import json
-from typing import Any
 from pathlib import Path
+from typing import Any
 
 import pytest
-
-from snacker.graph.definitions import defs
 from stepdag import run
+
 from graph.food_parquet import food, write_archive, write_food
-from graph.raw_events import backfill_scan, live_scan, write_raw
 from graph.published import files_under
+from graph.raw_events import backfill_scan, live_scan, write_raw
 from graph.test_site_parity import NOW, site
+from snacker.graph.definitions import defs
 
 __all__ = ["site"]
 
