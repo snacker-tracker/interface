@@ -65,7 +65,16 @@ def test_download_with_a_new_revision_copies_to_a_new_key(io: Bindings, openfood
     assert second["revision"] != first["revision"]
     assert second["uri"] != first["uri"]
     assert copied_file(second).read_bytes() == openfoodfacts.read_bytes()
-    assert copied_file(first).exists()  # Earlier copies stay until the lifecycle rule expires them.
+    assert not copied_file(first).exists()  # The copy it replaces is deleted.
+    assert copied_file(second).exists()
+
+
+def test_only_the_newest_copy_is_kept_across_many_downloads(io: Bindings, openfoodfacts: Path) -> None:
+    for n in range(3):
+        write_food(openfoodfacts, [food(str(n))])
+        run(defs, io, config={"download": True})
+
+    assert len(list((openfoodfacts.parent.parent / "files").rglob("food.parquet"))) == 1
 
 
 def test_a_forced_run_copies_again(io: Bindings) -> None:

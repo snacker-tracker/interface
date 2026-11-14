@@ -50,6 +50,9 @@ def openfoodfacts_copy(*, previous: dict[str, Any] | None, context: RunContext) 
     Copies when there's no copy yet (or it has expired), when the run config asks for a download
     and the revision is new, or in a forced run (where `previous` is None). An ordinary run never
     copies 8 GB.
+
+    Only the newest copy is kept: once a new one is uploaded, the copy it replaces is deleted.
+    The lifecycle rule still expires any copy this doesn't reach, such as after a forced run.
     """
     source = openfoodfacts_source(os.environ["SCANS_OPENFOODFACTS"])
     files = files_at(os.environ["SCANS_FILES"])
@@ -62,6 +65,8 @@ def openfoodfacts_copy(*, previous: dict[str, Any] | None, context: RunContext) 
         uri, size = files.upload(f"openfoodfacts/{revision}/food.parquet", stream)
     finally:
         stream.close()
+    if previous is not None and previous["uri"] != uri:
+        files.delete(previous["uri"])
     return {"uri": uri, "revision": revision, "bytes": size, "copied_at": datetime.now(UTC).isoformat()}
 
 
