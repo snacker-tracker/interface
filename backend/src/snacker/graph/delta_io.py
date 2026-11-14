@@ -16,6 +16,9 @@ CHECKPOINT_EVERY = 10
 files after its newest checkpoint. Tables written every run (`scanned`, `heartbeats`) open on
 about a dozen steps a run."""
 
+VACUUM_EVERY = 48
+COMPACT_EVERY = 48
+
 
 @dataclass(frozen=True)
 class Merge:
@@ -87,6 +90,13 @@ class DeltaIO:
             )
         table = self._table(asset)
         assert table is not None
+
+        if table.version() % COMPACT_EVERY == 0:
+            table.optimize.compact()
+
+        if table.version() % VACUUM_EVERY == 0:
+            table.vacuum(retention_hours=1, enforce_retention_duration=False, dry_run=False)
+
         if table.version() % CHECKPOINT_EVERY == 0:
             table.create_checkpoint()
         return self._pointer(asset, table.version(), context.run_id)
