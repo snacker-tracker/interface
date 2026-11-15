@@ -99,10 +99,6 @@ class Files(Protocol):
         """Whether a copy is still there; the bucket's lifecycle rule expires old ones."""
         ...
 
-    def delete(self, uri: str) -> None:
-        """Remove a copy. Removing one that's already gone does nothing."""
-        ...
-
 
 class LocalFiles:
     def __init__(self, root: Path | str) -> None:
@@ -122,9 +118,6 @@ class LocalFiles:
 
     def exists(self, uri: str) -> bool:
         return Path(uri.removeprefix("file://")).is_file()
-
-    def delete(self, uri: str) -> None:
-        Path(uri.removeprefix("file://")).unlink(missing_ok=True)
 
 
 class S3Files:
@@ -154,10 +147,6 @@ class S3Files:
                 return False
             raise
         return True
-
-    def delete(self, uri: str) -> None:
-        # delete_object succeeds for a missing key, so there's no 404 to handle.
-        self.client.delete_object(Bucket=self.bucket, Key=uri.removeprefix(f"s3://{self.bucket}/"))
 
 
 def files_at(location: str) -> Files:

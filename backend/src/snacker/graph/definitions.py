@@ -49,14 +49,12 @@ def scans(*, previous: pl.LazyFrame | None) -> Any:
 @asset(io_manager="fixed_json", memory=1024, timeout=900)
 def openfoodfacts_copy(*, previous: dict[str, Any] | None, context: RunContext) -> Any:
     """OpenFoodFacts's `food.parquet`, copied from `$SCANS_OPENFOODFACTS` (`hf`, or a local file) into
-    `$SCANS_FILES`, under a key named after its revision so a copy never changes under a reader.
+    `$SCANS_FILES` at one stable key. A new revision overwrites it in place, and a reader sees either
+    the old copy or the new one, never a partial file.
 
     Copies when there's no copy yet (or it has expired), when the run config asks for a download
     and the revision is new, or in a forced run (where `previous` is None). An ordinary run never
-    copies 8 GB.
-
-    Only the newest copy is kept: once a new one is uploaded, the copy it replaces is deleted.
-    The lifecycle rule still expires any copy this doesn't reach, such as after a forced run.
+    copies 8 GB. The current revision is recorded in run state, not in the key.
     """
     source = openfoodfacts_source(os.environ["SCANS_OPENFOODFACTS"])
     files = files_at(os.environ["SCANS_FILES"])
@@ -69,11 +67,9 @@ def openfoodfacts_copy(*, previous: dict[str, Any] | None, context: RunContext) 
     revision = source.revision()
     stream = source.open()
     try:
-        uri, size = files.upload(f"openfoodfacts/{revision}/food.parquet", stream)
+        uri, size = files.upload("openfoodfacts/food.parquet", stream)
     finally:
         stream.close()
-    if previous is not None and previous["uri"] != uri:
-        files.delete(previous["uri"])
     return {"uri": uri, "revision": revision, "bytes": size, "copied_at": datetime.now(UTC).isoformat()}
 
 

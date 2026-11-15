@@ -28,11 +28,11 @@ def copied_file(description: dict[str, Any]) -> Path:
     return Path(description["uri"].removeprefix("file://"))
 
 
-def test_a_first_run_copies_the_file_to_a_key_named_after_its_revision(io: Bindings, openfoodfacts: Path) -> None:
+def test_a_first_run_copies_the_file_to_one_stable_key(io: Bindings, openfoodfacts: Path) -> None:
     description = copy_of(io, run(defs, io))
 
     assert description["revision"]
-    assert f"/openfoodfacts/{description['revision']}/food.parquet" in description["uri"]
+    assert description["uri"].endswith("/openfoodfacts/food.parquet")
     assert copied_file(description).read_bytes() == openfoodfacts.read_bytes()
     assert description["bytes"] == openfoodfacts.stat().st_size
     assert description["copied_at"]
@@ -56,17 +56,15 @@ def test_download_with_the_same_revision_skips(io: Bindings) -> None:
     assert "openfoodfacts_copy" in result.skipped
 
 
-def test_download_with_a_new_revision_copies_to_a_new_key(io: Bindings, openfoodfacts: Path) -> None:
+def test_download_with_a_new_revision_overwrites_the_stable_copy(io: Bindings, openfoodfacts: Path) -> None:
     first = copy_of(io, run(defs, io))
     write_food(openfoodfacts, [food("2", names=[("main", "Two")])])
 
     second = copy_of(io, run(defs, io, config={"download": True}))
 
     assert second["revision"] != first["revision"]
-    assert second["uri"] != first["uri"]
+    assert second["uri"] == first["uri"]
     assert copied_file(second).read_bytes() == openfoodfacts.read_bytes()
-    assert not copied_file(first).exists()  # The copy it replaces is deleted.
-    assert copied_file(second).exists()
 
 
 def test_only_the_newest_copy_is_kept_across_many_downloads(io: Bindings, openfoodfacts: Path) -> None:
@@ -109,6 +107,37 @@ def test_a_copy_that_fails_partway_leaves_no_file(io: Bindings, openfoodfacts: P
         run(defs, io)
 
     assert not list((openfoodfacts.parent.parent / "files").rglob("food.parquet"))
+
+
+def test_a_download_that_fails_partway_keeps_the_previous_copy_whole(
+    io: Bindings, openfoodfacts: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from snacker import openfoodfacts as source_module
+
+    first = copy_of(io, run(defs, io))
+    previous_bytes = copied_file(first).read_bytes()
+    write_food(openfoodfacts, [food("2", names=[("main", "Two")])])
+
+    class Broken:
+        def __init__(self, path: Path) -> None:
+            self.handle = path.open("rb")
+            self.reads = 0
+
+        def read(self, size: int = -1) -> bytes:
+            self.reads += 1
+            if self.reads > 1:
+                raise ConnectionResetError("the CDN went away")
+            return self.handle.read(4)
+
+        def close(self) -> None:
+            self.handle.close()
+
+    monkeypatch.setattr(source_module.LocalFile, "open", lambda self: Broken(self.path))
+
+    with pytest.raises(ConnectionResetError):
+        run(defs, io, config={"download": True})
+
+    assert copied_file(first).read_bytes() == previous_bytes
 
 
 def test_a_copy_that_has_expired_is_copied_again(io: Bindings) -> None:
