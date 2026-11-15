@@ -159,12 +159,14 @@ def test_unchanged_re_emits_the_latest_pointer_to_the_assets_after_it() -> None:
     defs = Definitions([text, upper])
     first = run(defs, io)
     second = run(defs, io)
-    third = run(defs, io, config={"name": "Ada"})
 
     assert second.computed == ["upper"]
     assert second.skipped == ["text"]
     assert second.pointers["text"] == first.pointers["text"]
-    assert value_of(io, second, "upper") == "HELLO, WORLD!"
+    assert value_of(io, second, "upper") == "HELLO, WORLD!"  # Read before a later run retains only its own.
+
+    third = run(defs, io, config={"name": "Ada"})
+
     assert third.computed == ["text", "upper"]
     assert value_of(io, third, "upper") == "HELLO, ADA!"
 

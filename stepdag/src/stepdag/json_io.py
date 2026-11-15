@@ -17,6 +17,10 @@ class Store(Protocol):
 
     def get(self, key: str) -> bytes | None: ...
 
+    def delete(self, key: str) -> None:
+        """Remove a key. Removing one that's already gone does nothing."""
+        ...
+
     def modified(self, prefix: str) -> dict[str, datetime]:
         """The keys under `prefix`, with when each was last written."""
         ...
@@ -37,6 +41,10 @@ class MemoryStore:
 
     def get(self, key: str) -> bytes | None:
         return self.objects.get(key)
+
+    def delete(self, key: str) -> None:
+        self.objects.pop(key, None)
+        self.written.pop(key, None)
 
     def modified(self, prefix: str) -> dict[str, datetime]:
         return {k: t for k, t in self.written.items() if k.startswith(prefix)}
@@ -63,6 +71,9 @@ class DirectoryStore:
     def get(self, key: str) -> bytes | None:
         path = self.root / key
         return path.read_bytes() if path.is_file() else None
+
+    def delete(self, key: str) -> None:
+        (self.root / key).unlink(missing_ok=True)
 
     def modified(self, prefix: str) -> dict[str, datetime]:
         if not self.root.is_dir():
@@ -99,6 +110,10 @@ class S3Store:
             return None
         body: bytes = response["Body"].read()
         return body
+
+    def delete(self, key: str) -> None:
+        # delete_object succeeds for a missing key, so there's no 404 to handle.
+        self.client.delete_object(Bucket=self.bucket, Key=self.prefix + key)
 
     def modified(self, prefix: str) -> dict[str, datetime]:
         found: dict[str, datetime] = {}
@@ -155,7 +170,16 @@ class RunJson(_JsonIO):
     name = "run_json"
 
     def store(self, value: Any, asset: str, context: RunContext) -> Pointer:
-        return self._write(f"{self.prefix}runs/{asset}/{context.run_id}.json", value, asset, context)
+        pointer = self._write(f"{self.prefix}runs/{asset}/{context.run_id}.json", value, asset, context)
+        # The lineage record outlives retention: pruning removes materializations, never these.
+        self.backend.put(f"{self.prefix}lineage/{asset}/{context.run_id}.json", json.dumps(pointer.to_json()).encode())
+        return pointer
+
+    def lineage(self, asset: str) -> list[Pointer]:
+        """Every run's pointer to `asset`, oldest first, kept whether or not its value still is."""
+        keys = self.backend.modified(f"{self.prefix}lineage/{asset}/")
+        records = [Pointer.from_json(json.loads(data)) for key in keys if (data := self.backend.get(key)) is not None]
+        return sorted(records, key=lambda p: int(p.metadata["stored_at_ns"]))
 
     def latest(self, asset: str, partition: str | None = None) -> Pointer | None:
         written = self.backend.modified(f"{self.prefix}runs/{asset}/")
@@ -168,6 +192,14 @@ class RunJson(_JsonIO):
             if at == last and (stored := self._read(key)) is not None
         ]
         return max(pointers, key=lambda p: int(p.metadata["stored_at_ns"]), default=None)
+
+    def prune(self, asset: str, keep: int) -> None:
+        """Remove all but the newest `keep` materializations of `asset`, by when each was stored."""
+        stored = {key: self._read(key) for key in self.backend.modified(f"{self.prefix}runs/{asset}/")}
+        live = {key: value for key, value in stored.items() if value is not None}
+        newest_first = sorted(live, key=lambda key: int(live[key]["pointer"]["metadata"]["stored_at_ns"]), reverse=True)
+        for key in newest_first[keep:]:
+            self.backend.delete(key)
 
 
 class FixedJson(_JsonIO):

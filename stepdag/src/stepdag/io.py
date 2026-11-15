@@ -1,7 +1,7 @@
 """What crosses between steps, and what an asset's function sees of its run."""
 
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from typing import Any, Protocol, runtime_checkable
 
 
 @dataclass(frozen=True)
@@ -41,6 +41,15 @@ class IOManager(Protocol):
     def load(self, pointer: Pointer) -> Any: ...
 
     def latest(self, asset: str, partition: str | None = None) -> Pointer | None: ...
+
+
+@runtime_checkable
+class Retaining(Protocol):
+    """An IO manager that can drop an asset's older materializations, for an asset's retention setting."""
+
+    def prune(self, asset: str, keep: int) -> None:
+        """Remove all but the newest `keep` materializations of `asset`. Lineage is never removed."""
+        ...
 
 
 class _Unchanged:

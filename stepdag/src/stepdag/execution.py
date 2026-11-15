@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from stepdag.assets import RESERVED_NAMES, Bindings, Definitions
-from stepdag.io import UNCHANGED, Pointer, RunContext
+from stepdag.io import UNCHANGED, Pointer, Retaining, RunContext
 
 
 class StepFailed(Exception):
@@ -99,7 +99,10 @@ def materialize(definitions: Definitions, name: str, pointers: Mapping[str, Poin
     failures = {check.__name__: message for check in a.checks if (message := check(value, context)) is not None}
     if failures:
         raise CheckFailed(name, failures)
-    return Outcome(io_manager.store(value, name, context), computed=True)
+    pointer = io_manager.store(value, name, context)
+    if isinstance(io_manager, Retaining):
+        io_manager.prune(name, a.keep)
+    return Outcome(pointer, computed=True)
 
 
 def _context(definitions: Definitions, name: str, run: Run) -> RunContext:
