@@ -29,7 +29,7 @@ def test_a_failed_overwrite_leaves_the_old_copy_and_no_partial_file(
     files.upload("openfoodfacts/food.parquet", io.BytesIO(b"the old copy"))
 
     class Failing(io.BytesIO):
-        def read(self, size: int = -1) -> bytes:
+        def read(self, size: int | None = -1) -> bytes:
             raise ConnectionResetError("the CDN went away")
 
     with pytest.raises(ConnectionResetError):
