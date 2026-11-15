@@ -81,9 +81,9 @@ def test_products_are_the_rows_snackers_extraction_gives_from_the_copy_and_the_a
     rows = table(io, run(defs, io), "products").sort("code")
 
     expected = extract_products(openfoodfacts, ["111", "222", "333", "444", "555", "666", "777", "888", "999999"], archive=read_archive(archive))
-    assert rows.columns == [*PRODUCTS_SCHEMA.names(), "revision"]
+    assert rows.columns == [*PRODUCTS_SCHEMA.names(), "revision", "subset_hash"]
     # Delta stores Snacker's Enum columns as text; cast back, the rows are exactly Snacker's.
-    assert_frame_equal(rows.drop("revision").cast(PRODUCTS_SCHEMA), expected)
+    assert_frame_equal(rows.drop("revision", "subset_hash").cast(PRODUCTS_SCHEMA), expected)
     assert set(expected["name_source"].to_list()) == {"openfoodfacts", "snacker-archive", None}
 
 
@@ -184,3 +184,37 @@ def test_a_code_the_archive_lists_twice_gets_no_archive_name(io: Bindings, raw: 
     scan(raw, "new", "5", "152")
 
     assert names(io, run(defs, io)) == {"152": ("Curry paste", "snacker-archive"), "5": (None, None)}
+
+
+def subset_hash_of(io: Bindings, result: Any) -> str:
+    """The one hash every row of the products table records."""
+    hashes = table(io, result, "products")["subset_hash"].unique().to_list()
+    assert len(hashes) == 1
+    hash_: str = hashes[0]
+    return hash_
+
+
+def test_every_row_records_the_hash_of_the_subset_it_came_from(io: Bindings, raw: Path, openfoodfacts: Path) -> None:
+    write_food(openfoodfacts, CATALOGUE)
+    scan(raw, "first", "111", "444")
+
+    result = run(defs, io)
+
+    assert table(io, result, "products").height == 2
+    assert subset_hash_of(io, result)
+
+
+def test_the_hash_changes_only_when_a_scanned_product_changes(io: Bindings, raw: Path, openfoodfacts: Path) -> None:
+    write_food(openfoodfacts, CATALOGUE)
+    scan(raw, "first", "111", "444")
+    first = subset_hash_of(io, run(defs, io))
+    # A new revision that only changes 999, which nobody has scanned.
+    write_food(openfoodfacts, [*CATALOGUE[:4], food("999", names=[("main", "Renamed")], brands="Nobody", nutriscore="a")])
+
+    unscanned = subset_hash_of(io, run(defs, io, config={"download": True}))
+    # A new revision that renames 111, which has been scanned.
+    write_food(openfoodfacts, [food("111", names=[("main", "Crisps")], brands="Lay's", nutriscore="b"), *CATALOGUE[1:4]])
+    scanned = subset_hash_of(io, run(defs, io, config={"download": True}))
+
+    assert unscanned == first
+    assert scanned != first

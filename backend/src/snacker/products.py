@@ -9,6 +9,8 @@ is an unknown product and its details are null, apart from a name the archive ma
 `name_source` says where each name came from.
 """
 
+import hashlib
+import json
 import re
 import tempfile
 from collections.abc import Iterable
@@ -265,7 +267,14 @@ def product_files(products_parquet: Path) -> dict[str, ProductFile]:
 PRODUCTS_TABLE_SCHEMA = pl.Schema({
     **PRODUCTS_SCHEMA,
     "revision": pl.String(),  # the copy's revision the row came from
+    "subset_hash": pl.String(),  # a digest of every row extracted in the same run, so the same subset gives the same hash
 })
+
+
+def subset_hash(products: pl.DataFrame) -> str:
+    """A digest of the extracted `products`, independent of row order."""
+    rows = products.sort("code").to_dicts()
+    return hashlib.sha256(json.dumps(rows, sort_keys=True, default=str).encode()).hexdigest()
 
 
 def is_current(table: pl.LazyFrame, scans: pl.LazyFrame, revision: str) -> bool:
@@ -284,7 +293,10 @@ def extract_from_copy(scans: pl.LazyFrame, copy: dict[str, Any], archive: str) -
     with tempfile.TemporaryDirectory(prefix="archive-") as scratch:
         snacker_archive = read_archive(fetch(archive, Path(scratch), S3Bucket))
     products = extract_products(_local_path(copy["uri"]), codes, archive=snacker_archive)
-    return products.with_columns(revision=pl.lit(copy["revision"], pl.String()))
+    return products.with_columns(
+        revision=pl.lit(copy["revision"], pl.String()),
+        subset_hash=pl.lit(subset_hash(products), pl.String()),
+    )
 
 
 def _local_path(uri: str) -> str:

@@ -5,7 +5,12 @@ from pathlib import Path
 import polars as pl
 from food_parquet import food_product, image, write_food_parquet
 
-from snacker.products import extract_products, read_archive, update_products
+from snacker.products import (
+    extract_products,
+    read_archive,
+    subset_hash,
+    update_products,
+)
 
 
 def products_by_code(food: Path, codes: list[str]) -> dict[str, dict[str, str | None]]:
@@ -335,3 +340,10 @@ def test_the_best_green_score_is_a_plus(tmp_path: Path) -> None:
     )
 
     assert product_card(food, "8850999220000")["green_score"] == "A+"
+
+
+def test_the_subset_hash_ignores_row_order_and_changes_with_a_row(tmp_path: Path) -> None:
+    rows = pl.DataFrame({"code": ["1", "2"], "name": ["Crisps", "Tea"]})
+
+    assert subset_hash(rows) == subset_hash(rows.reverse())
+    assert subset_hash(rows) != subset_hash(rows.with_columns(name=pl.Series(["Crisps", "Green Tea"])))
