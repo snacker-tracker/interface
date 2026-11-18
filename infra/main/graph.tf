@@ -18,6 +18,8 @@ locals {
     SCANS_OPENFOODFACTS = "hf"
     SCANS_ARCHIVE       = "s3://${local.working_bucket}/snacker-archive.csv"
     SCANS_SITE          = "s3://${local.site_bucket}"
+    # The code version the materializations are stamped with: an asset skips only when its code matches (ADR 0006).
+    STEPDAG_CODE_VERSION = var.image_uri
   }
 
   graph_schedules = var.graph_enabled ? {

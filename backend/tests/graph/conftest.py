@@ -10,6 +10,12 @@ from graph.food_parquet import food, write_archive, write_food
 
 
 @pytest.fixture(autouse=True)
+def code_version(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Graph runs stamp a code version, and a dirty checkout has none, so tests pin one (ADR 0006)."""
+    monkeypatch.setenv("STEPDAG_CODE_VERSION", "test-version")
+
+
+@pytest.fixture(autouse=True)
 def openfoodfacts(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[Path]:
     source = write_food(tmp_path / "openfoodfacts" / "food.parquet", [food("1", names=[("main", "One")])])
     monkeypatch.setenv("SCANS_OPENFOODFACTS", str(source))

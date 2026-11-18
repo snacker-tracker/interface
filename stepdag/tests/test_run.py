@@ -652,3 +652,93 @@ def test_the_skip_reason_says_the_parents_are_unchanged() -> None:
 
     assert not outcome.computed
     assert "parents" in outcome.reason and "unchanged" in outcome.reason
+
+
+def source_and_child(calls: list[str]) -> Definitions:
+    """`source` is UNCHANGED after its first run, so its pointer, and so `child`'s parents, stay the same."""
+
+    @asset(io_manager="fixed_json")
+    def source(*, previous: int | None) -> Any:
+        return UNCHANGED if previous is not None else 1
+
+    @asset(deps=["source"], io_manager="run_json")
+    def child(n: int) -> int:
+        calls.append("child")
+        return n + 1
+
+    return Definitions([source, child])
+
+
+def test_a_materialization_records_the_code_version_it_was_made_by() -> None:
+    result = run(source_and_child([]), fixed_and_run_json(), code_version=lambda: "v1")
+
+    assert result.pointers["child"].metadata["stamp"]["code"] == "v1"
+
+
+def test_the_same_code_version_skips_a_child_whose_parents_are_unchanged() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = source_and_child(calls)
+    run(defs, io, code_version=lambda: "v1")
+
+    second = run(defs, io, code_version=lambda: "v1")
+
+    assert second.computed == []
+    assert second.skipped == ["source", "child"]
+    assert calls == ["child"]
+
+
+def test_a_different_code_version_computes_a_child_whose_parents_are_unchanged() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = source_and_child(calls)
+    run(defs, io, code_version=lambda: "v1")
+
+    second = run(defs, io, code_version=lambda: "v2")
+
+    assert second.computed == ["child"]
+    assert second.skipped == ["source"]
+    assert calls == ["child", "child"]
+
+
+def test_no_code_version_never_skips() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = source_and_child(calls)
+    first = run(defs, io, code_version=lambda: None)
+
+    second = run(defs, io, code_version=lambda: None)
+
+    assert first.pointers["child"].metadata["stamp"]["code"] is None
+    assert second.computed == ["child"]
+    assert calls == ["child", "child"]
+
+
+def test_a_latest_stamped_without_a_code_version_computes_though_its_parents_are_unchanged() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = source_and_child(calls)
+    first = run(defs, io, code_version=lambda: "v1")
+    parents = {k: v for k, v in first.pointers["child"].metadata["stamp"].items() if k != "code"}
+    io["run_json"].store(99, "child", RunContext("old", "", "child", {}, {}, False, parents))
+
+    second = run(defs, io, code_version=lambda: "v1")
+
+    assert second.computed == ["child"]
+    assert value_of(io, second, "child") == 2
+
+
+def test_the_default_code_version_comes_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Undo the autouse fixture's patch, so run() reads the real code_version() and its environment variable.
+    monkeypatch.undo()
+    monkeypatch.setenv("STEPDAG_CODE_VERSION", "sha256:digest")
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = source_and_child(calls)
+
+    first = run(defs, io)
+    second = run(defs, io)
+
+    assert first.pointers["child"].metadata["stamp"]["code"] == "sha256:digest"
+    assert second.skipped == ["source", "child"]
+    assert calls == ["child"]

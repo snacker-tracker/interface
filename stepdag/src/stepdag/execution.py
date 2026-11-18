@@ -1,13 +1,17 @@
 """Running one asset's step, and running a whole graph in one process."""
 
 import uuid
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
 
+from stepdag import version
 from stepdag.assets import RESERVED_NAMES, Bindings, Definitions
 from stepdag.io import UNCHANGED, Pointer, Retaining, RunContext
+
+CodeVersion = Callable[[], str | None]
+"""Where a run's code version comes from. The default is `stepdag.version.code_version`."""
 
 
 class StepFailed(Exception):
@@ -71,7 +75,14 @@ class Outcome:
     """Why a step skipped by the parents rule (ADR 0006), for the log. Empty otherwise."""
 
 
-def materialize(definitions: Definitions, name: str, pointers: Mapping[str, Pointer], run: Run, io_managers: Bindings) -> Outcome:
+def materialize(
+    definitions: Definitions,
+    name: str,
+    pointers: Mapping[str, Pointer],
+    run: Run,
+    io_managers: Bindings,
+    code_version: CodeVersion | None = None,
+) -> Outcome:
     """Run one asset's step: load its parents, call its function, and store the result."""
     a = definitions[name]
     io_manager = io_managers[a.io_manager]
@@ -80,13 +91,13 @@ def materialize(definitions: Definitions, name: str, pointers: Mapping[str, Poin
         if latest is None:
             raise StepFailed(f"{name} isn't selected and has no materialization to re-emit")
         return Outcome(latest, computed=False)
-    stamp = {"parents": {dep: _unstamped(pointers[dep]) for dep in a.deps}}
+    stamp = {"parents": {dep: _unstamped(pointers[dep]) for dep in a.deps}, "code": _current_code(code_version)}
     context = _context(definitions, name, run, stamp)
     # Only asked for when it's needed: an asset with parents that may skip needs its latest to see
     # whether its parents are unchanged, and one that takes `previous` needs it to call its function.
     may_skip = bool(a.deps) and a.skip_when_unchanged and not context.force
     latest = io_manager.latest(name) if a.wants_previous or may_skip else None
-    if may_skip and latest is not None and latest.metadata.get("stamp", {}).get("parents") == stamp["parents"]:
+    if may_skip and latest is not None and _unchanged_since(latest, stamp):
         return Outcome(latest, computed=False, reason="its parents are unchanged since it was made")
     parents = [io_managers[pointers[dep].io_manager].load(pointers[dep]) for dep in a.deps]
     keywords: dict[str, Any] = {}
@@ -110,6 +121,16 @@ def materialize(definitions: Definitions, name: str, pointers: Mapping[str, Poin
     if isinstance(io_manager, Retaining):
         io_manager.prune(name, a.keep)
     return Outcome(pointer, computed=True)
+
+
+def _current_code(code_version: CodeVersion | None) -> str | None:
+    return code_version() if code_version is not None else version.code_version()
+
+
+def _unchanged_since(latest: Pointer, stamp: dict[str, Any]) -> bool:
+    """Whether the latest was made from this code and these parents. Code of None never matches (ADR 0006)."""
+    recorded = latest.metadata.get("stamp", {})
+    return stamp["code"] is not None and recorded.get("code") == stamp["code"] and recorded.get("parents") == stamp["parents"]
 
 
 def _unstamped(pointer: Pointer) -> dict[str, Any]:
@@ -152,11 +173,13 @@ def run(
     downstream: bool = False,
     force: bool = False,
     started_at: datetime | None = None,
+    code_version: CodeVersion | None = None,
 ) -> RunResult:
     """Run the graph in this process, passing pointers between assets as Step Functions would.
 
     `select`, `downstream` and `force` are the run config's own keys, given separately for convenience.
     `started_at` fixes the run's start time (default: now), so a graph can be built at a known `now`.
+    `code_version` gives the code version the run stamps its materializations with (default: `stepdag.version.code_version`).
     """
     started = started_at or datetime.now(UTC)
     run_id = f"local-{started:%Y%m%dT%H%M%S}-{uuid.uuid4().hex[:8]}"
@@ -173,7 +196,7 @@ def run(
         for name in level:
             # Round-trip through JSON, as the state machine's state would, so local runs exercise it too.
             pointers = {k: Pointer.from_json(p.to_json()) for k, p in result.pointers.items()}
-            outcome = materialize(definitions, name, pointers, the_run, io_managers)
+            outcome = materialize(definitions, name, pointers, the_run, io_managers, code_version)
             result.pointers[name] = outcome.pointer
             (result.computed if outcome.computed else result.skipped).append(name)
     return result
