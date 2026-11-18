@@ -169,8 +169,14 @@ class RunJson(_JsonIO):
 
     name = "run_json"
 
+    def __init__(self, store: Store, prefix: str = "") -> None:
+        super().__init__(store, prefix)
+        self._stored: dict[str, str] = {}
+
     def store(self, value: Any, asset: str, context: RunContext) -> Pointer:
-        pointer = self._write(f"{self.prefix}runs/{asset}/{context.run_id}.json", value, asset, context)
+        key = f"{self.prefix}runs/{asset}/{context.run_id}.json"
+        pointer = self._write(key, value, asset, context)
+        self._stored[asset] = key
         # The lineage record outlives retention: pruning removes materializations, never these.
         self.backend.put(f"{self.prefix}lineage/{asset}/{context.run_id}.json", json.dumps(pointer.to_json()).encode())
         return pointer
@@ -194,11 +200,14 @@ class RunJson(_JsonIO):
         return max(pointers, key=lambda p: int(p.metadata["stored_at_ns"]), default=None)
 
     def prune(self, asset: str, keep: int) -> None:
-        """Remove all but the newest `keep` materializations of `asset`, by when each was stored."""
-        stored = {key: self._read(key) for key in self.backend.modified(f"{self.prefix}runs/{asset}/")}
-        live = {key: value for key, value in stored.items() if value is not None}
-        newest_first = sorted(live, key=lambda key: int(live[key]["pointer"]["metadata"]["stored_at_ns"]), reverse=True)
-        for key in newest_first[keep:]:
+        """Remove all but the newest `keep` materializations of `asset`, by when each was written.
+
+        Reads none of them: one can be megabytes and there can be hundreds, so loading them all
+        to find the oldest ran a Lambda out of memory (prod's `code_pages`, 2026-11-15)."""
+        written = self.backend.modified(f"{self.prefix}runs/{asset}/")
+        # S3 times writes to the second, so the one just stored can tie with an older one: it always counts as newest.
+        just_stored = self._stored.get(asset)
+        for key in sorted(written, key=lambda key: (key == just_stored, written[key], key), reverse=True)[keep:]:
             self.backend.delete(key)
 
 
