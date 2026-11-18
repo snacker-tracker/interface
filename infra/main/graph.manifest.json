@@ -138,7 +138,7 @@
     },
     "code_pages": {
       "handler": "stepdag.aws.asset_handler",
-      "memory": 3008,
+      "memory": 1024,
       "timeout": 300,
       "ephemeral_storage": 512,
       "role": "default",
