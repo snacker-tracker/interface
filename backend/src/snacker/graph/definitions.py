@@ -216,7 +216,7 @@ def scanners(heartbeats: pl.LazyFrame, scanned: pl.LazyFrame) -> sections.Bundle
     io_manager="site",
     checks=[keeps_the_contract, the_sections_agree],
     # Stages the tree twice (the contract check, then publishing) and diff-publishes about 3,500 files.
-    memory=2048,
+    memory=1024,
     timeout=600,
 )
 def site_tree(

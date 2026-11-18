@@ -182,7 +182,7 @@
     },
     "site_tree": {
       "handler": "stepdag.aws.asset_handler",
-      "memory": 2048,
+      "memory": 1024,
       "timeout": 600,
       "ephemeral_storage": 512,
       "role": "default",
