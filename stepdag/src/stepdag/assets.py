@@ -34,6 +34,8 @@ class Asset:
     skip_when_unchanged: bool
     """Whether an asset with parents re-emits its latest materialization when its parents and their
     materializations are unchanged since it was made (ADR 0006)."""
+    max_age: int | None
+    """Seconds after which a skip is refused, so the asset computes again; None means no limit (ADR 0006)."""
 
 
 def asset(
@@ -48,6 +50,7 @@ def asset(
     checks: Sequence[Callable[..., str | None]] = (),
     retention: str | int = "latest",
     skip_when_unchanged: bool = True,
+    max_age: int | None = None,
 ) -> Callable[[Callable[..., Any]], Asset]:
     """Declare an asset computed by the decorated function from the values of `deps`, in order.
 
@@ -56,7 +59,15 @@ def asset(
     `retention` is `latest` (keep only the newest materialization) or a number to keep the newest N.
     `skip_when_unchanged=False` makes an asset with parents compute whenever it's selected, even when
     its parents' latest materializations are the ones it was made from (ADR 0006).
+    `max_age=seconds` makes a skip also require the latest materialization to be at most that old,
+    measured from its computing run's start to this run's start; it needs `skip_when_unchanged`.
     """
+    if max_age is not None and not skip_when_unchanged:
+        raise ValueError("max_age needs skip_when_unchanged: an asset that never skips never reads its age")
+    if max_age is not None and max_age <= 0:
+        raise ValueError(f"max_age must be a positive number of seconds, not {max_age}")
+    if max_age is not None and not deps:
+        raise ValueError("max_age needs deps: an asset with no parents never skips, so its age is never read")
 
     def declare(fn: Callable[..., Any]) -> Asset:
         name = fn.__name__
@@ -84,6 +95,7 @@ def asset(
             wants_context="context" in keyword,
             keep=1 if retention == "latest" else int(retention),
             skip_when_unchanged=skip_when_unchanged,
+            max_age=max_age,
         )
 
     return declare

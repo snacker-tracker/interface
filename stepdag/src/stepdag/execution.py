@@ -91,13 +91,13 @@ def materialize(
         if latest is None:
             raise StepFailed(f"{name} isn't selected and has no materialization to re-emit")
         return Outcome(latest, computed=False)
-    stamp = {"parents": {dep: _unstamped(pointers[dep]) for dep in a.deps}, "code": _current_code(code_version)}
+    stamp = {"parents": {dep: _unstamped(pointers[dep]) for dep in a.deps}, "code": _current_code(code_version), "at": run.started_at}
     context = _context(definitions, name, run, stamp)
     # Only asked for when it's needed: an asset with parents that may skip needs its latest to see
     # whether its parents are unchanged, and one that takes `previous` needs it to call its function.
     may_skip = bool(a.deps) and a.skip_when_unchanged and not context.force
     latest = io_manager.latest(name) if a.wants_previous or may_skip else None
-    if may_skip and latest is not None and _unchanged_since(latest, stamp):
+    if may_skip and latest is not None and _unchanged_since(latest, stamp) and _within_max_age(latest, a.max_age, run):
         return Outcome(latest, computed=False, reason="its parents are unchanged since it was made")
     parents = [io_managers[pointers[dep].io_manager].load(pointers[dep]) for dep in a.deps]
     keywords: dict[str, Any] = {}
@@ -131,6 +131,34 @@ def _unchanged_since(latest: Pointer, stamp: dict[str, Any]) -> bool:
     """Whether the latest was made from this code and these parents. Code of None never matches (ADR 0006)."""
     recorded = latest.metadata.get("stamp", {})
     return stamp["code"] is not None and recorded.get("code") == stamp["code"] and recorded.get("parents") == stamp["parents"]
+
+
+def _within_max_age(latest: Pointer, max_age: int | None, run: Run) -> bool:
+    """Whether the latest is at most max_age seconds older than this run's start (ADR 0006).
+
+    Anything that can't be read as a time, or an `at` later than the run's start, is too old to trust,
+    so the asset computes rather than the run failing.
+    """
+    if max_age is None:
+        return True
+    at = latest.metadata.get("stamp", {}).get("at")
+    if at is None:
+        return False
+    try:
+        age = _parse_utc(run.started_at) - _parse_utc(at)
+    except (TypeError, ValueError):
+        return False
+    return 0 <= age.total_seconds() <= max_age
+
+
+def _parse_utc(text: object) -> datetime:
+    """An ISO time as an aware datetime, reading a trailing 'Z' and a naive time as UTC."""
+    if not isinstance(text, str):
+        raise TypeError(f"not a time: {text!r}")
+    if text.endswith("Z"):
+        text = text[:-1] + "+00:00"
+    parsed = datetime.fromisoformat(text)
+    return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
 
 
 def _unstamped(pointer: Pointer) -> dict[str, Any]:

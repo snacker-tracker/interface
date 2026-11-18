@@ -1,5 +1,6 @@
 """The local executor's seam: run a graph, then read the results back through its IO managers."""
 
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -742,3 +743,201 @@ def test_the_default_code_version_comes_from_the_environment(monkeypatch: pytest
     assert first.pointers["child"].metadata["stamp"]["code"] == "sha256:digest"
     assert second.skipped == ["source", "child"]
     assert calls == ["child"]
+
+
+T0 = datetime(2026, 11, 18, 12, 0, tzinfo=UTC)
+
+
+def child_with_max_age(calls: list[str], max_age: int | None) -> Definitions:
+    """`child` has parents and its own skip rule; `source` is UNCHANGED after its first run, so only age can make `child` compute."""
+
+    @asset(io_manager="fixed_json")
+    def source(*, previous: int | None) -> Any:
+        return UNCHANGED if previous is not None else 1
+
+    @asset(deps=["source"], io_manager="run_json", max_age=max_age)
+    def child(n: int) -> int:
+        calls.append("child")
+        return n + 1
+
+    return Definitions([source, child])
+
+
+def test_a_child_skips_while_younger_than_max_age_and_computes_once_older() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = child_with_max_age(calls, max_age=60)
+
+    first = run(defs, io, started_at=T0)
+    younger = run(defs, io, started_at=T0 + timedelta(seconds=30))
+    older = run(defs, io, started_at=T0 + timedelta(seconds=61))
+
+    assert first.computed == ["source", "child"]
+    assert younger.skipped == ["source", "child"]
+    assert older.computed == ["child"]
+    assert calls == ["child", "child"]
+
+
+def test_a_child_at_exactly_max_age_still_skips() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = child_with_max_age(calls, max_age=60)
+    run(defs, io, started_at=T0)
+
+    result = run(defs, io, started_at=T0 + timedelta(seconds=60))
+
+    assert result.skipped == ["source", "child"]
+    assert calls == ["child"]
+
+
+def test_a_skipped_child_keeps_its_old_stamp_so_its_age_keeps_growing() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = child_with_max_age(calls, max_age=60)
+    run(defs, io, started_at=T0)
+
+    skipped = run(defs, io, started_at=T0 + timedelta(seconds=30))
+
+    assert skipped.pointers["child"].metadata["stamp"]["at"] == T0.isoformat()
+
+
+def test_no_max_age_never_computes_because_of_age() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = child_with_max_age(calls, max_age=None)
+    run(defs, io, started_at=T0)
+
+    result = run(defs, io, started_at=T0 + timedelta(days=3650))
+
+    assert result.skipped == ["source", "child"]
+    assert calls == ["child"]
+
+
+def test_a_stamp_without_a_computed_at_computes_when_max_age_is_set() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = child_with_max_age(calls, max_age=60)
+    first = run(defs, io, started_at=T0)
+    stamp = {k: v for k, v in first.pointers["child"].metadata["stamp"].items() if k != "at"}
+    io["run_json"].store(99, "child", RunContext("old", "", "child", {}, {}, False, stamp))
+
+    result = run(defs, io, started_at=T0)
+
+    assert result.computed == ["child"]
+    assert value_of(io, result, "child") == 2
+
+
+def test_a_stamp_without_a_computed_at_still_skips_when_no_max_age_is_set() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = child_with_max_age(calls, max_age=None)
+    first = run(defs, io, started_at=T0)
+    stamp = {k: v for k, v in first.pointers["child"].metadata["stamp"].items() if k != "at"}
+    io["run_json"].store(99, "child", RunContext("old", "", "child", {}, {}, False, stamp))
+
+    result = run(defs, io, started_at=T0)
+
+    assert result.skipped == ["source", "child"]
+    assert calls == ["child"]
+
+
+def test_a_child_computed_because_of_age_records_the_new_runs_start_as_its_at() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = child_with_max_age(calls, max_age=60)
+    run(defs, io, started_at=T0)
+
+    result = run(defs, io, started_at=T0 + timedelta(seconds=61))
+
+    assert result.pointers["child"].metadata["stamp"]["at"] == (T0 + timedelta(seconds=61)).isoformat()
+
+
+def test_a_computed_stamp_records_the_run_start_as_at() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = child_with_max_age(calls, max_age=None)
+
+    result = run(defs, io, started_at=T0)
+
+    assert result.pointers["child"].metadata["stamp"]["at"] == T0.isoformat()
+    assert result.pointers["source"].metadata["stamp"]["at"] == T0.isoformat()
+
+
+@pytest.mark.parametrize("max_age", [0, -1])
+def test_a_max_age_that_is_not_positive_raises_when_declared(max_age: int) -> None:
+    with pytest.raises(ValueError):
+
+        @asset(deps=["x"], io_manager="run_json", max_age=max_age)
+        def fn(x: int) -> int:
+            return x
+
+
+def test_a_max_age_with_skip_when_unchanged_turned_off_raises_when_declared() -> None:
+    with pytest.raises(ValueError):
+
+        @asset(deps=["x"], io_manager="run_json", max_age=60, skip_when_unchanged=False)
+        def child(x: int) -> int:
+            return x
+
+
+def test_max_age_is_unset_by_default() -> None:
+    @asset(io_manager="run_json")
+    def fn() -> int:
+        return 1
+
+    assert fn.max_age is None
+
+
+def run_with_stored_at(at: Any, started: datetime) -> tuple[Any, list[str]]:
+    """Store a child whose stamp has the given `at`, then run it at `started` with max_age=60."""
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = child_with_max_age(calls, max_age=60)
+    first = run(defs, io, started_at=T0)
+    stamp = {**first.pointers["child"].metadata["stamp"], "at": at}
+    io["run_json"].store(99, "child", RunContext("old", "", "child", {}, {}, False, stamp))
+    calls.clear()
+    return run(defs, io, started_at=started), calls
+
+
+def test_a_garbage_at_computes_rather_than_crashing_the_run() -> None:
+    result, calls = run_with_stored_at("garbage", T0)
+
+    assert result.computed == ["child"]
+    assert calls == ["child"]
+
+
+def test_a_non_string_at_computes_rather_than_crashing_the_run() -> None:
+    result, calls = run_with_stored_at(123, T0)
+
+    assert result.computed == ["child"]
+    assert calls == ["child"]
+
+
+def test_a_naive_at_is_read_as_utc_and_can_skip() -> None:
+    result, calls = run_with_stored_at("2026-11-18T12:00:00", T0 + timedelta(seconds=30))
+
+    assert result.skipped == ["source", "child"]
+    assert calls == []
+
+
+def test_a_z_suffixed_at_is_read_as_utc_and_can_skip() -> None:
+    result, calls = run_with_stored_at("2026-11-18T12:00:00Z", T0 + timedelta(seconds=30))
+
+    assert result.skipped == ["source", "child"]
+    assert calls == []
+
+
+def test_a_negative_age_computes_when_at_is_later_than_the_run_start() -> None:
+    result, calls = run_with_stored_at((T0 + timedelta(seconds=100)).isoformat(), T0)
+
+    assert result.computed == ["child"]
+    assert calls == ["child"]
+
+
+def test_a_max_age_on_an_asset_with_no_deps_raises_when_declared() -> None:
+    with pytest.raises(ValueError):
+
+        @asset(io_manager="run_json", max_age=60)
+        def root() -> int:
+            return 1
