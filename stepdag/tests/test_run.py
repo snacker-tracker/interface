@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from stepdag import Definitions, DefinitionError, RunContext, asset, run
+from stepdag import UNCHANGED, Definitions, DefinitionError, RunContext, asset, run
 from stepdag.json_io import MemoryStore, RunJson
 
 
@@ -160,8 +160,8 @@ def test_unchanged_re_emits_the_latest_pointer_to_the_assets_after_it() -> None:
     first = run(defs, io)
     second = run(defs, io)
 
-    assert second.computed == ["upper"]
-    assert second.skipped == ["text"]
+    assert second.computed == []
+    assert second.skipped == ["text", "upper"]
     assert second.pointers["text"] == first.pointers["text"]
     assert value_of(io, second, "upper") == "HELLO, WORLD!"  # Read before a later run retains only its own.
 
@@ -209,10 +209,23 @@ def test_a_selection_materializes_only_the_named_assets() -> None:
 
     result = run(defs, io, select=["third"])
 
-    assert result.computed == ["third"]
-    assert result.skipped == ["first", "other", "second"]
+    # Third is selected, but its parent is unchanged since its last run, so it skips too.
+    assert result.computed == []
+    assert result.skipped == ["first", "other", "second", "third"]
     assert result.pointers["second"] == full.pointers["second"]
     assert value_of(io, result, "first") == 1
+
+
+def test_a_selected_asset_whose_parent_changed_computes_while_an_unselected_one_re_emits() -> None:
+    io = fixed_and_run_json()
+    defs = three_in_a_row()
+    run(defs, io)
+
+    result = run(defs, io, select=["first"], downstream=True)
+
+    assert result.computed == ["first", "second", "third"]
+    assert result.skipped == ["other"]
+    assert value_of(io, result, "other") == 1
 
 
 def test_downstream_adds_everything_after_the_selection() -> None:
@@ -393,17 +406,40 @@ class AskedForLatest(RunJson):
         return super().latest(asset, partition)
 
 
-def test_an_asset_that_takes_no_previous_and_returns_a_value_never_asks_for_its_latest() -> None:
+def test_an_asset_with_parents_asks_for_its_latest_only_when_it_may_skip() -> None:
     @asset(io_manager="run_json")
     def a() -> int:
         return 1
 
+    @asset(deps=["a"], io_manager="run_json", skip_when_unchanged=False)
+    def opted_out(n: int) -> int:
+        return n + 1
+
     @asset(deps=["a"], io_manager="run_json")
-    def b(n: int) -> int:
+    def child(n: int) -> int:
         return n + 1
 
     io = AskedForLatest()
-    defs = Definitions([a, b])
+    defs = Definitions([a, opted_out, child])
+    run(defs, {"run_json": io})
+    io.asked.clear()
+
+    run(defs, {"run_json": io})
+    assert "opted_out" not in io.asked
+    assert "child" in io.asked
+
+    io.asked.clear()
+    run(defs, {"run_json": io}, force=True)
+    assert io.asked == []
+
+
+def test_a_root_that_takes_no_previous_and_returns_a_value_never_asks_for_its_latest() -> None:
+    @asset(io_manager="run_json")
+    def a() -> int:
+        return 1
+
+    io = AskedForLatest()
+    defs = Definitions([a])
     run(defs, {"run_json": io})
     run(defs, {"run_json": io})
 
@@ -425,3 +461,194 @@ def test_an_asset_without_previous_that_returns_unchanged_re_emits_its_latest() 
 
     assert second.skipped == ["a"]
     assert second.pointers["a"] == first.pointers["a"]
+
+
+def steady_and_changing(calls: list[str]) -> Definitions:
+    """`changing` takes the run config's `value`, and is UNCHANGED while it stays the same. `steady` is UNCHANGED after its first run."""
+
+    @asset(io_manager="fixed_json")
+    def changing(*, previous: int | None, context: RunContext) -> Any:
+        value = int(context.config.get("value", 0))
+        return UNCHANGED if value == previous else value
+
+    @asset(io_manager="fixed_json")
+    def steady(*, previous: str | None) -> Any:
+        return UNCHANGED if previous is not None else "fixed"
+
+    @asset(deps=["changing"], io_manager="run_json")
+    def after_changing(value: int, *, context: RunContext) -> int:
+        calls.append("after_changing")
+        if context.config.get("fail"):
+            raise RuntimeError("asked to fail")
+        return value * 10
+
+    @asset(deps=["steady"], io_manager="run_json")
+    def after_steady(value: str) -> str:
+        calls.append("after_steady")
+        return value + "!"
+
+    return Definitions([changing, steady, after_changing, after_steady])
+
+
+def test_a_child_of_an_unchanged_root_skips_while_a_child_of_a_changing_root_computes() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = steady_and_changing(calls)
+    run(defs, io, config={"value": 0})
+
+    second = run(defs, io, config={"value": 1})
+
+    assert second.computed == ["changing", "after_changing"]
+    assert second.skipped == ["steady", "after_steady"]
+    assert calls == ["after_changing", "after_steady", "after_changing"]
+    assert value_of(io, second, "after_steady") == "fixed!"
+    assert value_of(io, second, "after_changing") == 10
+
+
+def test_a_child_that_failed_after_its_parent_changed_computes_next_run_though_the_parent_is_unchanged() -> None:
+    calls: list[str] = []
+    io = fixed_and_run_json()
+    defs = steady_and_changing(calls)
+    run(defs, io, config={"value": 0})
+    with pytest.raises(RuntimeError):
+        run(defs, io, config={"value": 1, "fail": True})
+
+    third = run(defs, io, config={"value": 1})
+
+    assert third.skipped == ["changing", "steady", "after_steady"]
+    assert third.computed == ["after_changing"]
+    assert value_of(io, third, "after_changing") == 10
+
+
+def test_a_root_is_computed_every_run_even_when_nothing_could_have_changed() -> None:
+    calls: list[str] = []
+
+    @asset(io_manager="run_json")
+    def source() -> int:
+        calls.append("source")
+        return 1
+
+    io = run_json()
+    defs = Definitions([source])
+    run(defs, io)
+
+    second = run(defs, io)
+
+    assert second.computed == ["source"]
+    assert calls == ["source", "source"]
+
+
+def test_a_child_with_skip_when_unchanged_turned_off_computes_though_its_parents_are_unchanged() -> None:
+    calls: list[str] = []
+
+    @asset(io_manager="run_json")
+    def source() -> int:
+        return 1
+
+    @asset(deps=["source"], io_manager="run_json", skip_when_unchanged=False)
+    def child(n: int) -> int:
+        calls.append("child")
+        return n + 1
+
+    io = run_json()
+    defs = Definitions([source, child])
+    run(defs, io)
+
+    second = run(defs, io)
+
+    assert second.computed == ["source", "child"]
+    assert calls == ["child", "child"]
+
+
+def test_skip_when_unchanged_is_on_by_default() -> None:
+    @asset(deps=["x"], io_manager="run_json")
+    def child(x: int) -> int:
+        return x
+
+    @asset(io_manager="run_json")
+    def x() -> int:
+        return 1
+
+    assert Definitions([child, x])["child"].skip_when_unchanged is True
+
+
+def test_a_forced_run_computes_a_child_whose_parents_are_unchanged() -> None:
+    calls: list[str] = []
+
+    @asset(io_manager="run_json")
+    def source() -> int:
+        return 1
+
+    @asset(deps=["source"], io_manager="run_json")
+    def child(n: int) -> int:
+        calls.append("child")
+        return n + 1
+
+    io = run_json()
+    defs = Definitions([source, child])
+    run(defs, io)
+
+    result = run(defs, io, force=True)
+
+    assert result.computed == ["source", "child"]
+    assert calls == ["child", "child"]
+
+
+def test_a_materialization_with_no_recorded_parents_computes() -> None:
+    @asset(io_manager="run_json")
+    def source() -> int:
+        return 1
+
+    @asset(deps=["source"], io_manager="run_json")
+    def child(n: int) -> int:
+        return n + 1
+
+    io = run_json()
+    defs = Definitions([source, child])
+    run(defs, io)
+    # Written as before stamps existed: a latest materialization with no recorded parents.
+    io["run_json"].store(99, "child", RunContext("old", "", "child", {}, {}, False))
+
+    result = run(defs, io)
+
+    assert "child" in result.computed
+    assert value_of(io, result, "child") == 2
+
+
+def test_a_stored_materialization_records_its_parents_pointers_without_their_stamps() -> None:
+    @asset(io_manager="run_json")
+    def source() -> int:
+        return 1
+
+    @asset(deps=["source"], io_manager="run_json")
+    def child(n: int) -> int:
+        return n + 1
+
+    io = run_json()
+    first = run(Definitions([source, child]), io)
+
+    recorded = first.pointers["child"].metadata["stamp"]["parents"]["source"]
+    assert recorded == {**first.pointers["source"].to_json(), "metadata": {k: v for k, v in first.pointers["source"].metadata.items() if k != "stamp"}}
+    assert "stamp" not in recorded["metadata"]
+
+
+def test_the_skip_reason_says_the_parents_are_unchanged() -> None:
+    from stepdag.execution import materialize, plan
+
+    @asset(io_manager="run_json")
+    def source() -> int:
+        return 1
+
+    @asset(deps=["source"], io_manager="run_json")
+    def child(n: int) -> int:
+        return n + 1
+
+    io = run_json()
+    defs = Definitions([source, child])
+    first = run(defs, io)
+    the_run = plan(defs, io, {}, "r2", "2026-11-18T00:00:00+00:00")
+
+    outcome = materialize(defs, "child", {"source": first.pointers["source"]}, the_run, io)
+
+    assert not outcome.computed
+    assert "parents" in outcome.reason and "unchanged" in outcome.reason

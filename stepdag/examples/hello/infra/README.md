@@ -50,8 +50,8 @@ Each object is `{"pointer": …, "value": …}`:
 ```sh
 aws s3 cp "s3://$BUCKET/fixed/counter.json" -           # after run-1: 1, run-2: 2, run-4: 1
 aws s3 cp "s3://$BUCKET/runs/run-1/report.json" -
-aws s3 cp "s3://$BUCKET/runs/run-2/report.json" -       # greeting skipped
-aws s3 ls "s3://$BUCKET/runs/run-3/"                    # shout and word_count, but no report: run-3 fails at report
+aws s3 cp "s3://$BUCKET/runs/run-2/report.json" -       # greeting, shout and word_count skipped
+aws s3 ls "s3://$BUCKET/runs/run-3/"                    # nothing: shout and word_count skip, and run-3 fails at report
 aws s3 cp "s3://$BUCKET/runs/run-4/report.json" -
 ```
 

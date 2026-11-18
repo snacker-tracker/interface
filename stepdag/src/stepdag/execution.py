@@ -67,20 +67,27 @@ class Outcome:
     pointer: Pointer
     computed: bool
     """False when the step re-emitted the asset's latest materialization."""
+    reason: str = ""
+    """Why a step skipped by the parents rule (ADR 0006), for the log. Empty otherwise."""
 
 
 def materialize(definitions: Definitions, name: str, pointers: Mapping[str, Pointer], run: Run, io_managers: Bindings) -> Outcome:
     """Run one asset's step: load its parents, call its function, and store the result."""
     a = definitions[name]
     io_manager = io_managers[a.io_manager]
-    context = _context(definitions, name, run)
-    # Only asked for when it's needed: an asset that's selected, takes no `previous` and returns
-    # a value never reads it.
-    latest = io_manager.latest(name) if name not in run.selected or a.wants_previous else None
     if name not in run.selected:
+        latest = io_manager.latest(name)
         if latest is None:
             raise StepFailed(f"{name} isn't selected and has no materialization to re-emit")
         return Outcome(latest, computed=False)
+    stamp = {"parents": {dep: _unstamped(pointers[dep]) for dep in a.deps}}
+    context = _context(definitions, name, run, stamp)
+    # Only asked for when it's needed: an asset with parents that may skip needs its latest to see
+    # whether its parents are unchanged, and one that takes `previous` needs it to call its function.
+    may_skip = bool(a.deps) and a.skip_when_unchanged and not context.force
+    latest = io_manager.latest(name) if a.wants_previous or may_skip else None
+    if may_skip and latest is not None and latest.metadata.get("stamp", {}).get("parents") == stamp["parents"]:
+        return Outcome(latest, computed=False, reason="its parents are unchanged since it was made")
     parents = [io_managers[pointers[dep].io_manager].load(pointers[dep]) for dep in a.deps]
     keywords: dict[str, Any] = {}
     if a.wants_context:
@@ -105,7 +112,14 @@ def materialize(definitions: Definitions, name: str, pointers: Mapping[str, Poin
     return Outcome(pointer, computed=True)
 
 
-def _context(definitions: Definitions, name: str, run: Run) -> RunContext:
+def _unstamped(pointer: Pointer) -> dict[str, Any]:
+    """A parent's pointer as a child records it: without the parent's own stamp, so the metadata doesn't nest."""
+    data = pointer.to_json()
+    data["metadata"] = {k: v for k, v in pointer.metadata.items() if k != "stamp"}
+    return data
+
+
+def _context(definitions: Definitions, name: str, run: Run, stamp: dict[str, Any]) -> RunContext:
     names = set(definitions.names)
     shared = {k: v for k, v in run.config.items() if k not in names and k not in RESERVED_NAMES}
     return RunContext(
@@ -115,6 +129,7 @@ def _context(definitions: Definitions, name: str, run: Run) -> RunContext:
         config=shared,
         asset_config=dict(run.config.get(name, {})),
         force=bool(run.config.get("force", False)),
+        stamp=stamp,
     )
 
 

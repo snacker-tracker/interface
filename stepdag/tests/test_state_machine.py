@@ -57,7 +57,8 @@ def test_a_second_execution_skips_greeting_and_counts_up(manifest: dict[str, Any
 
 
 def test_fail_check_fails_at_report_and_stores_nothing_for_it(manifest: dict[str, Any]) -> None:
-    execute(manifest, {}, "first")
+    first = execute(manifest, {}, "first")
+    shout_before = stored("runs/shout/first.json")
 
     with pytest.raises(ExecutionFailed) as failure:
         execute(manifest, {"fail_check": True}, "failing")
@@ -65,7 +66,10 @@ def test_fail_check_fails_at_report_and_stores_nothing_for_it(manifest: dict[str
     assert failure.value.state == "level 3: report"
     assert failure.value.error == "CheckFailed"
     assert stored("runs/report/failing.json") is None
-    assert stored("runs/shout/failing.json") == "HELLO, WORLD!"
+    # The earlier levels ran before report failed: shout re-emitted first's materialization, which is still the one stored.
+    assert first["pointers"]["shout"]["uri"] == f"s3://{BUCKET}/runs/shout/first.json"
+    assert stored("runs/shout/first.json") == shout_before == "HELLO, WORLD!"
+    assert stored("runs/shout/failing.json") is None
 
 
 def test_force_resets_the_counter(manifest: dict[str, Any]) -> None:

@@ -11,8 +11,19 @@ from stepdag.json_io import DirectoryStore, MemoryStore, RunJson, S3Store, Store
 from tests.fakes import s3_bucket
 
 
-def context(run_id: str, asset: str = "a") -> RunContext:
-    return RunContext(run_id=run_id, started_at="2026-10-30T00:00:00+00:00", asset=asset, config={}, asset_config={}, force=False)
+def context(run_id: str, asset: str = "a", stamp: dict[str, Any] | None = None) -> RunContext:
+    return RunContext(
+        run_id=run_id,
+        started_at="2026-10-30T00:00:00+00:00",
+        asset=asset,
+        config={},
+        asset_config={},
+        force=False,
+        stamp=stamp or {},
+    )
+
+
+PARENTS = {"parents": {"b": {"asset": "b", "io_manager": "run_json", "uri": "memory://b/x.json", "metadata": {"run_id": "r0"}}}}
 
 
 @pytest.fixture(params=["memory", "directory", "s3"])
@@ -91,3 +102,28 @@ def test_run_json_latest_on_s3_is_one_list_and_one_get_however_many_runs_are_sto
 
         assert io.latest("a") == newest
         assert calls == ["ListObjectsV2", "GetObject"]
+
+
+def test_run_json_keeps_the_stamp_in_the_pointer_and_latest_returns_it(store: Store) -> None:
+    io = RunJson(store)
+    stored = io.store(1, "a", context("r1", stamp=PARENTS))
+
+    assert stored.metadata["stamp"] == PARENTS
+    assert io.latest("a") == stored
+
+
+def test_fixed_json_keeps_the_stamp_in_the_pointer_and_latest_returns_it(store: Store) -> None:
+    from stepdag.json_io import FixedJson
+
+    io = FixedJson(store)
+    stored = io.store(1, "a", context("r1", stamp=PARENTS))
+
+    assert stored.metadata["stamp"] == PARENTS
+    assert io.latest("a") == stored
+
+
+def test_a_pointer_stored_without_a_stamp_has_no_stamp_key(store: Store) -> None:
+    from stepdag.json_io import FixedJson
+
+    assert "stamp" not in RunJson(store).store(1, "a", context("r1")).metadata
+    assert "stamp" not in FixedJson(store).store(1, "b", context("r1", asset="b")).metadata

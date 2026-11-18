@@ -31,6 +31,9 @@ class RunContext:
     asset_config: dict[str, Any]
     """The run config's section named after this asset, if any."""
     force: bool
+    stamp: dict[str, Any] = field(default_factory=dict)
+    """What this materialization was made from, filled in by the framework: `{"parents": {asset: pointer}}`.
+    IO managers store it in the pointer's metadata under "stamp", so `latest()` returns it."""
 
 
 class IOManager(Protocol):

@@ -128,6 +128,14 @@ class S3Store:
         return uri.removeprefix(f"s3://{self.bucket}/{self.prefix}")
 
 
+def _metadata(context: RunContext) -> dict[str, Any]:
+    metadata: dict[str, Any] = {"run_id": context.run_id, "stored_at_ns": time.time_ns()}
+    if context.stamp:
+        # A pointer without a stamp means "compute": the skip rule can't tell it is unchanged.
+        metadata["stamp"] = context.stamp
+    return metadata
+
+
 class _JsonIO:
     """Each materialization is one JSON object holding its value and its pointer."""
 
@@ -142,7 +150,7 @@ class _JsonIO:
             asset=asset,
             io_manager=self.name,
             uri=self.backend.uri(key),
-            metadata={"run_id": context.run_id, "stored_at_ns": time.time_ns()},
+            metadata=_metadata(context),
         )
         self.backend.put(key, json.dumps({"pointer": pointer.to_json(), "value": value}).encode())
         return pointer

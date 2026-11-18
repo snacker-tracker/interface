@@ -31,6 +31,9 @@ class Asset:
     wants_context: bool
     keep: int
     """How many materializations are kept after each run: 1 for `latest`."""
+    skip_when_unchanged: bool
+    """Whether an asset with parents re-emits its latest materialization when its parents and their
+    materializations are unchanged since it was made (ADR 0006)."""
 
 
 def asset(
@@ -44,12 +47,15 @@ def asset(
     role: str = "default",
     checks: Sequence[Callable[..., str | None]] = (),
     retention: str | int = "latest",
+    skip_when_unchanged: bool = True,
 ) -> Callable[[Callable[..., Any]], Asset]:
     """Declare an asset computed by the decorated function from the values of `deps`, in order.
 
     The function may also declare keyword-only `previous` and `context` parameters.
     `retry_attempts` retries the function's own errors; transient Lambda errors are always retried.
     `retention` is `latest` (keep only the newest materialization) or a number to keep the newest N.
+    `skip_when_unchanged=False` makes an asset with parents compute whenever it's selected, even when
+    its parents' latest materializations are the ones it was made from (ADR 0006).
     """
 
     def declare(fn: Callable[..., Any]) -> Asset:
@@ -77,6 +83,7 @@ def asset(
             wants_previous="previous" in keyword,
             wants_context="context" in keyword,
             keep=1 if retention == "latest" else int(retention),
+            skip_when_unchanged=skip_when_unchanged,
         )
 
     return declare

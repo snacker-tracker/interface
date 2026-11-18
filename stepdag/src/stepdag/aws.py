@@ -40,7 +40,8 @@ def asset_handler(event: dict[str, Any] | list[dict[str, Any]], _context: object
     state = _merged(event)
     pointers = {k: Pointer.from_json(p) for k, p in state["pointers"].items()}
     outcome = materialize(definitions, name, pointers, Run.from_json(state["run"]), io_managers)
-    print(f"{name}: {'stored' if outcome.computed else 're-emitted'} {outcome.pointer.uri}")
+    reason = f" ({outcome.reason})" if outcome.reason else ""
+    print(f"{name}: {'stored' if outcome.computed else 're-emitted'} {outcome.pointer.uri}{reason}")
     return {"run": state["run"], "pointers": {**state["pointers"], name: outcome.pointer.to_json()}}
 
 

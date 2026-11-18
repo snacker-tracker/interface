@@ -38,7 +38,7 @@ def test_stepdag_run_takes_run_config(hello: Path, capsys: pytest.CaptureFixture
     assert value["words"] == 2
 
 
-def test_a_second_run_counts_up_and_skips_an_unchanged_greeting(hello: Path, capsys: pytest.CaptureFixture[str]) -> None:
+def test_a_second_run_counts_up_and_skips_an_unchanged_greeting_and_what_depends_on_it(hello: Path, capsys: pytest.CaptureFixture[str]) -> None:
     main(["run", "hello:defs"])
     capsys.readouterr()
 
@@ -46,7 +46,8 @@ def test_a_second_run_counts_up_and_skips_an_unchanged_greeting(hello: Path, cap
 
     out = json.loads(capsys.readouterr().out)
     assert out["values"]["report"]["count"] == 2
-    assert out["skipped"] == ["greeting"]
+    assert out["skipped"] == ["greeting", "shout", "word_count"]
+    assert out["computed"] == ["counter", "report"]
 
 
 def test_select_downstream_and_force_flags(hello: Path, capsys: pytest.CaptureFixture[str]) -> None:
