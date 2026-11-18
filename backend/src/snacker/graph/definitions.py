@@ -136,31 +136,31 @@ def locations_file(scanned: pl.LazyFrame) -> sections.Bundle:
 # The index sections. Every period ends at the run's start time, as at Snacker's single `now`.
 
 
-@asset(deps=["scanned"], io_manager="run_json")
+@asset(deps=["scanned"], io_manager="run_json", max_age=24 * 3600)
 def top_scans(scanned: pl.LazyFrame, *, context: RunContext) -> sections.Bundle:
     """Each index file's `location` and `top_scans`, for every selectable location."""
     return sections.top_scans_section(scanned, datetime.fromisoformat(context.started_at))
 
 
-@asset(deps=["scanned"], io_manager="run_json")
+@asset(deps=["scanned"], io_manager="run_json", max_age=24 * 3600)
 def top_unknown_scans(scanned: pl.LazyFrame, *, context: RunContext) -> sections.Bundle:
     """Each index file's `top_unknown_scans`."""
     return sections.top_unknown_scans_section(scanned, datetime.fromisoformat(context.started_at))
 
 
-@asset(deps=["scanned"], io_manager="run_json")
+@asset(deps=["scanned"], io_manager="run_json", max_age=24 * 3600)
 def healthiest_and_least_healthy(scanned: pl.LazyFrame, *, context: RunContext) -> sections.Bundle:
     """Each index file's `healthiest_and_least_healthy`."""
     return sections.healthiest_and_least_healthy_section(scanned, datetime.fromisoformat(context.started_at))
 
 
-@asset(deps=["scanned"], io_manager="run_json")
+@asset(deps=["scanned"], io_manager="run_json", max_age=24 * 3600)
 def nutri_score_distribution(scanned: pl.LazyFrame, *, context: RunContext) -> sections.Bundle:
     """Each index file's `nutri_score_distribution`."""
     return sections.nutri_score_distribution_section(scanned, datetime.fromisoformat(context.started_at))
 
 
-@asset(deps=["scanned"], io_manager="run_json")
+@asset(deps=["scanned"], io_manager="run_json", max_age=24 * 3600)
 def period_days(scanned: pl.LazyFrame, *, context: RunContext) -> sections.Bundle:
     """Each index file's `period_days`."""
     return sections.period_days_section(scanned, datetime.fromisoformat(context.started_at))
@@ -215,6 +215,7 @@ def scanners(heartbeats: pl.LazyFrame, scanned: pl.LazyFrame) -> sections.Bundle
     ],
     io_manager="site",
     checks=[keeps_the_contract, the_sections_agree],
+    max_age=24 * 3600,
     # Stages the tree twice (the contract check, then publishing) and diff-publishes about 3,500 files.
     memory=1024,
     timeout=600,
