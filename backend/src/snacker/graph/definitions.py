@@ -172,7 +172,7 @@ def daily_and_recent(scanned: pl.LazyFrame) -> sections.Bundle:
     return sections.daily_and_recent_section(scanned)
 
 
-@asset(deps=["scanned"], io_manager="run_json", memory=1024, timeout=300)
+@asset(deps=["scanned"], io_manager="run_json", memory=3008, timeout=300)
 def code_pages(scanned: pl.LazyFrame) -> sections.Bundle:
     """Each scanned code's daily, hourly and recent scans, for every selectable location where it was scanned."""
     return sections.code_pages(scanned)
