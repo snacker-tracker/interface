@@ -2,7 +2,7 @@
 
 Skipping, assets outside the selection, and `previous` all need an asset's latest materialization. stepdag keeps no record of materializations. Instead each IO manager answers `latest(asset, partition=None)`, next to `store` and `load`.
 
-A pointer is `{asset, io_manager, uri, metadata}`. The IO manager supplies all of it, the metadata being its own (a row count, when it was written, a watermark). It must store the pointer with the value, so that `latest()` can return it.
+A pointer is `{asset, io_manager, uri, metadata}`. The IO manager supplies all of it, the metadata being its own (a row count, when it was written, a watermark). It must store the pointer with the value, so that `latest()` can return it. ([ADR 0006](0006-assets-with-parents-skip-when-their-parents-and-code-are-unchanged.md) has the framework add two keys to the metadata: the parents' pointers and the code version.)
 
 When `latest()` finds nothing:
 - `previous` is None;

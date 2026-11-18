@@ -37,8 +37,12 @@ What stores an asset's value, loads it back from a pointer, and finds an asset's
 _Avoid_: storage backend, persister, adapter
 
 **Skip**:
-Re-emitting an asset's latest materialization instead of computing a new one, because its function says nothing has changed or it is outside the run's selection.
+Re-emitting an asset's latest materialization instead of computing a new one, because its function says nothing has changed, it is outside the run's selection, or it has parents and its latest materialization was made by the same code from the parents' current latest ones and is within its max age, if it has one.
 _Avoid_: cache hit, no-op
+
+**Max age**:
+How old an asset's latest materialization may be before the asset computes a new one even though it could skip because its parents are unchanged. An asset that depends on the clock, not only on its parents, declares one.
+_Avoid_: TTL, expiry, staleness limit
 
 ### Runs
 

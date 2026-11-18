@@ -1,5 +1,7 @@
 # Every asset runs as a step, and its function decides whether to skip
 
+> Amended by [ADR 0006](0006-assets-with-parents-skip-when-their-parents-and-code-are-unchanged.md): an asset with parents also skips, by default, when its parents and code are unchanged. The "Skipping automatically on data and code versions" option below, deferred here, is what that ADR decides. Every asset is still a step in every run, and an asset's own function can still skip.
+
 The state machine is a static graph with no Choice states: every asset is a step in every run. A step that has nothing new to do re-emits its latest materialization's pointer, so the steps after it always get a pointer. A step skips when:
 - **its function says so:** it returns "unchanged". The function knows what makes new work, for example a new key appearing in a parent that otherwise changes every run.
 - **it is outside the run's selection.**
