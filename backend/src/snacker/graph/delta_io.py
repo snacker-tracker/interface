@@ -1,5 +1,6 @@
 """An IO manager that keeps each asset as a Delta table, with pointers pinned to a table version."""
 
+import json
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
@@ -16,6 +17,9 @@ about a dozen steps a run."""
 
 VACUUM_EVERY = 48
 COMPACT_EVERY = 48
+HISTORY_WINDOW = 20
+"""How many of a table's newest commits `latest()` reads for the run that wrote it. Compaction, vacuum
+and checkpoint commits carry no stepdag metadata, so the newest run's commit is usually one or two back."""
 
 
 @dataclass(frozen=True)
@@ -37,7 +41,8 @@ class DeltaIO:
     forced run, where the asset had no `previous` and returned the whole table). The pointer
     pins the version written, and `load` reads that version, so a step reads what its parent
     wrote even after later runs write again. Delta's own history holds each version's run, so
-    `latest()` rebuilds the pointer from the table instead of from a separate record.
+    `latest()` rebuilds the pointer from the table instead of from a separate record. The run's stamp
+    is stored with its run ID, in the same commit.
     """
 
     name = "delta"
@@ -62,7 +67,7 @@ class DeltaIO:
         # deltalake can't write dictionary-encoded columns, so Enums and Categoricals are stored as text.
         value = value.with_columns(pl.col(pl.Enum, pl.Categorical).cast(pl.String()))
         uri = self._uri(asset)
-        metadata = {"stepdag_run_id": context.run_id}
+        metadata = _stepdag_metadata(context)
         merge = self.merges.get(asset)
         # A forced run passes no `previous`, so a merging asset returns its whole table: replace it.
         if merge is None or context.force or self._table(asset) is None:
@@ -97,7 +102,7 @@ class DeltaIO:
 
         if table.version() % CHECKPOINT_EVERY == 0:
             table.create_checkpoint()
-        return self._pointer(asset, table.version(), context.run_id)
+        return self._pointer(asset, table.version(), context.run_id, context.stamp)
 
     def load(self, pointer: Pointer) -> pl.LazyFrame:
         return pl.scan_delta(pointer.uri, version=int(pointer.metadata["version"]), storage_options=self.storage_options)
@@ -106,13 +111,29 @@ class DeltaIO:
         table = self._table(asset)
         if table is None:
             return None
-        version = table.version()
-        history = table.history(1)
-        run_id = history[0].get("stepdag_run_id") if history else None
-        return self._pointer(asset, version, run_id)
+        run_id, stamp = None, {}
+        # Newest first: the first commit with stepdag metadata is the run that wrote this table.
+        for commit in table.history(HISTORY_WINDOW):
+            if "stepdag_run_id" in commit:
+                run_id = commit["stepdag_run_id"]
+                stamp = json.loads(commit.get("stepdag_stamp", "{}"))
+                break
+        return self._pointer(asset, table.version(), run_id, stamp)
 
-    def _pointer(self, asset: str, version: int, run_id: str | None) -> Pointer:
-        return Pointer(asset=asset, io_manager=self.name, uri=self._uri(asset), metadata={"version": version, "run_id": run_id})
+    def _pointer(self, asset: str, version: int, run_id: str | None, stamp: dict[str, Any] | None = None) -> Pointer:
+        metadata: dict[str, Any] = {"version": version, "run_id": run_id}
+        if stamp:
+            # A pointer without a stamp means "compute": the skip rule can't tell it is unchanged.
+            metadata["stamp"] = stamp
+        return Pointer(asset=asset, io_manager=self.name, uri=self._uri(asset), metadata=metadata)
+
+
+def _stepdag_metadata(context: RunContext) -> dict[str, str]:
+    """The commit's custom metadata: the run ID, and the stamp as JSON when there is one."""
+    metadata = {"stepdag_run_id": context.run_id}
+    if context.stamp:
+        metadata["stepdag_stamp"] = json.dumps(context.stamp)
+    return metadata
 
 
 def _commit(metadata: dict[str, str]) -> Any:

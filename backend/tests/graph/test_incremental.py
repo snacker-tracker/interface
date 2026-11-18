@@ -68,7 +68,7 @@ def test_a_file_landing_inside_the_margin_is_read_and_nothing_counts_twice(io: B
     ]
 
 
-def test_a_run_with_no_new_files_skips_scans_and_downstream_reads_its_existing_pointer(io: Bindings, raw: Path) -> None:
+def test_a_run_with_no_new_files_skips_scans_and_downstream_too(io: Bindings, raw: Path) -> None:
     seen: list[int] = []
 
     @asset(deps=["scans"], io_manager="delta")
@@ -83,11 +83,12 @@ def test_a_run_with_no_new_files_skips_scans_and_downstream_reads_its_existing_p
 
     second = run(graph, io)
 
-    assert second.skipped == ["scans"]
-    assert second.computed == ["scan_count"]
+    # scan_count's parent and code are unchanged, so it skips too (ADR 0006).
+    assert second.skipped == ["scans", "scan_count"]
+    assert second.computed == []
     pointer: Pointer = second.pointers["scans"]
     assert pointer == first.pointers["scans"]
-    assert seen == [1, 1]
+    assert seen == [1]
 
 
 def test_a_forced_run_reads_every_file_and_leaves_what_a_first_run_would(io: Bindings, raw: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

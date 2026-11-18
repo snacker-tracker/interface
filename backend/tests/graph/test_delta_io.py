@@ -1,15 +1,17 @@
 """The Delta IO manager's contract, against a local directory."""
 
 from pathlib import Path
+from typing import Any
 
 import polars as pl
+from deltalake import DeltaTable
 from stepdag import RunContext
 
 from snacker.graph.delta_io import DeltaIO, Merge
 
 
-def context(run_id: str, force: bool = False) -> RunContext:
-    return RunContext(run_id=run_id, started_at="2026-10-30T00:00:00+00:00", asset="t", config={}, asset_config={}, force=force)
+def context(run_id: str, force: bool = False, stamp: dict[str, Any] | None = None) -> RunContext:
+    return RunContext(run_id=run_id, started_at="2026-10-30T00:00:00+00:00", asset="t", config={}, asset_config={}, force=force, stamp=stamp or {})
 
 
 def test_a_stored_frame_loads_back_from_its_pointer(tmp_path: Path) -> None:
@@ -124,3 +126,42 @@ def test_a_table_written_every_run_is_checkpointed_and_old_pointers_still_load(t
         assert commits_after_the_last_checkpoint(tmp_path / name) < CHECKPOINT_EVERY
         assert io.load(pointer).collect()["id"].to_list() == ["r0"]
     assert io.load(io.latest("merged")).collect().height == 3 * CHECKPOINT_EVERY  # type: ignore[arg-type]
+
+
+STAMP = {"parents": {"upstream": {"version": 3, "run_id": "r1"}}}
+
+
+def test_a_stamp_is_stored_with_the_pointer_and_latest_returns_it(tmp_path: Path) -> None:
+    io = DeltaIO(str(tmp_path))
+    pointer = io.store(pl.DataFrame({"n": [1]}), "t", context("r1", stamp=STAMP))
+
+    assert pointer.metadata["stamp"] == STAMP
+    latest = io.latest("t")
+    assert latest is not None and latest.metadata["stamp"] == STAMP
+    assert latest.metadata["run_id"] == "r1"
+
+
+def test_a_pointer_without_a_stamp_has_no_stamp_key(tmp_path: Path) -> None:
+    io = DeltaIO(str(tmp_path))
+
+    pointer = io.store(pl.DataFrame({"n": [1]}), "t", context("r1"))
+
+    assert "stamp" not in pointer.metadata
+    latest = io.latest("t")
+    assert latest is not None and "stamp" not in latest.metadata
+
+
+def test_latest_keeps_the_stamp_after_a_compaction_commit_without_stepdag_metadata(tmp_path: Path) -> None:
+    io = DeltaIO(str(tmp_path))
+    io.store(pl.DataFrame({"n": [1]}), "t", context("r1", stamp=STAMP))
+    # Plain appends and a compaction commit carry no stepdag metadata.
+    for n in (2, 3):
+        pl.DataFrame({"n": [n]}).write_delta(str(tmp_path / "t"), mode="append")
+    DeltaTable(str(tmp_path / "t")).optimize.compact()
+
+    latest = io.latest("t")
+
+    assert latest is not None
+    assert latest.metadata["version"] == DeltaTable(str(tmp_path / "t")).version()
+    assert latest.metadata["stamp"] == STAMP
+    assert latest.metadata["run_id"] == "r1"

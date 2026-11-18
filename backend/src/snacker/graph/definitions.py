@@ -113,7 +113,7 @@ def bindings() -> Bindings:
         ),
         "fixed_json": FixedJson(_json_store(tables)),
         "run_json": RunJson(_json_store(tables)),
-        "site": SiteIO(os.environ["SCANS_SITE"]),
+        "site": SiteIO(os.environ["SCANS_SITE"], state=_json_store(tables)),
     }
 
 

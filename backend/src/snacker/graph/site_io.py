@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from stepdag import Pointer, RunContext
+from stepdag.json_io import Store
 
 from snacker import sections
 from snacker.contract import meta_path
@@ -18,24 +19,40 @@ class SiteIO:
 
     `$SCANS_SITE` is a directory locally, or `s3://<bucket>` in Lambda. The pointer names the tree
     and its `generated_at`; `latest()` reads `data/meta.json`.
+
+    The stamp is kept in `state`, a private store outside the site bucket, under `site_stamps/<asset>.json`,
+    because the bucket is served publicly and its sync deletes what the build doesn't write. Without
+    `state` no stamp is kept, so every pointer means "compute".
     """
 
     name = "site"
 
-    def __init__(self, location: str) -> None:
+    def __init__(self, location: str, state: Store | None = None) -> None:
         self.location = location
+        self.state = state
 
     def _bucket(self) -> Bucket:
         if self.location.startswith("s3://"):
             return S3Bucket(self.location.removeprefix("s3://").strip("/"))
         return DirectoryBucket(Path(self.location))
 
+    def _stamp_key(self, asset: str) -> str:
+        return f"site_stamps/{asset}.json"
+
     def store(self, value: Any, asset: str, context: RunContext) -> Pointer:
         with tempfile.TemporaryDirectory() as staging:
             sections.write_tree(value, Path(staging))
             publish_to_bucket(Path(staging), self._bucket())
         generated_at = value[meta_path().as_posix()]["generated_at"]
-        return Pointer(asset, self.name, f"{self.location.rstrip('/')}/data/", {"generated_at": generated_at, "run_id": context.run_id})
+        metadata: dict[str, Any] = {"generated_at": generated_at, "run_id": context.run_id}
+        if self.state is not None:
+            # Written after the publish, so a failed publish leaves the old stamp, which can't match the new parents.
+            if context.stamp:
+                self.state.put(self._stamp_key(asset), json.dumps(context.stamp).encode())
+                metadata["stamp"] = context.stamp
+            else:
+                self.state.delete(self._stamp_key(asset))
+        return Pointer(asset, self.name, f"{self.location.rstrip('/')}/data/", metadata)
 
     def load(self, pointer: Pointer) -> dict[str, bytes]:
         """Every published file's bytes, by path under `data/`."""
@@ -51,4 +68,7 @@ class SiteIO:
             if type(error).__name__ in ("NoSuchKey", "ClientError"):
                 return None
             raise
-        return Pointer(asset, self.name, f"{self.location.rstrip('/')}/data/", {"generated_at": meta_file["generated_at"]})
+        metadata: dict[str, Any] = {"generated_at": meta_file["generated_at"]}
+        if self.state is not None and (data := self.state.get(self._stamp_key(asset))) is not None:
+            metadata["stamp"] = json.loads(data)
+        return Pointer(asset, self.name, f"{self.location.rstrip('/')}/data/", metadata)
