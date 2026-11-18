@@ -9,7 +9,7 @@ An asset that has parents **skips** when all of these hold:
 
 The framework writes the recorded parents and code version into the pointer's metadata, next to what the IO manager supplies. A pointer without them means "compute".
 
-The rule is on by default for an asset with parents. `skip_when_unchanged=False` turns it off. An asset with no parents is exempt, because "none of its parents changed" would hold forever: it keeps deciding for itself by returning "unchanged". There is no default max age. An asset that depends on the clock or on config, not only on its parents, must declare one; Snacker's five index sections that take the run's start time and `site_tree` declare 24 hours.
+The rule is on by default for an asset with parents. `skip_when_unchanged=False` turns it off. An asset with no parents is exempt, because "none of its parents changed" would hold forever: it keeps deciding for itself by returning "unchanged". There is no default max age. An asset that depends on the clock or on config, not only on its parents, must declare one; Snacker's five index sections that take the run's start time and `site_tree` declare 3 hours.
 
 ## Considered options
 

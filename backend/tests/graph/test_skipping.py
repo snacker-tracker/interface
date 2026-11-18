@@ -65,10 +65,18 @@ def test_products_skips_when_the_copy_and_scans_are_unchanged(io: Bindings, worl
     assert second.pointers["products"] == first.pointers["products"]
 
 
-def test_after_24_hours_only_the_max_age_assets_compute(io: Bindings, world: Path) -> None:
+def test_within_3_hours_nothing_computes(io: Bindings, world: Path) -> None:
     run(defs, io, started_at=NOW)
 
-    second = run(defs, io, started_at=NOW + timedelta(hours=25))
+    second = run(defs, io, started_at=NOW + timedelta(hours=2))
+
+    assert second.computed == []
+
+
+def test_after_3_hours_only_the_max_age_assets_compute(io: Bindings, world: Path) -> None:
+    run(defs, io, started_at=NOW)
+
+    second = run(defs, io, started_at=NOW + timedelta(hours=4))
 
     assert set(second.computed) == MAX_AGE
     assert PARENTS_ONLY <= set(second.skipped)
