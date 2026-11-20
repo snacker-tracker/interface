@@ -19,6 +19,9 @@ locals {
   access_logs_s3_prefix  = "cloudfront"
   log_delivery_arn       = "arn:aws:logs:us-east-1:${local.account}"
   access_log_group_arn   = "${local.log_delivery_arn}:log-group:/aws/vendedlogs/cloudfront/${local.prefix}-*"
+
+  # Where S3 writes the working bucket's server access logs, in the access-log bucket.
+  working_bucket_logs_prefix = "s3-working/"
 }
 
 resource "terraform_data" "workspace" {

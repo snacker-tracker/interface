@@ -78,6 +78,28 @@ data "aws_iam_policy_document" "access_logs_bucket" {
     }
   }
 
+  # S3 server access logs for the working bucket (to find which functions make its requests). S3
+  # writes them as a service principal, scoped to this environment's working bucket and under s3-working/.
+  statement {
+    sid       = "S3ServerAccessLogsWrite"
+    actions   = ["s3:PutObject"]
+    resources = ["${local.access_logs_bucket_arn}/${local.working_bucket_logs_prefix}*"]
+    principals {
+      type        = "Service"
+      identifiers = ["logging.s3.amazonaws.com"]
+    }
+    condition {
+      test     = "StringEquals"
+      variable = "aws:SourceAccount"
+      values   = [local.account]
+    }
+    condition {
+      test     = "ArnLike"
+      variable = "aws:SourceArn"
+      values   = ["arn:aws:s3:::${local.working_bucket}"]
+    }
+  }
+
   # Delivery checks the bucket first; without these it still works, but CloudTrail fills with AccessDenied.
   statement {
     sid       = "AWSLogDeliveryAclCheck"

@@ -90,3 +90,13 @@ resource "aws_cloudwatch_log_delivery" "central" {
 
   depends_on = [aws_cloudwatch_log_delivery.access_logs_bucket]
 }
+
+# S3 server access logs for the working bucket, in the access-log bucket under s3-working/ (the
+# admin configuration's bucket policy lets S3 write there). They record each request's key,
+# operation and requester, which shows which function makes the bucket's reads. They expire with
+# the rest of the bucket (access_log_retention_days). Remove this once the question is answered.
+resource "aws_s3_bucket_logging" "working" {
+  bucket        = aws_s3_bucket.working.id
+  target_bucket = local.access_logs_bucket
+  target_prefix = "s3-working/"
+}
