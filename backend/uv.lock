@@ -807,7 +807,7 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.26.0" },
     { name = "polars", specifier = ">=2.0.0" },
     { name = "pydantic", specifier = ">=2.14.1" },
-    { name = "stepdag", git = "https://github.com/snacker-tracker/interface?subdirectory=stepdag&rev=1c0801985a73d8f26e478a11b0102b424fec5eca" },
+    { name = "stepdag", git = "https://github.com/snacker-tracker/interface?subdirectory=stepdag&rev=7f429299e951423268a42cc6cb969f5b9d4767a0" },
 ]
 
 [package.metadata.requires-dev]
@@ -823,7 +823,7 @@ dev = [
 [[package]]
 name = "stepdag"
 version = "0.1.0"
-source = { git = "https://github.com/snacker-tracker/interface?subdirectory=stepdag&rev=1c0801985a73d8f26e478a11b0102b424fec5eca#1c0801985a73d8f26e478a11b0102b424fec5eca" }
+source = { git = "https://github.com/snacker-tracker/interface?subdirectory=stepdag&rev=7f429299e951423268a42cc6cb969f5b9d4767a0#7f429299e951423268a42cc6cb969f5b9d4767a0" }
 dependencies = [
     { name = "boto3" },
 ]
