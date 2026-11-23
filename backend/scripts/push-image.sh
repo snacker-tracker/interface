@@ -16,8 +16,8 @@ registry="$(aws sts get-caller-identity --query Account --output text).dkr.ecr.$
 repository="$registry/$repository_name"
 sha="$(git rev-parse HEAD)"
 tag="${sha:0:7}"
-if [ -n "$(git status --porcelain -- . ../stepdag ../.dockerignore)" ]; then
-  echo "backend/ or stepdag/ has uncommitted changes; commit them so the tag matches what's built" >&2
+if [ -n "$(git status --porcelain -- . ../.dockerignore)" ]; then
+  echo "backend/ has uncommitted changes; commit them so the tag matches what's built" >&2
   exit 1
 fi
 
@@ -31,7 +31,7 @@ if image_digest="$(digest)"; then
 else
   aws ecr get-login-password | docker login --username AWS --password-stdin "$registry" >&2
   # Lambda wants a single-platform image manifest, not an index with attestations.
-  # From the repo root, so the image can hold stepdag/ (the root .dockerignore trims the context).
+  # From the repo root (the root .dockerignore trims the context).
   tags=("$tag" ${IMAGE_VERSION:+"$IMAGE_VERSION"})
   # OCI's labels, plus a link to the CI run that built it (GitHub Actions sets GITHUB_*).
   labels=(

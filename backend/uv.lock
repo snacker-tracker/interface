@@ -807,7 +807,7 @@ requires-dist = [
     { name = "jsonschema", specifier = ">=4.26.0" },
     { name = "polars", specifier = ">=2.0.0" },
     { name = "pydantic", specifier = ">=2.14.1" },
-    { name = "stepdag", editable = "../stepdag" },
+    { name = "stepdag", git = "https://github.com/snacker-tracker/interface?subdirectory=stepdag&rev=1c0801985a73d8f26e478a11b0102b424fec5eca" },
 ]
 
 [package.metadata.requires-dev]
@@ -823,20 +823,9 @@ dev = [
 [[package]]
 name = "stepdag"
 version = "0.1.0"
-source = { editable = "../stepdag" }
+source = { git = "https://github.com/snacker-tracker/interface?subdirectory=stepdag&rev=1c0801985a73d8f26e478a11b0102b424fec5eca#1c0801985a73d8f26e478a11b0102b424fec5eca" }
 dependencies = [
     { name = "boto3" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "boto3", specifier = ">=1.43.116" }]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "moto", extras = ["s3"], specifier = ">=5.1.0" },
-    { name = "mypy", specifier = ">=2.4.0" },
-    { name = "pytest", specifier = ">=9.1.1" },
-    { name = "types-boto3", extras = ["s3"], specifier = ">=1.43.116" },
 ]
 
 [[package]]

@@ -17,6 +17,11 @@ uv run pytest
 uv run mypy
 ```
 
+stepdag is installed from a git commit pinned in `pyproject.toml` (`[tool.uv.sources]`), not from
+`../stepdag`. To change stepdag and backend together, run with the checkout instead:
+`uv run --with-editable ../stepdag pytest`. To ship a stepdag change, push it, then set `rev` to
+its commit and run `uv lock`.
+
 After changing an asset, render the manifest that `infra/main` and `infra/admin` read:
 
 ```sh

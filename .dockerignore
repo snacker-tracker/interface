@@ -5,8 +5,5 @@
 !backend/uv.lock
 !backend/README.md
 !backend/src
-!stepdag/pyproject.toml
-!stepdag/README.md
-!stepdag/src
 **/__pycache__
 **/*.pyc
