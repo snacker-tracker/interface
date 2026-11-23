@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [tool.uv.sources]
-stepdag = { git = "https://github.com/snacker-tracker/interface", subdirectory = "stepdag", rev = "1c0801985a73d8f26e478a11b0102b424fec5eca" }
+stepdag = { git = "https://github.com/snacker-tracker/interface", subdirectory = "stepdag", rev = "7f429299e951423268a42cc6cb969f5b9d4767a0" }
 
 [project.scripts]
 snacker = "snacker.cli:main"
